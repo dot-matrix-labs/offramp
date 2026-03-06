@@ -22,6 +22,10 @@ Before bootstrapping a Calypso project, the bare-metal Linux host must have the 
 
 ---
 
+## 0. Agent Standards
+* Different agent vendors (Claude, Codex, Gemini) have different ways of producing instructions for agents. These are currently defined as .md txt files. 
+You should have a `.calypso/` folder in the project root which includes the .md files with the various standards that agents should follow.
+
 ## 1. Architecture
 
 **Stack**

@@ -26,11 +26,17 @@ Before executing the checklist below, **detect the host environment you are curr
 3. Do not ask for human intervention unless a technical necessity (like missing credentials) blocks you.
 4. Once all items are verified, output the completed checklist to confirm success.
 
+### 0. Agent Setup
+- [ ] You have a `.calypso/` folder in the project root which includes the .md files with the various standards that agents should follow
+
 
 ### 1. Architecture & Stack Integrity
 - [ ] The repository strictly uses TypeScript, Bun, React, and Tailwind CSS.
 - [ ] A monorepo structure is established (e.g., `/apps/web`, `/apps/server`, `/packages/*`).
-- [ ] There is a strict boundary between browser code (`/apps/web`) and server code (`/apps/server`).
+- [ ] The package.json of each module has clear compiling targets for code (`/apps/web`) and server code (`/apps/server`).
+- [ ] All local dependencies of a module in the monorepo are built ahead of the target model
+- [ ] All modules succeed with `bun run build`
+- [ ] All package.json scripts are run with `bunx`, not calling a globally intalled binary, (e.g. `bunx vitest` is correct, not `vitest`)
 
 ### 2. Requirements & Documentation
 - [ ] The Product Owner interview has been conducted natively via your prompt interactions.
@@ -41,10 +47,18 @@ Before executing the checklist below, **detect the host environment you are curr
 - [ ] Vitest and Playwright are configured.
 - [ ] The foundation for the "golden fixture" external API testing tool is scaffolded (or explicitly planned in `docs/prd.md`).
 - [ ] The project is completely clear of any mocking libraries (e.g., `jest.mock`, `msw`).
+- [ ] There are stub tests (no-ops) for all categories of tests; server (unit, module, integration) and browser (unit, component, e2e). 
+- [ ] You can run a full test suite (all categories) and see all tests pass.
 
 ### 4. Deployment Posture
 - [ ] The project includes `.env` file templates.
 - [ ] There is a foundational plan or structure for bare-metal Linux deployment using `systemd` (No Dockerfiles present).
+
+### 5. Documentation Standards
+- [ ] There is a `docs/` directory at the root of the project. And there a no docs outside of this directory except README.md files in each directory.
+- [ ] There are extensive code comments on each of the source code files, including intruduction struct definitions and function definitions.
+- [ ] The project includes `.git/hooks/pre-push` with the documentation standard hook.
+
 
 ---
 **Action Required:**
