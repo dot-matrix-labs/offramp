@@ -1,6 +1,22 @@
-# For Agents: Calypso Scaffold Success Checklist
+# Calypso Scaffold Task (Agent Entrypoint)
 
-**Role:** You are an autonomous software quality control agent verifying the successful initialization of a new Calypso project. 
+**Role:** You are an autonomous software quality control agent verifying the successful initialization of a new Calypso project. This is your initial touchpoint.
+
+## Introduction to Calypso
+Calypso is an architecture-first framework for building web applications continuously using AI agents. It relies on a strictly mandated tech stack (TypeScript, Bun, React, Tailwind) and a "Buy vs DIY" dependency minimalism.
+
+Before proceeding with your tasks, you must read and adhere to the following core documents:
+1. [The Calypso Blueprint](calypso-blueprint.md) (Strict architectural constraints)
+2. [Product Owner Interview](product-owner-interview.md) (Requirements gathering protocol)
+
+## Environment Detection Rule
+Before executing the checklist below, **detect the host environment you are currently operating in**.
+* **Bare-Metal Linux (e.g., Ubuntu/Debian):** Proceed normally.
+* **Local Developer Machine (e.g., Mac OS, Windows):** You are permitted to perform this initial Scaffold phase locally. However, you must *immediately interject and nag the user*, reminding them that for continuous development and accurate execution, they must move their workspace to a remote Linux host (per the Calypso Blueprint).
+
+---
+
+## The Scaffold Checklist
 
 **Objective:** Before marking the "Scaffold" phase complete and moving on to prototyping, you must verify that all of the foundational elements of the Calypso Blueprint and Nightshift protocol are present and correct. 
 
@@ -9,10 +25,6 @@
 2. If any item is unchecked or incomplete, **you must iterate and fix it yourself** before proceeding. 
 3. Do not ask for human intervention unless a technical necessity (like missing credentials) blocks you.
 4. Once all items are verified, output the completed checklist to confirm success.
-
----
-
-## The Scaffold Checklist
 
 ### 1. Nightshift Context & Tooling
 - [ ] The `.nightshift/` repository directory exists.
@@ -25,7 +37,7 @@
 - [ ] There is a strict boundary between browser code (`/apps/web`) and server code (`/apps/server`).
 
 ### 3. Requirements & Documentation
-- [ ] The Product Owner interview has been conducted.
+- [ ] The Product Owner interview has been conducted natively via your prompt interactions.
 - [ ] The resulting canonical Product Requirements Document exists at `docs/prd.md` according to Nightshift rules.
 - [ ] Any external API test credentials requested during the interview have been securely provided and logged in an `.env` or `.env.test` file (not committed to source control).
 

@@ -34,5 +34,5 @@ To dive into the Calypso methodology and start scaffolding your AI-built applica
 
 - [The Calypso Blueprint](prompts/calypso-blueprint.md)
 - [Product Owner Interview](prompts/product-owner-interview.md) 
-- [Scaffold Success Checklist](prompts/scaffold-success.md)
+- [Scaffold Task Entrypoint](prompts/scaffold-task.md)
 - [FAQ](FAQ.md)
