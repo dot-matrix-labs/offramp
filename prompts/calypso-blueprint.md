@@ -244,4 +244,15 @@ Because no single `npm` package perfectly satisfies our requirements for LLM-fri
   * An AI agent inspecting the system should only need to read `uniques.log` to see the *categories* of errors currently afflicting the system, without wasting its token context window scrolling through thousands of identical "Timeout" errors.
 * **Retention Policy:** Logs should be rotated (e.g., daily) and kept for a maximum of 14 days on the bare-metal server to prevent disk exhaustion, unless explicitly offloaded to a cold storage solution like S3.
 
+---
 
+## 8. Database & Authentication
+
+**Database Standards**
+* **Engine:** Prefer SQLite (natively via `bun:sqlite`) for single-node vertical scaling and hyper minimalism. If the system strictly requires horizontal scaling or complex geospatial/JSON operations, use PostgreSQL.
+* **Accessing Data:** Absolutely no heavy ORMs (like Prisma or TypeORM) that abstract away SQL performance and add massive generated footprint. Use lightweight, type-safe query builders like **Drizzle ORM** or **Kysely** to maintain direct control over queries while retaining TypeScript safety.
+
+**Authentication Standards**
+* **Self-Hosted First:** Avoid external SaaS authentication providers (e.g., Auth0, Clerk) unless explicitly mandated by the Product Owner. These add unnecessary latency, vendor lock-in, and cost for features an AI agent can build natively in seconds.
+* **Mechanism:** Use simple, self-hosted Session-based authentication or JWTs stored in secure HTTP-only cookies.
+* **Implementation:** Agents must generate authorization middlewares directly within the Bun server using standard web crypto architectures, keeping the auth logic completely owned by the internal repository.
