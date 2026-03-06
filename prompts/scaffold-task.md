@@ -8,6 +8,7 @@ Calypso is an architecture-first framework for building web applications continu
 Before proceeding with your tasks, you must read and adhere to the following core documents:
 1. [The Calypso Blueprint](https://raw.githubusercontent.com/dot-matrix-labs/calypso/main/prompts/calypso-blueprint.md) (Strict architectural constraints)
 2. [Product Owner Interview](https://raw.githubusercontent.com/dot-matrix-labs/calypso/main/prompts/product-owner-interview.md) (Requirements gathering protocol)
+3. [Nightshift Setup Instructions](https://raw.githubusercontent.com/dot-matrix-labs/nightshift/main/README.md) (Agent operational protocols and tooling)
 
 ## Environment Detection Rule
 Before executing the checklist below, **detect the host environment you are currently operating in**.
