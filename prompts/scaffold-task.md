@@ -8,7 +8,6 @@ Calypso is an architecture-first framework for building web applications continu
 Before proceeding with your tasks, you must read and adhere to the following core documents:
 1. [The Calypso Blueprint](https://raw.githubusercontent.com/dot-matrix-labs/calypso/main/prompts/calypso-blueprint.md) (Strict architectural constraints)
 2. [Product Owner Interview](https://raw.githubusercontent.com/dot-matrix-labs/calypso/main/prompts/product-owner-interview.md) (Requirements gathering protocol)
-3. [Nightshift Setup Instructions](https://raw.githubusercontent.com/dot-matrix-labs/nightshift/main/README.md) (Agent operational protocols and tooling)
 
 ## Environment Detection Rule
 Before executing the checklist below, **detect the host environment you are currently operating in**.
@@ -19,7 +18,7 @@ Before executing the checklist below, **detect the host environment you are curr
 
 ## The Scaffold Checklist
 
-**Objective:** Before marking the "Scaffold" phase complete and moving on to prototyping, you must verify that all of the foundational elements of the Calypso Blueprint and Nightshift protocol are present and correct. 
+**Objective:** Before marking the "Scaffold" phase complete and moving on to prototyping, you must verify that all of the foundational elements of the Calypso Blueprint are present and correct. 
 
 **Instructions:** 
 1. Review the current state of the repository against the checklist below.
@@ -27,27 +26,23 @@ Before executing the checklist below, **detect the host environment you are curr
 3. Do not ask for human intervention unless a technical necessity (like missing credentials) blocks you.
 4. Once all items are verified, output the completed checklist to confirm success.
 
-### 1. Nightshift Context & Tooling
-- [ ] The `.nightshift/` repository directory exists.
-- [ ] The Nightshift agent shim file is correctly installed for your specific agent vendor (e.g., cursor, claude, gemini).
-- [ ] Nightshift "Nags" (git-hooks) are installed and actively enforcing quality gates (linting, formatting, testing) on commit.
 
-### 2. Architecture & Stack Integrity
+### 1. Architecture & Stack Integrity
 - [ ] The repository strictly uses TypeScript, Bun, React, and Tailwind CSS.
 - [ ] A monorepo structure is established (e.g., `/apps/web`, `/apps/server`, `/packages/*`).
 - [ ] There is a strict boundary between browser code (`/apps/web`) and server code (`/apps/server`).
 
-### 3. Requirements & Documentation
+### 2. Requirements & Documentation
 - [ ] The Product Owner interview has been conducted natively via your prompt interactions.
-- [ ] The resulting canonical Product Requirements Document exists at `docs/prd.md` according to Nightshift rules.
+- [ ] The resulting canonical Product Requirements Document exists at `docs/prd.md`
 - [ ] Any external API test credentials requested during the interview have been securely provided and logged in an `.env` or `.env.test` file (not committed to source control).
 
-### 4. Testing Foundation
+### 3. Testing Foundation
 - [ ] Vitest and Playwright are configured.
 - [ ] The foundation for the "golden fixture" external API testing tool is scaffolded (or explicitly planned in `docs/prd.md`).
 - [ ] The project is completely clear of any mocking libraries (e.g., `jest.mock`, `msw`).
 
-### 5. Deployment Posture
+### 4. Deployment Posture
 - [ ] The project includes `.env` file templates.
 - [ ] There is a foundational plan or structure for bare-metal Linux deployment using `systemd` (No Dockerfiles present).
 

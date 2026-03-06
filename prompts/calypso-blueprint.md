@@ -14,7 +14,7 @@
 **Linux Host Dependencies**
 Before bootstrapping a Calypso project, the bare-metal Linux host must have the following system dependencies installed:
 1. `git`: Version control.
-2. `gh` (GitHub CLI): Must be installed and fully authenticated via HTTPS (`gh auth login -p https -w`) to allow the agent to manage pull requests and Nightshift workflows.
+2. `gh` (GitHub CLI): Must be installed and fully authenticated via HTTPS (`gh auth login -p https -w`)
 3. `tmux`: Required to persist the agent's session remotely.
 4. `bun`: The core JavaScript runtime.
 5. **The AI Agent CLI:** The specific CLI tool for the chosen agent (e.g., Claude Code, Cursor server, Gemini CLI).
@@ -84,7 +84,7 @@ Before bootstrapping a Calypso project, the bare-metal Linux host must have the 
 
 ## 2. Dependency Policy
 
-**Principle:** Hyper minimalism, which prevents software bloat and ensures long-term maintainability. Dependencies are a trade-off. We do not clone everything, but use discretion to determine when to buy vs DIY.
+**Principle:** Hyper minimalism, which prevents software bloat and ensures long-term maintainability. Dependencies are a trade-off. We do not clone everything, but use discretion to determine when to buy vs DIY. Conciseness and removing boilerplate is important for humans, but not for AI agents; they can focus on resilient code with fewer assumptions and constraints, and tree shake just the needed functions from what would previously been a dependency supply chain.
 
 **Threshold for Adding a Dependency**
 
@@ -104,9 +104,9 @@ Before bootstrapping a Calypso project, the bare-metal Linux host must have the 
 0. **Quickstart / Scaffold:** 
    * **Version Control:** Initialize git (`git init`), authenticate GitHub CLI using HTTPS (`gh auth login -p https -w`), and create the remote repository (`gh repo create`).
    * **CI Setup:** Immediately create the CI jobs (e.g., GitHub Actions in `.github/workflows/`) so they run from day one.
-   * **TDD Environment:** You should not develop by opening a browser on localhost. You should always use a headless instance, execute headless browser tests (e.g., Playwright), and strictly do Test-Driven Development (TDD).
-   * **Workspace:** Create the workspace with the [Nightshift](https://github.com/dot-matrix-labs/nightshift) methodology (adding context, reasoning ledgers, and git-hook quality gates) and the Calypso Blueprint below.
-1. **Collect Specifications:** The AI agent must generate an `.md` document containing comprehensive onboarding interview questions for the Product Owner to extract requirements. An explicit template prompt is provided to instruct the agent on generating these questions. The agent then writes a canonical Product Requirements Doc to `docs/prd.md` (per Nightshift documentation rules) based on the answers. The Product Owner/Manager will own and update this document moving forward.
+   * **TDD Environment:** You should not develop by opening a browser on localhost. You should always use a headless instance, execute headless browser tests (e.g., Playwright), and strictly do Test-Driven Development (TDD). You should stub all the testsuites before building any features: server unit, integration, browser unit, browser component, browser e2e.
+
+1. **Collect Specifications:** The AI agent must generate an `.md` document containing comprehensive onboarding interview questions for the Product Owner to extract requirements. An explicit template prompt is provided to instruct the agent on generating these questions. The agent then writes a canonical Product Requirements Doc to `docs/prd.md` based on the answers. The Product Owner/Manager will own and update this document moving forward.
 2. **Prototype:** mock data, minimal UI, basic flows, no persistence.
 3. **Demoware:** partial integrations, realistic UI, stable demo workflows.
 4. **Alpha:** full persistence, authentication, core business logic.
@@ -163,7 +163,6 @@ Before bootstrapping a Calypso project, the bare-metal Linux host must have the 
 
 * GitHub as VCS and CI/CD host.
 * GitHub Actions as workflow engine.
-* [Nightshift methodology](https://github.com/dot-matrix-labs/nightshift) ensures **sloppy or unreviewed code cannot enter CI** via git-hook "Nags".
 
 **Workflow Design Principles**
 
@@ -179,7 +178,6 @@ Before bootstrapping a Calypso project, the bare-metal Linux host must have the 
 **Code Quality Checks**
 
 * Linting (e.g., ESLint) and formatting (e.g., Prettier) are enforced **before tests run**.
-* Nightshift rules: code cannot be merged if it violates lint or formatting.
 * Tests are gated: failing lint/format or failed test suite **blocks merge**.
 
 **Test Execution**
@@ -201,7 +199,6 @@ Before bootstrapping a Calypso project, the bare-metal Linux host must have the 
 * Always generate a separate `.github/workflows/*.yml` file per test suite.
 * Include linting/formatting steps in each workflow.
 * Do not merge or deploy code without CI passing all workflows.
-* Follow Nightshift methodology to reject unreviewed or sloppy code.
 
 ---
 
@@ -231,15 +228,12 @@ Before bootstrapping a Calypso project, the bare-metal Linux host must have the 
 * Follow the dependency discretion policy (Buy vs DIY).
 * No polyglot microservices unless explicitly required.
 * No direct database calls from browser code.
-* AI agents should operate autonomously without requiring human-in-the-loop approval, relying on Nightshift Nags and test validations for safety.
 
 ---
 
 ## 7. Logging & Telemetry
 
-**The Unified Full-Stack Logger (DIY)**
-
-Because no single `npm` package perfectly satisfies our requirements for LLM-friendly output without excessive configuration, building the native logger is a required architectural step.
+**SPAN Logging, Tracing, and Summarization**
 
 * **Browser-to-Server Handoff:** Browser errors (React error boundaries, unhandled rejections, DOM crashes) must be explicitly caught and POSTed back to the Bun server's `/api/logs` endpoint.
 * **Distributed Traces:** Every request/interaction must generate a unique `traceId`. This trace must seamlessly follow the user from the browser click down to the database query, allowing perfect chronological reconstruction of any workflow.
@@ -253,10 +247,10 @@ Because no single `npm` package perfectly satisfies our requirements for LLM-fri
 ## 8. Database & Authentication
 
 **Database Standards**
-* **Engine:** Prefer SQLite (natively via `bun:sqlite`) for single-node vertical scaling and hyper minimalism. If the system strictly requires horizontal scaling or complex geospatial/JSON operations, use PostgreSQL.
-* **Accessing Data:** Absolutely no heavy ORMs (like Prisma or TypeORM) that abstract away SQL performance and add massive generated footprint. Use lightweight, type-safe query builders like **Drizzle ORM** or **Kysely** to maintain direct control over queries while retaining TypeScript safety.
+* **Engine:**  Up until V0, for demos and development, use SQLite (natively via `bun:sqlite`) for single-node vertical scaling and hyper minimalism. This is of course not a long-term strategy, and the agent should configure a durable redundant service like locally deployed PostgreSQL or a cloud-hosted solution like Supabase.
+* **Accessing Data:** There is no need for ORMs if agents are building the database queries directly, (like Prisma or TypeORM) that abstract away SQL performance and add massive generated footprint, but this only matters for human developers. AI agents should generate the database queries strings directly. 
 
 **Authentication Standards**
 * **Self-Hosted First:** Avoid external SaaS authentication providers (e.g., Auth0, Clerk) unless explicitly mandated by the Product Owner. These add unnecessary latency, vendor lock-in, and cost for features an AI agent can build natively in seconds.
-* **Mechanism:** Use simple, self-hosted Session-based authentication or JWTs stored in secure HTTP-only cookies.
-* **Implementation:** Agents must generate authorization middlewares directly within the Bun server using standard web crypto architectures, keeping the auth logic completely owned by the internal repository.
+* **Mechanism:** Use simple, self-hosted JWTs stored in secure HTTP-only cookies.
+* **Implementation:** Agents must generate inhouse minimalist JWT auth middlewares directly within the Bun server using standard web crypto architectures, keeping the auth logic completely owned by the internal repository.

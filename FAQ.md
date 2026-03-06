@@ -1,5 +1,9 @@
 # Calypso FAQ
 
+# For humans: Why do I need a blueprint
+The Calypso Method exists because software rarely fails due to code quality—it fails because of unclear requirements, chaotic architecture, and hype-driven choices. Human engineers need a disciplined, repeatable process that survives tool churn, framework fads, and AI-assisted coding. Calypso enforces architecture-first design, staged product maturity, and stack consistency, ensuring that every feature is deliberately scoped, every dependency justified, and every AI agent constrained. It allows humans to focus on real problems and decisions while leveraging AI for repetitive work. The result: maintainable, predictable systems that scale from prototype to production without collapsing under complexity or hype.
+
+
 ## Development Environment
 
 ### "Why not on my Mac?"
@@ -29,3 +33,6 @@ Heavy state libraries encourage putting everything into global state, leading to
 ### "Why is dependency 'cloning' (DIY) encouraged over just doing `npm install`?"
 
 Every `npm` dependency is a liability—it's code you don't control, bringing its own transitive dependencies, potential security flaws, and breaking changes. For trivial utilities (like date formatting or tiny UI components), having an AI agent generate a clean, tree-shaken, tested implementation directly in your codebase takes seconds and removes a permanent supply-chain risk. We explicitly reserve "Buy" (`npm install`) for complex, high-liability features like payment processing (Stripe) or dense specifications (PDF generation).
+
+### Why no ORMs or Query Builders?
+ORM's abstract away SQL performance and add massive generated footprint, for humans. AI engineering agents don't mind this, and can generate performant, type-safe queries directly in your codebase. Less dependencies to manage, and no assumptions of workflows or deployment strategies.

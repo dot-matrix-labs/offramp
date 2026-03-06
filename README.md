@@ -1,5 +1,7 @@
 # Calypso
 
+**Dancing with the SaaS-pocalype**
+
 Calypso is a framework and methodology for running a **synthetic software house** — a team of forward-deployed AI agents operating as an internal software development organization. Calypso is purpose-built to help organizations replace expensive SaaS vendors with bespoke, in-house software, one product at a time.
 
 Software rarely fails due to code quality; it fails because of unclear requirements, chaotic architecture, and hype-driven choices. Calypso provides the blueprints, architecture-first design constraints, staged product maturity protocols, and stack consistency necessary to ensure that AI-generated software is maintainable, predictable, and scalable from prototype to production.
@@ -19,7 +21,7 @@ Context: I work in software development, and I have a team of 3 developers. I am
 Whether you are a solo hacker, a growing startup, or a large enterprise, there is a delivery model tailored for your needs:
 
 ### 1. Community Edition (DIY)
-For organizations and independent developers with existing engineering capabilities who want to run the synthetic software house themselves. The Community Edition is completely free and open-source. It provides all the necessary prompts, the Calypso Blueprint, reference architectures, documentation, and the complete Nightshift agent protocol needed to bootstrap your own AI-native development studio.
+For organizations and independent developers with existing engineering capabilities who want to run the synthetic software house themselves. The Community Edition is completely free and open-source. It provides all the necessary prompts, the Calypso Blueprint, reference architectures, documentation, etc. needed to bootstrap your own AI-native development studio.
 
 ### 2. Hosted (Not-SaaS)
 For organizations that want the outcome without assembling or managing the underlying machinery. We provide the full operational stack, infrastructure, and agent compute environments.
