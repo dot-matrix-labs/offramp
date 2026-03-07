@@ -136,27 +136,48 @@ Pre-commit nags run before a commit is finalized. They are designed to:
 | ------------ | ------------------------------------ |
 | Node.js/Bun  | `prettier --write`, `eslint --fix`   |
 
-### Implementation Plan Gate (blocking)
+### Planning Documents Gate (blocking)
 
-Every commit must include an update to `docs/plans/implementation-plan.md`. This is a hard block — the commit will not proceed if the file is not staged.
+Every commit must stage updates to both planning documents. This is a hard block.
 
-Add the following check to `.git/hooks/pre-commit` (or the project's shared hooks directory):
+| File | What to update |
+|---|---|
+| `docs/plans/implementation-plan.md` | Check off completed tasks; add or reorder tasks discovered during the work |
+| `docs/plans/next-prompt.md` | Overwrite with the single, self-contained prompt for the next session to execute |
+
+`next-prompt.md` is the state machine cursor. Each session reads it, does the work, then writes the next session's instruction before committing. This allows the agent to advance autonomously without a human prompt.
+
+Add the following to `.git/hooks/pre-commit`:
 
 ```bash
 #!/usr/bin/env bash
-# Implementation plan gate — every commit must update the plan.
+# Planning documents gate — every commit must update both planning files.
 
-if ! git diff --cached --name-only | grep -q "^docs/plans/implementation-plan\.md$"; then
-  echo ""
-  echo "COMMIT BLOCKED: docs/plans/implementation-plan.md has not been updated."
-  echo ""
-  echo "At every commit the implementation plan must be updated. Updates are twofold:"
-  echo "  1) You learned something new and there are tasks that need to be added"
-  echo "     or re-ordered — update the plan to reflect current understanding."
-  echo "  2) Tasks that are now complete must be checked off (- [x])."
-  echo ""
-  echo "Update docs/plans/implementation-plan.md, stage it, and commit again."
-  echo ""
+STAGED=$(git diff --cached --name-only)
+ERRORS=()
+
+if ! echo "$STAGED" | grep -q "^docs/plans/implementation-plan\.md$"; then
+  ERRORS+=("docs/plans/implementation-plan.md")
+fi
+
+if ! echo "$STAGED" | grep -q "^docs/plans/next-prompt\.md$"; then
+  ERRORS+=("docs/plans/next-prompt.md")
+fi
+
+if [ ${#ERRORS[@]} -gt 0 ]; then
+  echo "" >&2
+  echo "COMMIT BLOCKED: The following planning files were not updated:" >&2
+  for f in "${ERRORS[@]}"; do
+    echo "  - $f" >&2
+  done
+  echo "" >&2
+  echo "At every commit:" >&2
+  echo "  implementation-plan.md — check off completed tasks; add or reorder discovered tasks." >&2
+  echo "  next-prompt.md         — write the complete, self-contained prompt for the next" >&2
+  echo "                           agent session to execute. It must be specific enough to" >&2
+  echo "                           act on without human input. This is how the agent advances" >&2
+  echo "                           autonomously between sessions." >&2
+  echo "" >&2
   exit 1
 fi
 ```

@@ -153,7 +153,22 @@ These standards are the **source of truth** for this project. Users may customiz
    * The plan is updated at **every git commit** — this is enforced by a pre-commit hook (see git-standards). Updates are twofold:
      1. **Discovery:** New tasks or re-ordered tasks learned during implementation are added.
      2. **Completion:** Finished tasks are checked off (`- [x]`).
-   * The implementation plan is the agent's primary working memory for a session. Reading it at session start tells the agent exactly where work left off and what comes next.
+   * The implementation plan is the agent's working memory across the full arc of a project. It answers: what has been done, what remains, and in what order.
+
+1b. **Next Prompt:** Alongside the implementation plan, the agent maintains `docs/plans/next-prompt.md`. This file contains a single, self-contained, immediately executable prompt describing the **very next action** the agent should take.
+
+   * It is updated at **every git commit**, enforced by the same pre-commit hook as the implementation plan.
+   * It is written in second person, addressed to the next agent session: "Read X, then do Y, paying attention to Z."
+   * It must include enough context to act without human input — what was just completed, what comes next, and any constraints or gotchas relevant to the next step.
+   * At session start, the agent reads this file and executes it autonomously. This closes the loop: each session ends by writing the next session's instruction, creating a **self-advancing state machine** that can make progress without a human prompt.
+   * Humans can override the next step at any time by editing `docs/plans/next-prompt.md` directly before starting a session.
+
+   The relationship between the three planning documents:
+   | File | Scope | Owner |
+   |---|---|---|
+   | `docs/prd.md` | What the product must do | Human (Product Owner) |
+   | `docs/plans/implementation-plan.md` | All tasks, ordered, with completion state | Agent, updated each commit |
+   | `docs/plans/next-prompt.md` | The single next action | Agent, updated each commit |
 
 2. **Prototype:** mock data, minimal UI, basic flows, no persistence.
 3. **Demoware:** partial integrations, realistic UI, stable demo workflows.

@@ -2,14 +2,18 @@
 
 This document explains how to configure each major AI coding agent so that it reads the Calypso blueprint and project PRD at the start of **every** session, task, or subprocess. Agents suffer from context amnesia between sessions; this configuration is the guardrail that prevents them from inventing conventions or violating architecture standards.
 
-## The Two Files Every Agent Must Read First
+## Files Every Agent Must Read at Session Start
 
-Before doing anything else in a Calypso project, an agent must read:
+At the start of every session, in this order:
 
 1. `docs/standards/calypso-blueprint.md` — architecture, stack, process, and testing standards
-2. `docs/prd.md` — the canonical product requirements for this specific project
+2. `docs/prd.md` — the canonical product requirements for this project
+3. `docs/plans/implementation-plan.md` — full task checklist; understand what is done and what remains
+4. `docs/plans/next-prompt.md` — the immediate next action, written by the previous session; **execute this**
 
-If these files do not yet exist locally, the agent must bootstrap them first:
+Files 1 and 2 establish constraints. Files 3 and 4 establish state. The agent reads all four, then acts on `next-prompt.md` without waiting for human input. This is the self-advancing loop.
+
+If the standards files do not yet exist locally, bootstrap them first:
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/dot-matrix-labs/calypso/main/scripts/bootstrap-standards.sh | bash
@@ -245,17 +249,30 @@ Do not begin development, planning, or documentation work until both files are r
 Create `AGENT.md` once per project:
 
 ```markdown
-## Session Bootstrap — Read First
+## Session Bootstrap — Read First, Then Act
 
-At the start of every session, before any action, read:
+At the start of every session, read these files in order:
 
-1. docs/standards/calypso-blueprint.md
-2. docs/prd.md
+1. docs/standards/calypso-blueprint.md  — architecture and process standards
+2. docs/prd.md                          — product requirements
+3. docs/plans/implementation-plan.md    — full task checklist and current state
+4. docs/plans/next-prompt.md            — your immediate next task; execute this
 
-If either file is missing, run:
+If the standards files are missing, run:
   curl -sSL https://raw.githubusercontent.com/dot-matrix-labs/calypso/main/scripts/bootstrap-standards.sh | bash
 
-Do not proceed with development, documentation, or planning until both files are confirmed read.
+After reading all four files, execute docs/plans/next-prompt.md autonomously.
+Do not wait for further human input before beginning work.
+
+## Commit Requirements
+
+Every commit must stage both planning files:
+- docs/plans/implementation-plan.md  — check off completed tasks; add newly discovered tasks
+- docs/plans/next-prompt.md          — overwrite with the complete prompt for the next session
+
+next-prompt.md is the state machine. You write the next agent's instruction before
+you commit. The next session reads it and acts. This is how work advances without
+a human prompt between every session.
 ```
 
 ## Deploy Script: `scripts/install-agent-config.sh`
