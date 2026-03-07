@@ -127,7 +127,7 @@ GIT_BRAIN_METADATA:
 | Stage | Check | Behaviour |
 |---|---|---|
 | pre-commit | Planning docs not staged | **BLOCKS** — the only commit block |
-| pre-commit | Lint / format failures | **Warns** — commit proceeds; agent must include fixes in next-prompt |
+| pre-commit | Lint / format | Auto-fixes applied; unfixable remainder **appended to next-prompt.md** |
 | commit-msg | GIT_BRAIN_METADATA missing or invalid | **BLOCKS** |
 | pre-push | Lint / format / type failures | **BLOCKS** — clean code is required to push |
 | pre-push | Test suite failures | **Allows push** — but appends failing tests to next-prompt.md |
@@ -147,9 +147,9 @@ Every commit must stage both planning files. This is the only reason a commit is
 | `docs/plans/implementation-plan.md` | Check off completed tasks; add or reorder discovered tasks |
 | `docs/plans/next-prompt.md` | Overwrite with the self-contained prompt for the next commit |
 
-**WARNS — Lint and format:**
+**WARNS — Lint and format (auto-fix first, then flag remainder):**
 
-After the planning gate passes, the hook runs lint and format checks and prints any failures as warnings. The commit is **not blocked**. The agent is reminded to include the outstanding fixes in `next-prompt.md` so they are resolved in the next commit.
+After the planning gate passes, the hook runs auto-fixers (`eslint --fix`, `prettier --write`). Most issues are corrected silently. Anything the auto-fixers could not resolve is captured and explicitly appended to `next-prompt.md` so the agent addresses it in the next commit. The commit is **not blocked**.
 
 **`scripts/hooks/pre-commit`:**
 
@@ -184,25 +184,38 @@ if [ ${#PLAN_ERRORS[@]} -gt 0 ]; then
   exit 1
 fi
 
-# Lint and format advisory — non-blocking
-LINT_WARNINGS=""
+# Lint and format: auto-fix first, then capture what could not be fixed
+bun run eslint . --fix 2>&1 || true
+bun run prettier --write . 2>&1 || true
 
-if ! bun run eslint . --max-warnings=0 2>&1; then
-  LINT_WARNINGS="$LINT_WARNINGS\n  - ESLint: failures detected"
-fi
+# Check for issues that survived auto-fixing
+UNFIXED_ESLINT=$(bun run eslint . --max-warnings=0 2>&1) && ESLINT_CLEAN=1 || ESLINT_CLEAN=0
+UNFIXED_PRETTIER=$(bun run prettier --check . 2>&1) && PRETTIER_CLEAN=1 || PRETTIER_CLEAN=0
 
-if ! bun run prettier --check . 2>&1; then
-  LINT_WARNINGS="$LINT_WARNINGS\n  - Prettier: formatting issues detected"
-fi
+if [ $ESLINT_CLEAN -eq 0 ] || [ $PRETTIER_CLEAN -eq 0 ]; then
+  echo "" >&2
+  echo "LINT/FORMAT: auto-fix applied. The following could not be fixed automatically:" >&2
+  [ $ESLINT_CLEAN -eq 0 ] && echo "$UNFIXED_ESLINT" >&2
+  [ $PRETTIER_CLEAN -eq 0 ] && echo "$UNFIXED_PRETTIER" >&2
+  echo "" >&2
+  echo "Commit is allowed. These issues WILL block your next push." >&2
+  echo "They have been appended to next-prompt.md." >&2
+  echo "" >&2
 
-if [ -n "$LINT_WARNINGS" ]; then
-  echo "" >&2
-  echo "LINT/FORMAT WARNINGS (commit allowed — these do not block):" >&2
-  echo -e "$LINT_WARNINGS" >&2
-  echo "" >&2
-  echo "These failures WILL block your next push. Add fixing them to next-prompt.md" >&2
-  echo "so they are resolved in the next commit." >&2
-  echo "" >&2
+  cat >> docs/plans/next-prompt.md <<EOF
+
+---
+
+## Unfixed Lint/Format Issues — Must resolve before next push
+
+The following issues were not auto-fixable at the last commit.
+They will block the next push if not resolved.
+
+$([ $ESLINT_CLEAN -eq 0 ] && echo "### ESLint\n\`\`\`\n${UNFIXED_ESLINT}\n\`\`\`")
+$([ $PRETTIER_CLEAN -eq 0 ] && echo "### Prettier\n\`\`\`\n${UNFIXED_PRETTIER}\n\`\`\`")
+
+Fix these manually, stage the changes, and include them in the next commit.
+EOF
 fi
 
 exit 0
