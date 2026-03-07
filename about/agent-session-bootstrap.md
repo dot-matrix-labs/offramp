@@ -249,37 +249,66 @@ Do not begin development, planning, or documentation work until both files are r
 Create `AGENT.md` once per project:
 
 ```markdown
-## Session Bootstrap — Read First, Then Act
+# Calypso Project
 
-At the start of every session, read these files in order:
+@docs/standards/calypso-blueprint.md
+@docs/prd.md
 
-1. docs/standards/calypso-blueprint.md  — architecture and process standards
-2. docs/prd.md                          — product requirements
-3. docs/plans/implementation-plan.md    — full task checklist and current state
-4. docs/plans/next-prompt.md            — your immediate next task; execute this
+---
 
-If the standards files are missing, run:
+## Calypso — Method Summary
+
+- **Commit = unit of work.** Each commit completes one task. An agent session spans many commits.
+- **State machine.** `docs/plans/next-prompt.md` holds the prompt for the next commit. Each commit overwrites it. The agent reads it, acts, commits, then reads it again — advancing without human prompting.
+- **Implementation plan.** `docs/plans/implementation-plan.md` is the full task checklist. Check off completed tasks and add newly discovered ones at every commit.
+- **TDD, no exceptions.** Write failing tests first. Never open a browser — use headless Playwright. All server and browser tests run on Linux only.
+- **No mocks, ever.** Test against real services. Record golden fixtures from real production responses. Never fabricate fixture data.
+- **Stack is fixed.** TypeScript + Bun + React + Tailwind. No additions without explicit justification. No other languages.
+- **Hyper-minimal dependencies.** Default to DIY. Only import a package if the functionality is genuinely infeasible to build internally (see blueprint § Dependency Policy).
+- **Bare metal Linux.** No Docker. Apps run natively under systemd. Dev port is 31415.
+- **Every commit carries a retroactive prompt** in `GIT_BRAIN_METADATA`. Write the prompt you *would have given* to produce this diff — not the one you were given.
+
+---
+
+## Task Start
+
+Read before every task:
+
+- @docs/plans/implementation-plan.md
+- @docs/plans/next-prompt.md
+
+IMPORTANT: Execute `docs/plans/next-prompt.md` immediately. Do not wait for human input.
+After each commit, re-read `docs/plans/next-prompt.md` and begin the next task.
+
+If standards files are missing, run:
   curl -sSL https://raw.githubusercontent.com/dot-matrix-labs/calypso/main/scripts/bootstrap-standards.sh | bash
 
-After reading all four files, execute docs/plans/next-prompt.md as your first task.
-Do not wait for further human input. A commit is the unit of work — after each commit,
-re-read next-prompt.md and continue to the next task.
+---
 
-## Commit Requirements
+## Antipatterns — Calypso Explicitly Forbids These
 
-Every commit must stage both planning files:
-- docs/plans/implementation-plan.md  — check off completed tasks; add newly discovered tasks
-- docs/plans/next-prompt.md          — overwrite with the complete, self-contained prompt
-                                       for the next commit to execute
+These are common agent defaults that violate the Calypso method. Do not do them.
 
-next-prompt.md is the state machine cursor. Each commit ends by writing the prompt for
-the next commit. This is how the agent advances from task to task without a human prompt
-between each one. An agent session spans many commits.
+- **Mocking in tests.** Never mock APIs, databases, the DOM, or external services. No `jest.mock`, no `sinon.stub`, no `vi.mock` on external dependencies. Test against the real thing.
+- **Fabricating test fixtures.** Never invent or estimate fixture data. Golden fixtures must be recorded from real production requests. If you do not have a fixture, write the tool that records one.
+- **Skipping or disabling failing tests.** Never add `.skip()`, `.todo()`, `xit()`, or comments that disable a test to make a suite pass. Failing tests must be fixed or rewritten.
+- **Installing a package for something buildable.** Do not `bun add` a utility library (date formatting, string helpers, simple validators) that can be implemented cleanly in under 50 lines. Build it.
+- **Using Docker.** Do not containerise anything. Deploy natively. Use systemd to keep processes alive.
+- **Using an ORM.** Do not add Prisma, TypeORM, Drizzle, or any query builder. Write SQL directly using `bun:sqlite` or the database driver.
+- **Using external auth providers.** Do not integrate Auth0, Clerk, Supabase Auth, or any third-party auth SaaS. Implement JWT authentication in-house using Bun's native `crypto.subtle`.
+- **Using GraphQL or WebSockets** unless the PRD explicitly requires them. Default to REST.
+- **Testing in a headed browser or on localhost.** All browser tests use headless Chromium via Playwright. No `page.goto('http://localhost:...')` in CI — use the running dev server on port 31415.
+- **Working on Mac or Windows.** All continuous development, testing, and deployment must run on a bare-metal Linux host. Local machines are permitted only for initial scaffold.
+- **Committing without updating planning docs.** The pre-commit hook enforces this, but do not attempt to bypass it. Both `implementation-plan.md` and `next-prompt.md` must be staged with every commit.
+- **Adding heavy state management.** Do not add Redux, Zustand, Jotai, or MobX. Use React hooks and minimal context.
+- **Writing a retroactive prompt that describes the diff.** The `retroactive_prompt` field in `GIT_BRAIN_METADATA` must describe *how to reproduce the change*, not summarise what changed. "Added auth middleware" is wrong. A specific, actionable instruction is correct.
 ```
 
 ## Deploy Script: `scripts/install-agent-config.sh`
 
 Run this script with the vendor name as an argument. It reads `AGENT.md` and writes the correct file to the correct path for that vendor.
+
+**Note on `@imports`:** Claude Code and Gemini CLI both support `@path/to/file` import syntax natively — the agent loads the referenced file into context automatically. Codex (AGENTS.md) does not support imports; the install script copies the file verbatim and Codex relies on its hierarchical merge (global → project → subdir) to layer context. For Codex, keep `AGENT.md` self-contained.
 
 ```bash
 #!/usr/bin/env bash
