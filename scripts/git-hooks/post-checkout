@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# post-checkout hook for Calypso AI Agents
+# Ensures project standards are up-to-date after switching branches.
+
+# Refresh standards using the project's bootstrap script
+if [ -f "./scripts/bootstrap-standards.sh" ]; then
+    echo "Refining project standards..."
+    bash ./scripts/bootstrap-standards.sh
+else
+    # Fallback to downloading if the script isn't found locally but we are in a Calypso project
+    echo "Local bootstrap-standards.sh not found. Fetching from remote..."
+    curl -sSL https://raw.githubusercontent.com/dot-matrix-labs/calypso/main/scripts/bootstrap-standards.sh | bash
+fi

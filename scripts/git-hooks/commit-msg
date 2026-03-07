@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# commit-msg hook for Calypso AI Agents
+# Validates that the Conformance Checklist has been completed.
+
+COMMIT_MSG_FILE=$1
+
+if [ -f "$COMMIT_MSG_FILE" ]; then
+    # Check if the Conformance Checklist exists in the message
+    if grep -q "CONFORMANCE CHECKLIST (MANDATORY)" "$COMMIT_MSG_FILE"; then
+        # Check for any remaining unchecked boxes [ ]
+        # We only look between the start and end of the checklist block
+        CHECKLIST_CONTENT=$(sed -n '/CONFORMANCE CHECKLIST (MANDATORY)/,/END CONFORMANCE CHECKLIST/p' "$COMMIT_MSG_FILE")
+        
+        if echo "$CHECKLIST_CONTENT" | grep -q "\[ \]"; then
+            echo -e "\033[0;31mERROR: Conformance Checklist is incomplete!\033[0m"
+            echo "You must check all boxes in the 'CONFORMANCE CHECKLIST' to confirm alignment with the Calypso Blueprint."
+            echo ""
+            echo "Unchecked items found:"
+            echo "$CHECKLIST_CONTENT" | grep "\[ \]"
+            exit 1
+        fi
+        
+        # Strip the checklist from the final commit message to keep git history clean
+        # (Optional: Some users might want to keep it. The user said 'ask the agent to reply', 
+        # so keeping it might be proof of work, but usually it's noise.)
+        # For now, let's KEEP it as it's a "reply".
+    fi
+fi

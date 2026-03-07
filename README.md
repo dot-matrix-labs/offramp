@@ -6,7 +6,22 @@ Calypso is a framework and methodology for running a **synthetic software house*
 
 Software rarely fails due to code quality; it fails because of unclear requirements, chaotic architecture, and hype-driven choices. Calypso provides the blueprints, architecture-first design constraints, staged product maturity protocols, and stack consistency necessary to ensure that AI-generated software is maintainable, predictable, and scalable from prototype to production.
 
-## Quickstart
+## AI Agent Context
+
+To ensure AI agents (like Claude Code, Cursor, or Aider) have persistent context about the Calypso Blueprint and project standards, we use git hooks to inject information directly into the development workflow.
+
+### Setup
+
+Run the following command to install the AI-specific git hooks:
+
+```bash
+bash ./scripts/setup-ai-hooks.sh
+```
+
+### Hooks Included:
+- **`prepare-commit-msg`**: Injects a commented-out block of the Blueprint and current Task status into your commit message template.
+- **`post-checkout`**: Automatically refreshes project standards from the remote repository after switching branches.
+- **`pre-commit`**: Reminds the agent to update `docs/task.md` if it hasn't been changed.
 
 To bootstrap a new Calypso project instantly, copy and paste this heavily structured prompt to your preferred AI agent:
 

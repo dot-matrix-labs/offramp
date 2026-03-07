@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# pre-push hook for Calypso AI Agents
+# Performs a repository-wide audit for Calypso Blueprint compliance.
+
+echo "Running Calypso Blueprint Audit..."
+
+# 1. Check for .js or .mjs files in major directories (Strictly TypeScript)
+JS_FILES=$(find apps packages -name "*.js" -o -name "*.mjs" 2>/dev/null)
+if [ ! -z "$JS_FILES" ]; then
+    echo -e "\033[0;31mVIOLATION: Found JavaScript files. Calypso is TypeScript-only.\033[0m"
+    echo "$JS_FILES"
+    # exit 1 
+fi
+
+# 2. Check for missing standards
+if [ ! -d "docs/standards" ]; then
+    echo -e "\033[0;31mVIOLATION: docs/standards/ folder is missing.\033[0m"
+    # exit 1
+fi
+
+# 3. Check for unauthorized state management (e.g. Redux)
+if grep -r "redux" apps packages --include="package.json" 2>/dev/null; then
+    echo -e "\033[0;31mVIOLATION: Redux detected. Calypso mandates minimal state (React Hooks/Context).\033[0m"
+fi
+
+echo "Audit complete."

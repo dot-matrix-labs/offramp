@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# pre-commit hook for Calypso AI Agents
+# Validates that the agent is following the blueprint process.
+
+# Check if doc/task.md has changed if this is an AI-authored commit
+# (Note: Detecting 'AI-authored' is tricky, but we can assume agents run this)
+
+TASK_FILE="./docs/task.md"
+COMMIT_MSG_FILE=".git/COMMIT_EDITMSG"
+
+# 1. Verify Task Update
+if [ -f "$TASK_FILE" ]; then
+    if ! git diff --cached --name-only | grep -q "$(basename "$TASK_FILE")"; then
+        echo "WARNING: You are committing changes but haven't updated $TASK_FILE."
+        echo "Calypso Blueprint requires updating task status for every logical change."
+    fi
+fi
+
+# 2. Verify Conformance Checklist in the commit message
+# Note: In pre-commit, the message might not be final or even exist if --message was used.
+# However, many agents (Aider, Claude Code) write to the msg file or pass it.
+# If we can't find it in the file, we check if it was passed via -m (though that's harder to capture here).
+# Git 2.1+ allows --commit-msg-path but better is to use 'commit-msg' hook for message validation.
+
+# LET'S SHIFT CHECKLIST VALIDATION TO THE 'commit-msg' HOOK FOR BETTER RELIABILITY
+
+# Run linting/formatting if applicable (Standard Calypso practice)
+# bun run lint

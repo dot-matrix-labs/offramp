@@ -1,0 +1,67 @@
+#!/bin/bash
+
+# prepare-commit-msg hook for Calypso AI Agents
+# Injects project standards and current task context into the commit message template.
+
+COMMIT_MSG_FILE=$1
+COMMIT_SOURCE=$2
+SHA1=$3
+
+# Only inject on new commits or when no source is provided (to avoid squashing/merging noise)
+if [ -z "$COMMIT_SOURCE" ] || [ "$COMMIT_SOURCE" == "template" ] || [ "$COMMIT_SOURCE" == "message" ]; then
+    
+    # Do not inject if the message already contains a checklist (prevents duplicates)
+    if grep -q "CONFORMANCE CHECKLIST (MANDATORY)" "$COMMIT_MSG_FILE"; then
+        exit 0
+    fi
+    
+    # Path to the blueprint and standards
+    BLUEPRINT="./prompts/calypso-blueprint.md"
+    STANDARDS_DIR="./docs/standards"
+    TASK_FILE="./docs/task.md" # Common location for active projects
+    
+    # Start the context block
+    echo -e "\n\n# --- AI AGENT CONTEXT (INTERNAL) ---" > .git/ai_context.tmp
+    echo "# The following information is provided for the AI Agent's context window." >> .git/ai_context.tmp
+    echo "# Please adhere to the project standards and current blueprint." >> .git/ai_context.tmp
+    echo "" >> .git/ai_context.tmp
+    
+    # Add Blueprint Summary (First 50 lines or specific sections)
+    if [ -f "$BLUEPRINT" ]; then
+        echo "## CALYPSO BLUEPRINT SUMMARY" >> .git/ai_context.tmp
+        head -n 30 "$BLUEPRINT" | sed 's/^/# /' >> .git/ai_context.tmp
+        echo "# ..." >> .git/ai_context.tmp
+    fi
+    
+    # Add Current Task Context
+    if [ -f "$TASK_FILE" ]; then
+        echo "" >> .git/ai_context.tmp
+        echo "## CURRENT TASK STATUS" >> .git/ai_context.tmp
+        grep "\[/\]" "$TASK_FILE" | sed 's/^/# /' >> .git/ai_context.tmp
+        grep "\[ \]" "$TASK_FILE" | head -n 5 | sed 's/^/# /' >> .git/ai_context.tmp
+    fi
+    
+    # Add Standards Reminder
+    if [ -d "$STANDARDS_DIR" ]; then
+        echo "" >> .git/ai_context.tmp
+        echo "## PROJECT STANDARDS CHECKLIST" >> .git/ai_context.tmp
+        ls "$STANDARDS_DIR" | sed 's/^/# - /' >> .git/ai_context.tmp
+    fi
+
+    # Add Mandatory Conformance Checklist (Not commented out, so the agent can interact with it)
+    echo -e "\n\n# --- CONFORMANCE CHECKLIST (MANDATORY) ---" >> .git/ai_context.tmp
+    echo "# You MUST check all boxes below to confirm this work follows the Calypso Blueprint." >> .git/ai_context.tmp
+    echo "# Commits will fail if any [ ] items remain." >> .git/ai_context.tmp
+    echo "- [ ] TypeScript Only (No .js/.mjs config files)" >> .git/ai_context.tmp
+    echo "- [ ] Bun Runtime (Scripts run with bun/bunx)" >> .git/ai_context.tmp
+    echo "- [ ] No Mocks (No jest.mock/msw in tests)" >> .git/ai_context.tmp
+    echo "- [ ] Documentation (All new functions/files commented)" >> .git/ai_context.tmp
+    echo "- [ ] Architecture (Correct separation of apps/packages)" >> .git/ai_context.tmp
+    echo "- [ ] Task Updated (docs/task.md reflects these changes)" >> .git/ai_context.tmp
+    echo "# --- END CONFORMANCE CHECKLIST ---" >> .git/ai_context.tmp
+    
+    # Prepend the context to the commit message file
+    # We use a temporary file to keep the agent's message at the top if they already typed one
+    cat .git/ai_context.tmp >> "$COMMIT_MSG_FILE"
+    rm .git/ai_context.tmp
+fi
