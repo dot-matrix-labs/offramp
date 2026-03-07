@@ -207,7 +207,7 @@ These standards are the **source of truth** for this project. Users may customiz
 **Test Execution**
 
 * Each workflow runs on Linux runners.
-* Browser tests use headless Chromium via Playwright + Vitest.
+* Browser tests use headless Chromium via Playwright + Vitest. (Do not use browser runner/reporters, just command line tests)
 * API integration tests use **recorded HTTPS fixtures**.
 * CI mirrors **exact production environment**: no mocks, no Mac/Windows shortcuts.
 * AI agents scaffold GitHub Actions YAML automatically for each test suite.
