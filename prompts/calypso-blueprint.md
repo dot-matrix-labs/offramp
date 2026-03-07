@@ -146,6 +146,15 @@ These standards are the **source of truth** for this project. Users may customiz
    * **TDD Environment:** You should not develop by opening a browser on localhost. You should always use a headless instance, execute headless browser tests (e.g., Playwright), and strictly do Test-Driven Development (TDD). You should stub all the testsuites before building any features: server unit, integration, browser unit, browser component, browser e2e.
 
 1. **Collect Specifications:** The AI agent must generate an `.md` document containing comprehensive onboarding interview questions for the Product Owner to extract requirements. An explicit template prompt is provided to instruct the agent on generating these questions. The agent then writes a canonical Product Requirements Doc to `docs/prd.md` based on the answers. The Product Owner/Manager will own and update this document moving forward.
+
+1a. **Implementation Plan:** After the PRD is established, the agent creates `docs/plans/implementation-plan.md`. This is a living checklist of concrete work tasks, distinct from the PRD: the PRD describes *what* the product must do; the implementation plan describes *how* the agent will build it, in what order, and what remains to be done.
+
+   * Tasks are written as markdown checkboxes (`- [ ]`), grouped by phase or area.
+   * The plan is updated at **every git commit** — this is enforced by a pre-commit hook (see git-standards). Updates are twofold:
+     1. **Discovery:** New tasks or re-ordered tasks learned during implementation are added.
+     2. **Completion:** Finished tasks are checked off (`- [x]`).
+   * The implementation plan is the agent's primary working memory for a session. Reading it at session start tells the agent exactly where work left off and what comes next.
+
 2. **Prototype:** mock data, minimal UI, basic flows, no persistence.
 3. **Demoware:** partial integrations, realistic UI, stable demo workflows.
 4. **Alpha:** full persistence, authentication, core business logic.

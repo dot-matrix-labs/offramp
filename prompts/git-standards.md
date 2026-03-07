@@ -81,6 +81,41 @@ Pre-commit nags run before a commit is finalized. They are designed to:
 | ------------ | ------------------------------------ |
 | Node.js/Bun  | `prettier --write`, `eslint --fix`   |
 
+### Implementation Plan Gate (blocking)
+
+Every commit must include an update to `docs/plans/implementation-plan.md`. This is a hard block — the commit will not proceed if the file is not staged.
+
+Add the following check to `.git/hooks/pre-commit` (or the project's shared hooks directory):
+
+```bash
+#!/usr/bin/env bash
+# Implementation plan gate — every commit must update the plan.
+
+if ! git diff --cached --name-only | grep -q "^docs/plans/implementation-plan\.md$"; then
+  echo ""
+  echo "COMMIT BLOCKED: docs/plans/implementation-plan.md has not been updated."
+  echo ""
+  echo "At every commit the implementation plan must be updated. Updates are twofold:"
+  echo "  1) You learned something new and there are tasks that need to be added"
+  echo "     or re-ordered — update the plan to reflect current understanding."
+  echo "  2) Tasks that are now complete must be checked off (- [x])."
+  echo ""
+  echo "Update docs/plans/implementation-plan.md, stage it, and commit again."
+  echo ""
+  exit 1
+fi
+```
+
+**Bootstrapping the hook:** The scaffold step must install this hook automatically so it is active from the first commit:
+
+```bash
+mkdir -p .git/hooks
+cp scripts/hooks/pre-commit .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```
+
+Store the canonical hook source in `scripts/hooks/pre-commit` so it is version-controlled and re-installable by any agent or developer who clones the repository.
+
 ### Pre-push Stage
 
 Pre-push nags run before code is pushed to remote. They are designed to:
