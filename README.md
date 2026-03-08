@@ -1,20 +1,17 @@
 # Calypso
 
-AI lets every fruit stand build NASA-quality software, if you let it. A solo operator can now produce applications that would have taken a 20-person engineering team two years to ship. That is not an exaggeration — it is the current state of the art.
+A method, git-native tools, and a TypeScript reference implementation for building **supergreen** software:
 
-But there is a catch.
-
-**To unlock AI's full capability, you need to go supergreen.** Orchestrating your existing SaaS stack with AI wrappers is a local maximum — you are routing around the constraints of software that was never designed for this environment. Supergreen software is fused AI-native from the start: tree-shaken to carry only what it needs, correct by construction through architecture that enforces its own constraints, and self-improving — each agent commit advances the plan and writes the next prompt. That is what Calypso is for.
-
-There is a second, deeper problem with the fragmented SaaS model: *N* smart AIs deployed across *N* vendor data silos will always produce worse outcomes than a single AI — even a less capable one — operating over fused, coherent data. Fragmentation is not just an operational cost. It is a fundamental cap on the quality of every AI-assisted decision your organization can make. You cannot reason well across data you do not hold.
-
-This vision has always required superhuman implementation capacity. We have arrived at the moment that exists.
+- **Fused AI** — one AI over coherent, owned data
+- **Tree-shaken** — no bloat, no unnecessary dependencies
+- **Correct by construction** — architecture that enforces its own constraints
+- **Self-improving** — each commit advances the plan and writes the next prompt
 
 ---
 
 ## Quickstart
 
-Paste this into your AI agent (Claude Code, Gemini CLI, Codex, etc.), replacing the context line with your own:
+Paste into your AI agent (Claude Code, Gemini CLI, Codex, etc.):
 
 ```
 Agent, bootstrap a new Calypso project.
@@ -27,19 +24,19 @@ Then read docs/standards/calypso-blueprint.md before doing anything else.
 Context: I am replacing GitHub Projects for a software team of 3.
 ```
 
-The agent reads the standards, interviews you for requirements, writes a product doc and implementation plan, and begins building. Each commit advances the plan and writes the next prompt.
-
 ---
 
-## What Calypso Is
+## The Vision
 
-Calypso is three things:
+AI lets every fruit stand build NASA-quality software, if you let it. A solo operator can now produce applications that would have taken a 20-person engineering team two years to ship. That is not an exaggeration — it is the current state of the art.
 
-1. **A method.** A staged, architecture-first discipline for building AI-native applications — from first scaffold to production V1 — without accumulating technical debt at each step.
+But there is a catch.
 
-2. **A set of lightweight git-native tools.** Prompts, blueprints, and bootstrap scripts that live in your repository and travel with your code. No platform, no dashboard, no vendor lock-in.
+**To unlock AI's full capability, you need to go supergreen.** Orchestrating your existing SaaS stack with AI wrappers is a local maximum — you are routing around the constraints of software that was never designed for this environment. Supergreen software is fused AI-native from the start: tree-shaken to carry only what it needs, correct by construction through architecture that enforces its own constraints, and self-improving — each agent commit advances the plan and writes the next prompt. That is what Calypso is for.
 
-3. **A TypeScript reference implementation.** A concrete, opinionated stack with tested conventions for monorepo structure, CI pipelines, headless testing, deployment, auth, and logging. Not a starter template — the architecture an agent follows to build *your* product.
+There is a second, deeper problem with the fragmented SaaS model: *N* smart AIs deployed across *N* vendor data silos will always produce worse outcomes than a single AI — even a less capable one — operating over fused, coherent data. Fragmentation is not just an operational cost. It is a fundamental cap on the quality of every AI-assisted decision your organization can make. You cannot reason well across data you do not hold.
+
+This vision has always required superhuman implementation capacity. We have arrived at the moment that exists.
 
 ---
 
