@@ -171,65 +171,9 @@ CI mirrors this exactly on Linux runners.
 
 ---
 
-## Reference Implementation — Calypso TypeScript
-
-> The following is the Calypso TypeScript reference implementation. The principles and patterns above apply equally to other stacks; this section illustrates one concrete realization using Vitest, Playwright, and GitHub Actions.
-
-### Test Categories
-
-| Category | Tool | Runtime | Location |
-|---|---|---|---|
-| Unit tests | Vitest | Bun (CLI) | `/tests/unit` |
-| API integration tests | Vitest + golden fixtures | Bun (CLI) | `/tests/integration` |
-| React component tests | Vitest + Playwright | Headless Chromium | `/tests/e2e` (component) |
-| Full-page user story tests | Playwright | Headless Chromium | `/tests/e2e` (pages) |
-
-### CI Workflow Structure
-
-```
-.github/workflows/
-  test-unit.yml
-  test-integration.yml
-  test-component.yml
-  test-e2e.yml
-```
-
-Each workflow:
-1. Installs Bun
-2. Installs dependencies
-3. Runs lint + format check
-4. Runs its specific test suite
-5. Reports pass/fail independently
-
-Merge is blocked unless all four workflows pass.
-
-### Golden Fixture Format
-
-Fixtures are stored in `.env.test` (for credentials) and `/tests/fixtures/` (for recorded responses). The fixture recorder is a Bun script that:
-1. Reads API credentials from `.env.test`
-2. Makes real HTTP requests to external services
-3. Writes response bodies and headers to JSON files in `/tests/fixtures/`
-4. Logs schema changes compared to existing fixtures
-
-`.env.test` is committed to the repository (it contains test-only credentials, not production secrets).
-
-### Browser Test Configuration
-
-All browser tests use Playwright in headless mode. Configuration:
-- No browser runner or reporter — command-line test execution only
-- Screenshot capture for visual evaluation
-- No GUI, no display server, no `DISPLAY` environment variable
-
-### Dependency Justification
-
-| Package | Reason | Buy or DIY |
-|---|---|---|
-| Vitest | Test runner with native ESM and TypeScript support; integrated with Bun | Buy |
-| Playwright | Headless browser automation; no viable DIY alternative | Buy |
-| ESLint | Linting with ecosystem plugins; infeasible to replicate | Buy |
-| Prettier | Deterministic formatting; agent-generated formatter would diverge | Buy |
-
 ---
+
+> For the Calypso TypeScript implementation of these patterns, see [testing-implementation.md](../implementation-ts/testing-implementation.md).
 
 ## Implementation Checklist
 
@@ -269,8 +213,6 @@ All browser tests use Playwright in headless mode. Configuration:
 ## Antipatterns
 
 - **Mock everything.** Replacing every external dependency with a mock so tests run fast and pass reliably. The tests validate the mock's behavior, not the system's. When the real dependency changes, the tests still pass and production breaks.
-
-- **JSDOM as a browser.** Running component tests in JSDOM or Happy DOM because they are faster than headless Chromium. These are DOM simulations, not browsers. They lack layout, rendering, real event dispatch, and network behavior. A component that passes in JSDOM and fails in Chromium is a component that fails in production.
 
 - **Fabricated fixtures.** Writing API response fixtures by hand based on documentation or memory instead of recording them from live traffic. Handwritten fixtures reflect the developer's understanding of the API, which is always incomplete. The golden fixture recorder exists specifically to prevent this.
 

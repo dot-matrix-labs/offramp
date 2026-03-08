@@ -199,89 +199,9 @@ Human Admin
 
 ---
 
-## Reference Implementation — Calypso TypeScript
-
-> The following is the Calypso TypeScript reference implementation. The principles and patterns above apply equally to other stacks; this section illustrates one concrete realization using TypeScript, Bun, React, and the Calypso monorepo layout.
-
-### Package Structure
-
-```
-/packages/ui
-  /design-system       # Shared component library: tokens, primitives, patterns
-  /end-user            # End-user interface components and flows
-  /admin               # Admin interface components and flows
-
-/packages/services
-  /capability-api      # Typed service capability definitions (used by all surfaces)
-
-/apps/web              # End-user React application (consumes design-system, end-user)
-/apps/admin            # Admin React application (consumes design-system, admin)
-/apps/agent-sdk        # Agent TypeScript SDK (consumes capability-api, no React)
-/apps/server
-  /api                 # REST API routes backing all surfaces
-  /agent-router        # Agent-specific API routes with structured schema responses
-```
-
-### Core Interfaces
-
-```typescript
-// Service capability — the atomic unit of UX design
-interface Capability {
-  id: string;                     // e.g. 'invoice.create'
-  allowedActors: ActorType[];     // ['end-user', 'admin', 'agent']
-  requiredScopes: string[];       // e.g. ['invoices:write']
-}
-
-// Actor types — determines which interface surface is appropriate
-type ActorType = 'end-user' | 'admin' | 'agent';
-
-// Agent presence declaration on a user account
-interface AgentPresence {
-  agentId: string;
-  accountId: string;
-  declaredScopes: string[];       // what the agent is authorized to do
-  visibleToAccountHolder: true;   // invariant: always true
-  grantedAt: number;
-  lastActiveAt: number;
-}
-
-// Agent action log entry — every agent operation on the account is recorded
-interface AgentActionRecord {
-  agentId: string;
-  accountId: string;
-  capabilityId: string;
-  inputSummary: string;           // human-readable, not raw payload
-  outcome: 'success' | 'rejected' | 'failed';
-  timestamp: number;
-}
-
-// Service flow state — the authoritative UX specification unit
-interface ServiceFlowState {
-  id: string;
-  label: string;
-  availableTransitions: ServiceFlowTransition[];
-}
-
-interface ServiceFlowTransition {
-  id: string;
-  trigger: 'user-action' | 'system-event' | 'agent-action';
-  targetStateId: string;
-  requiredCapability: string;     // maps to Capability.id
-}
-```
-
-### Dependency Justification
-
-| Package | Decision | Reason |
-|---|---|---|
-| React | Buy | UI component model; no viable DIY for the browser rendering layer |
-| Tailwind CSS | Buy | Design token system and utility classes; DIY CSS at scale is unmaintainable without a preprocessor or framework |
-| Design token generator | DIY | Token definitions are a JSON file; no package needed |
-| Agent SDK HTTP client | DIY | `fetch` is native to Bun; a thin typed wrapper over `fetch` is < 50 lines |
-| Component documentation tool | DIY | Design system documentation is a static markdown or auto-generated HTML artifact produced by the build pipeline; no runtime dev server tool (e.g. Storybook) is warranted — it is a heavy human-only dependency with no agent-accessible value |
-| Form state management | DIY | React `useState` + controlled inputs handle all form cases; no external library needed at Calypso scale |
-
 ---
+
+> For the Calypso TypeScript implementation of these patterns, see [ux-implementation.md](../implementation-ts/ux-implementation.md).
 
 ## Implementation Checklist
 
@@ -330,12 +250,9 @@ interface ServiceFlowTransition {
 
 - **Beauty deferred to V1.** Treating visual quality as a polish pass at the end of development anchors stakeholders and users on an unpolished baseline that is expensive to correct. The first demo sets the quality anchor. Ship the first demo at the intended quality level or do not demo.
 
-- **Technology-specific UX specifications.** A design document that specifies "use a React modal" or "apply a Tailwind flex container" has conflated design and implementation. When the implementation changes, the specification is wrong. Specifications describe user states and transitions; implementations are chosen to satisfy them.
-
 - **One interface for all actor types.** Building a single interface that attempts to serve end-users, administrators, and agents simultaneously produces an interface that serves none of them well. Each actor type has distinct goals, available actions, and appropriate interaction patterns. Shared foundations (design system, capability API) do not imply a shared surface.
 
 - **Multiple equally prominent paths to the same action.** Offering two buttons that appear to do the same thing, two navigation entries for the same destination, or two API endpoints for the same operation forces the user to reason about whether the paths are truly equivalent. They will often be wrong. One path is a design decision; two paths are an unresolved design conflict.
 
 - **Complexity surfaced by default.** Showing all capabilities, settings, and options on first use causes cognitive overload and slows users to the speed of their least-needed feature. Default views must be designed for the primary task; everything else requires deliberate disclosure.
 
-- **GUI-dependent development tooling.** Calypso runs on hosted Linux with no display server. Any tool that requires a live browser window, a native GUI, or a local dev server to be useful to the developer (e.g. Storybook, Figma desktop agents, visual diff tools requiring a display) cannot be used in the agent workflow. Visual output is evaluated via headless Playwright screenshots. Design system documentation is a static build artifact. If a tool cannot run headlessly and produce its output to stdout or a file, it does not belong in the Calypso toolchain.
