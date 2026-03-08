@@ -1,46 +1,81 @@
 # Calypso
 
-**Dancing with the SaaS-pocalype**
+AI lets every fruit stand build NASA-quality software. A solo operator can now produce applications that would have taken a 20-person engineering team two years to ship. That is not an exaggeration — it is the current state of the art.
 
-Calypso is a framework and methodology for running a **synthetic software house** — a team of forward-deployed AI agents operating as an internal software development organization. Calypso is purpose-built to help organizations replace expensive SaaS vendors with bespoke, in-house software, one product at a time.
+But there is a catch.
 
-Software rarely fails due to code quality; it fails because of unclear requirements, chaotic architecture, and hype-driven choices. Calypso provides the blueprints, architecture-first design constraints, staged product maturity protocols, and stack consistency necessary to ensure that AI-generated software is maintainable, predictable, and scalable from prototype to production.
+**To unlock AI's full capability, you need to build new.** Orchestrating your existing SaaS stack with AI wrappers is a local maximum — you are routing around the constraints of software that was never designed for this environment. Truly AI-native software is greenfield, coherent, and purpose-built. That is what Calypso is for.
+
+There is a second, deeper problem with the fragmented SaaS model: *N* smart AIs deployed across *N* vendor data silos will always produce worse outcomes than a single AI — even a less capable one — operating over fused, coherent data. Fragmentation is not just an operational cost. It is a fundamental cap on the quality of every AI-assisted decision your organization can make. You cannot reason well across data you do not hold.
+
+This vision has always required superhuman implementation capacity. We have arrived at the moment that exists.
+
+---
+
+## What Calypso Is
+
+Calypso is three things:
+
+1. **A method.** A staged, architecture-first discipline for building AI-native applications — from first scaffold to production V1 — without accumulating technical debt at each step.
+
+2. **A set of lightweight git-native tools.** Prompts, blueprints, and bootstrap scripts that live in your repository and travel with your code. No platform, no dashboard, no vendor lock-in. The standards are files; the agent reads them at the start of every session.
+
+3. **A TypeScript reference implementation.** A concrete, opinionated stack — Bun, React, Tailwind, Vitest, Playwright — with tested conventions for monorepo structure, CI pipelines, headless testing, deployment, auth, and logging. It is not a starter template; it is the architecture an agent follows to build *your* product.
+
+---
 
 ## Quickstart
 
-To bootstrap a new Calypso project instantly, copy and paste this heavily structured prompt to your preferred AI agent:
+Copy this prompt to your AI agent of choice (Claude Code, Gemini CLI, Codex, etc.):
 
-```text
-Agent, I want to build a project tracking app with Calypso. 
+```
+Agent, I want to build a project tracking app with Calypso.
 
 CRITICAL: Before beginning, you MUST bootstrap the Calypso standards by running:
 
   curl -sSL https://raw.githubusercontent.com/dot-matrix-labs/calypso/main/scripts/bootstrap-standards.sh | bash
 
-Please start by reading the local docs/standards/calypso-blueprint.md
+Then read docs/standards/calypso-blueprint.md before doing anything else.
 
-Context: I work in software development, and I have a team of 3 developers. I am replacing GitHub Projects because it's ugly and confusing. 
+Context: I work in software development, team of 3. I am replacing GitHub Projects
+because it's ugly and confusing.
 ```
 
-## A Calypso for Every Developer
+The agent bootstraps the standards into `docs/standards/`, reads them, runs an onboarding interview to produce `docs/prd.md`, generates a live implementation plan in `docs/plans/`, and begins building. Each commit advances the plan and writes the next prompt. The loop runs until the product ships.
 
-Whether you are a solo hacker, a growing startup, or a large enterprise, there is a delivery model tailored for your needs:
+---
 
-### 1. Community Edition (DIY)
-For organizations and independent developers with existing engineering capabilities who want to run the synthetic software house themselves. The Community Edition is completely free and open-source. It provides all the necessary prompts, the Calypso Blueprint, reference architectures, documentation, etc. needed to bootstrap your own AI-native development studio.
+## The Stack
 
-### 2. Hosted (Not-SaaS)
-For organizations that want the outcome without assembling or managing the underlying machinery. We provide the full operational stack, infrastructure, and agent compute environments.
-**The Promise:** This is *not* a SaaS subscription markup trap. It is strictly **pass-through billing**. You pay the actual costs of the cloud infrastructure and the underlying language model API tokens, with absolutely zero artificial markup.
+| Layer | Choice |
+|---|---|
+| Language | TypeScript only |
+| Runtime | Bun |
+| UI | React + Tailwind CSS |
+| Testing | Vitest (unit) + Playwright (headless E2E) |
+| CI/CD | GitHub Actions |
+| Database | SQLite → PostgreSQL |
+| Auth | Self-hosted JWT (HTTP-only cookies) |
+| Deploy | Bare metal Linux, systemd |
 
-### 3. Enterprise Engagements
-For large-scale organizations undertaking complex digital transformations or replacing mission-critical legacy SaaS platforms. Our Enterprise tier offers hands-on, white-glove engagements. We embed with your team to customize the Calypso Blueprint, design bespoke domain data models, and directly oversee your synthetic software house to ensure seamless integration, security compliance, and strategic success.
+No Docker. No ORMs. No SaaS auth vendors. No mocks in tests.
 
-## Getting Started
+---
 
-To dive into the Calypso methodology and start scaffolding your AI-built applications, review our foundational documentation:
+## Delivery Models
 
-- [The Calypso Blueprint](prompts/calypso-blueprint.md)
-- [Product Owner Interview](prompts/product-owner-interview.md) 
-- [Scaffold Task Entrypoint](prompts/scaffold-task.md)
-- [FAQ](FAQ.md)
+**Community (free, open-source)** — Run it yourself. All blueprints, prompts, and scripts are in this repository.
+
+**Hosted** — We operate the infrastructure and agent compute. Pass-through billing only: you pay actual cloud and model API costs, zero markup.
+
+**Enterprise** — Embedded engagements for organizations replacing mission-critical legacy platforms.
+
+---
+
+## Documentation
+
+- [Calypso Blueprint](prompts/calypso-blueprint.md) — full architecture and process standard
+- [UX Blueprint](prompts/ux-blueprint.md) — UX posture, agent UX, beauty as a gate condition
+- [Data Security Blueprint](prompts/data-security-blueprint.md) — agent auth, scopes, and security posture
+- [Scaffold Task Entrypoint](prompts/scaffold-task.md) — the agent's first action on a new project
+- [Blueprint Authoring Standard](prompts/blueprint-standard.md) — how blueprints are written and structured
