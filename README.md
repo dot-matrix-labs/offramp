@@ -1,6 +1,6 @@
 # Calypso
 
-AI lets every fruit stand build NASA-quality software. A solo operator can now produce applications that would have taken a 20-person engineering team two years to ship. That is not an exaggeration — it is the current state of the art.
+AI lets every fruit stand build NASA-quality software, if you let it. A solo operator can now produce applications that would have taken a 20-person engineering team two years to ship. That is not an exaggeration — it is the current state of the art.
 
 But there is a catch.
 
