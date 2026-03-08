@@ -12,36 +12,34 @@ This vision has always required superhuman implementation capacity. We have arri
 
 ---
 
+## Quickstart
+
+Paste this into your AI agent (Claude Code, Gemini CLI, Codex, etc.), replacing the context line with your own:
+
+```
+Agent, bootstrap a new Calypso project.
+
+First, run:
+curl -sSL https://raw.githubusercontent.com/dot-matrix-labs/calypso/main/scripts/bootstrap-standards.sh | bash
+
+Then read docs/standards/calypso-blueprint.md before doing anything else.
+
+Context: I am replacing GitHub Projects for a software team of 3.
+```
+
+The agent reads the standards, interviews you for requirements, writes a product doc and implementation plan, and begins building. Each commit advances the plan and writes the next prompt.
+
+---
+
 ## What Calypso Is
 
 Calypso is three things:
 
 1. **A method.** A staged, architecture-first discipline for building AI-native applications — from first scaffold to production V1 — without accumulating technical debt at each step.
 
-2. **A set of lightweight git-native tools.** Prompts, blueprints, and bootstrap scripts that live in your repository and travel with your code. No platform, no dashboard, no vendor lock-in. The standards are files; the agent reads them at the start of every session.
+2. **A set of lightweight git-native tools.** Prompts, blueprints, and bootstrap scripts that live in your repository and travel with your code. No platform, no dashboard, no vendor lock-in.
 
-3. **A TypeScript reference implementation.** A concrete, opinionated stack — Bun, React, Tailwind, Vitest, Playwright — with tested conventions for monorepo structure, CI pipelines, headless testing, deployment, auth, and logging. It is not a starter template; it is the architecture an agent follows to build *your* product.
-
----
-
-## Quickstart
-
-Copy this prompt to your AI agent of choice (Claude Code, Gemini CLI, Codex, etc.):
-
-```
-Agent, I want to build a project tracking app with Calypso.
-
-CRITICAL: Before beginning, you MUST bootstrap the Calypso standards by running:
-
-  curl -sSL https://raw.githubusercontent.com/dot-matrix-labs/calypso/main/scripts/bootstrap-standards.sh | bash
-
-Then read docs/standards/calypso-blueprint.md before doing anything else.
-
-Context: I work in software development, team of 3. I am replacing GitHub Projects
-because it's ugly and confusing.
-```
-
-The agent bootstraps the standards into `docs/standards/`, reads them, runs an onboarding interview to produce `docs/prd.md`, generates a live implementation plan in `docs/plans/`, and begins building. Each commit advances the plan and writes the next prompt. The loop runs until the product ships.
+3. **A TypeScript reference implementation.** A concrete, opinionated stack with tested conventions for monorepo structure, CI pipelines, headless testing, deployment, auth, and logging. Not a starter template — the architecture an agent follows to build *your* product.
 
 ---
 
@@ -58,7 +56,7 @@ The agent bootstraps the standards into `docs/standards/`, reads them, runs an o
 | Auth | Self-hosted JWT (HTTP-only cookies) |
 | Deploy | Bare metal Linux, systemd |
 
-This is the reference implementation of the Calypso Blueprint. No Docker. No ORMs. No SaaS auth vendors. No mocks in tests.
+No Docker. No ORMs. No SaaS auth vendors. No mocks in tests.
 
 ---
 
