@@ -40,7 +40,10 @@ For large-scale organizations undertaking complex digital transformations or rep
 
 To dive into the Calypso methodology and start scaffolding your AI-built applications, review our foundational documentation:
 
-- [The Calypso Blueprint](prompts/calypso-blueprint.md)
-- [Product Owner Interview](prompts/product-owner-interview.md) 
-- [Scaffold Task Entrypoint](prompts/scaffold-task.md)
+- [The Calypso Blueprint](prompts/calypso-blueprint.md) — architecture, stack, process, and deployment
+- [Product Owner Interview](prompts/product-owner-interview.md) — requirements extraction
+- [Scaffold Task Entrypoint](prompts/scaffold-task.md) — project initialization checklist
+- [Security Standards](prompts/security-standards.md) — secrets, auth, headers, audit logging
+- [Multi-Agent Protocol](prompts/multi-agent-protocol.md) — parallel agent coordination
+- [Telemetry Feedback Loop](prompts/telemetry-feedback-loop.md) — production observability and self-healing
 - [FAQ](FAQ.md)

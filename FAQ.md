@@ -22,9 +22,9 @@ Docker adds an unnecessary layer of networking, volume management, and build-tim
 
 Bun is chosen for its significantly faster start times, built-in TypeScript execution (no `ts-node` or compilation steps required for server code), and built-in testing (`bun test`). It drastically reduces the number of toolchain dependencies needed to get a project running.
 
-### "Why never mock APIs? Isn't that standard practice?"
+### "Why never fabricate API responses? Isn't mocking standard practice?"
 
-Mocking is a leading cause of false confidence. You end up testing that your code works against your *imagination* of how an external API behaves, not how it *actually* behaves. The Calypso Blueprint requires generating "golden fixtures" via actual network requests. While harder to set up initially, it ensures your code survives real-world API drift and eliminates a massive source of production bugs.
+Fabricated test data — responses you invent rather than record — is a leading cause of false confidence. You end up testing against your *imagination* of how an API behaves, not how it *actually* behaves. Calypso requires "golden fixtures" generated from actual network requests. Recorded fixtures are acceptable because they capture real behavior. What's banned is *inventing* responses that no real service ever produced. This ensures your code survives real-world API drift and eliminates a massive source of production bugs.
 
 ### "Why no heavy state-management libraries (Redux, MobX, etc.)?"
 
@@ -35,4 +35,20 @@ Heavy state libraries encourage putting everything into global state, leading to
 Every `npm` dependency is a liability—it's code you don't control, bringing its own transitive dependencies, potential security flaws, and breaking changes. For trivial utilities (like date formatting or tiny UI components), having an AI agent generate a clean, tree-shaken, tested implementation directly in your codebase takes seconds and removes a permanent supply-chain risk. We explicitly reserve "Buy" (`npm install`) for complex, high-liability features like payment processing (Stripe) or dense specifications (PDF generation).
 
 ### Why no ORMs or Query Builders?
-ORM's abstract away SQL performance and add massive generated footprint, for humans. AI engineering agents don't mind this, and can generate performant, type-safe queries directly in your codebase. Less dependencies to manage, and no assumptions of workflows or deployment strategies.
+ORMs abstract away SQL performance and add massive generated footprint, for humans. AI engineering agents don't mind this, and can generate performant, type-safe queries directly in your codebase. Less dependencies to manage, and no assumptions of workflows or deployment strategies.
+
+### "Why no Docker for the app but Docker for the database?"
+
+The application is a single Bun process — running it directly on the host via systemd is simpler, faster, and eliminates a layer of networking and volume management that agents would need to debug. Databases are different: containerized Postgres gives you version pinning, isolation, and reproducible setup without polluting the host. The rule is: containerize infrastructure, not application code.
+
+### "What about security? .env files aren't enterprise-grade."
+
+They aren't, and Calypso doesn't use them in production. `.env` files are for local development only. In production, secrets are managed via systemd `EnvironmentFile=` directives (owned by root, mode 0600) and, at V1, via a dedicated secrets manager. See `security-standards.md` for the full specification.
+
+### "Can multiple agents work on the same project?"
+
+Yes. The multi-agent protocol uses git as the coordination layer: agents claim tasks from the shared implementation plan, work on dedicated branches, and merge via PR. No external orchestration service required. See `multi-agent-protocol.md` for the full specification.
+
+### "How do agents know about production errors?"
+
+A dedicated telemetry database (`telemetry.db`) stores errors, traces, and metrics. Agents have read-only SQL access and query it at session start to understand production health. See `telemetry-feedback-loop.md` for the schema and self-healing cycle.

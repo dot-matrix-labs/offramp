@@ -274,7 +274,7 @@ Repeat:
 
 Agent will:
 
-1. Read `.nightshift/commands/new-module-development.md`
+1. Read `docs/standards/development-standards.md`
 2. Create `docs/plan/payment-processing_plan.md`
 3. Guide through Plan → Stub → Implement
 
@@ -283,7 +283,7 @@ Agent will:
 ```
 I need to build a new payment processing module.
 Follow the new-module-development workflow from
-.nightshift/commands/new-module-development.md
+docs/standards/development-standards.md
 ```
 
 ---

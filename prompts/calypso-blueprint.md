@@ -182,7 +182,7 @@ These standards are the **source of truth** for this project. Users may customiz
 
 **Core Principles**
 
-* **Never mock** anything: no APIs, databases, DOM, or external services.
+* **Never fabricate** test data: do not invent API responses, database states, or DOM structures that were not produced by real execution. Recorded fixtures from real services are acceptable and encouraged — they capture actual behavior, not imagined behavior.
 * **Always test on the environment the code will run in:** Linux for server and browser testing; no Mac/Windows shortcuts.
 * Browser code tested only in headless Chromium (Vitest + Playwright).
 * API tests must use **recorded "golden" fixtures of real production requests/responses**. To enable this without a human, the AI must explicitly develop a test tool which generates these "golden" fixtures by executing real network requests against external services. It must not mock, estimate, or hallucinate these fixtures.
@@ -215,7 +215,7 @@ These standards are the **source of truth** for this project. Users may customiz
 * Unit tests are fast and deterministic; run locally in CI.
 * Component and full-page tests **always run in headless Chromium**.
 * API integration tests intercept HTTPS calls using recorded fixtures; never invent responses.
-* Tests **validate real runtime behavior**, not mocks or simulated environments.
+* Tests **validate real runtime behavior**, not fabricated or simulated environments.
 
 
 ---
@@ -257,11 +257,17 @@ These standards are the **source of truth** for this project. Users may customiz
 * Each deployment workflow uses CI validation: only pass-tested code is deployed.
 * Logging, monitoring, backups enforced during Beta stage.
 
+**Security Audit Workflow**
+
+* A dedicated `security-audit.yml` workflow runs `bun pm audit` on every PR.
+* See `security-standards.md` Section 6 for the workflow definition.
+
 **Enforcement Rules for AI Agents**
 
 * Always generate a separate `.github/workflows/*.yml` file per test suite.
 * Include linting/formatting steps in each workflow.
 * Do not merge or deploy code without CI passing all workflows.
+* The security audit workflow must pass before merge.
 
 ---
 
@@ -270,9 +276,9 @@ These standards are the **source of truth** for this project. Users may customiz
 
 **Target Environment**
 
-* Bare metal deployment targeting Linux natively. Avoid Docker.
-* Applications are strictly kept alive natively using `systemd`.
-* Environment variables are specified using `.env` files.
+* Bare metal deployment targeting Linux natively. The application process runs directly on the host, managed by `systemd`. Do not containerize the application itself.
+* **Exception: databases.** At V1, PostgreSQL runs in a container via `docker compose`. This is the one justified container — databases benefit from containerized deployment for version pinning, isolation, and reproducible setup. The application connects to Postgres over localhost.
+* Environment variables for the application are managed via `systemd` `EnvironmentFile=` (see `security-standards.md` Section 1). `.env` files are for local development only.
 * Test environment variables (including `FIXTURES`) are safely pushed to the repository in `.env.test` for CI execution.
 * Bun serves server APIs and static assets.
 * Reverse proxy optional; CDN optional.
@@ -296,24 +302,57 @@ These standards are the **source of truth** for this project. Users may customiz
 
 ## 7. Logging & Telemetry
 
-**SPAN Logging, Tracing, and Summarization**
+Calypso uses a structured telemetry database rather than text log files as the primary observability layer. This gives agents queryable, deduplicated, persistent access to production state. See `telemetry-feedback-loop.md` for the full specification.
 
-* **Browser-to-Server Handoff:** Browser errors (React error boundaries, unhandled rejections, DOM crashes) must be explicitly caught and POSTed back to the Bun server's `/api/logs` endpoint.
-* **Distributed Traces:** Every request/interaction must generate a unique `traceId`. This trace must seamlessly follow the user from the browser click down to the database query, allowing perfect chronological reconstruction of any workflow.
-* **LLM-friendly `uniques.log`:** In addition to a standard chronological stdout/file log, the server must maintain a `uniques.log` file.
-  * This file acts as a Set of errors, deduplicating repetitive alerts.
-  * An AI agent inspecting the system should only need to read `uniques.log` to see the *categories* of errors currently afflicting the system, without wasting its token context window scrolling through thousands of identical "Timeout" errors.
-* **Retention Policy:** Logs should be rotated (e.g., daily) and kept for a maximum of 14 days on the bare-metal server to prevent disk exhaustion, unless explicitly offloaded to a cold storage solution like S3.
+**Minimum Requirements**
+
+* **Browser-to-Server Handoff:** Browser errors (React error boundaries, unhandled rejections, DOM crashes) must be explicitly caught and POSTed back to the Bun server's `/api/telemetry` endpoint, which writes them to `telemetry.db`.
+* **Distributed Traces:** Every request/interaction must generate a unique `traceId` (propagated via `X-Trace-Id` header). This trace follows the user from the browser click down to the database query.
+* **Error Deduplication:** Errors are fingerprinted and deduplicated in the `errors` table of `telemetry.db`. Agents query this table to see error *categories* without scrolling through repetitive log entries.
+* **Stdout Logging:** Retained for human/ops debugging and container log aggregation. Not the primary telemetry sink.
+* **Retention:** 14 days for traces and metrics, 90 days for errors. Enforced by a daily systemd timer.
 
 ---
 
-## 8. Database & Authentication
+## 8. Database & Data Evolution
 
 **Database Standards**
-* **Engine:**  Up until V0, for demos and development, use SQLite (natively via `bun:sqlite`) for single-node vertical scaling and hyper minimalism. This is of course not a long-term strategy, and the agent should configure a durable redundant service like locally deployed PostgreSQL or a cloud-hosted solution like Supabase.
-* **Accessing Data:** There is no need for ORMs if agents are building the database queries directly, (like Prisma or TypeORM) that abstract away SQL performance and add massive generated footprint, but this only matters for human developers. AI agents should generate the database queries strings directly. 
+* **Engine (Prototype through Alpha):** SQLite via `bun:sqlite` for single-node vertical scaling and hyper minimalism. SQLite is the development and demo database — it requires no infrastructure and agents can inspect it trivially.
+* **Engine (Beta through V1):** PostgreSQL in a container. At V1, the application requires a durable, replicated database. Deploy Postgres via a container (`docker compose` or managed service) — this is the one justified container in the stack. The application code uses parameterized SQL queries, so the migration is a connection string change plus schema re-creation, not a rewrite.
+* **Accessing Data:** No ORMs. AI agents generate parameterized SQL query strings directly. No Prisma, no TypeORM, no Drizzle.
+* **Schema Evolution:** Maintain migration files in `apps/server/migrations/` as numbered SQL scripts (`001_initial.sql`, `002_add_users.sql`). Migrations run forward only. Each migration is a plain `.sql` file — no migration framework, no ORM migration tool. The server applies pending migrations on startup by comparing the `schema_version` table against the migration directory.
+* **Greenfield Assumption:** Calypso projects are greenfield builds replacing SaaS functionality. Data migration from the prior SaaS vendor is the customer's responsibility during onboarding — the Calypso application provides import endpoints or scripts as needed, but the migration strategy is defined per project in the PRD, not in this blueprint.
 
-**Authentication Standards**
-* **Self-Hosted First:** Avoid external SaaS authentication providers (e.g., Auth0, Clerk) unless explicitly mandated by the Product Owner. These add unnecessary latency, vendor lock-in, and cost for features an AI agent can build natively in seconds.
-* **Mechanism:** Use simple, self-hosted JWTs stored in secure HTTP-only cookies.
-* **Implementation:** Agents must generate inhouse minimalist JWT auth middlewares directly within the Bun server using standard web crypto architectures, keeping the auth logic completely owned by the internal repository.
+**Authentication & Security Standards**
+* See `security-standards.md` for the complete security specification, including secrets management, rate limiting, HTTP headers, and audit logging.
+* **Self-Hosted First:** Avoid external SaaS authentication providers (e.g., Auth0, Clerk) unless explicitly mandated by the Product Owner.
+* **Mechanism:** Self-hosted JWTs stored in secure HTTP-only cookies, generated via `crypto.subtle`.
+* **Enterprise SSO:** At Beta or V1, support OIDC/SAML for organizations with existing identity providers. See `security-standards.md` Section 2 for the integration pattern.
+
+## 9. Telemetry & Production Feedback
+
+The Calypso telemetry system serves two audiences: human operators and AI agents.
+
+**Telemetry Database**
+* A dedicated SQLite database (`telemetry.db`) stores errors, traces, and metrics. It is separate from the application database — different lifecycle, different access patterns, different permissions.
+* See `telemetry-feedback-loop.md` for the complete schema, ingestion pipeline, and agent query patterns.
+
+**Agent Feedback Loop**
+* Agents have read-only access to the telemetry database. They query it at session start to understand production health.
+* The triage agent (or any builder agent) creates tasks from telemetry observations. Fixes flow through the normal PR process.
+* Agent observations are recorded in the telemetry database to prevent duplicate triage across sessions.
+* See `telemetry-feedback-loop.md` for the full self-healing cycle specification.
+
+**Logging**
+* `stdout` logging remains for human/ops debugging and container log aggregation.
+* `uniques.log` is superseded by the `errors` table in `telemetry.db`, which provides the same deduplication with queryable structure.
+* Retention: 14 days for traces and metrics, 90 days for errors, indefinite for agent observations.
+
+## 10. Multi-Agent Collaboration
+
+For projects with multiple agents working in parallel, see `multi-agent-protocol.md`. Key concepts:
+
+* The implementation plan on `main` is the shared work queue. Agents claim tasks via metadata commits.
+* Each agent works on its own branch. PRs merge to `main`.
+* Specialized agent roles (builder, reviewer, triage, security) enable parallel workflows.
+* The single-agent serial model (original Calypso) remains valid and is the default for small projects.

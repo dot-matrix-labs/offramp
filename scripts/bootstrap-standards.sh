@@ -12,11 +12,17 @@ FILES=(
   "git-standards.md"
   "product-owner-interview.md"
   "scaffold-task.md"
+  "security-standards.md"
+  "multi-agent-protocol.md"
+  "telemetry-feedback-loop.md"
 )
 
-BASE_URL="https://raw.githubusercontent.com/dot-matrix-labs/calypso/main/prompts"
+# Pin to a specific commit for reproducibility. Update this hash deliberately
+# when upgrading standards — do not track main blindly.
+COMMIT="main"
+BASE_URL="https://raw.githubusercontent.com/dot-matrix-labs/calypso/${COMMIT}/prompts"
 
-echo "Downloading Calypso standards..."
+echo "Downloading Calypso standards (ref: ${COMMIT})..."
 
 for FILE in "${FILES[@]}"; do
   echo "  - $FILE"
@@ -27,9 +33,13 @@ echo "Done. Standards saved to ./docs/standards/"
 
 echo ""
 echo "================================================================================"
+echo "IMPORTANT: Once bootstrapped, your local docs/standards/ files are the source"
+echo "of truth. Update them deliberately — do not re-run this script on every session."
+echo ""
+echo "To pin to a specific version, edit COMMIT in this script to a commit hash."
+echo "================================================================================"
+echo ""
 echo "AGENT INSTRUCTION:"
-echo "The agent MUST now read these local files in ./docs/standards/ as the first"
-echo "action of the session. Do NOT proceed with any development or documentation"
-echo "tasks until these standards are read; otherwise, you may fabricate"
-echo "conventions that violate the Calypso architecture."
+echo "Read all files in ./docs/standards/ before proceeding with any development or"
+echo "documentation tasks. Start with calypso-blueprint.md."
 echo "================================================================================"

@@ -255,6 +255,9 @@ Create `AGENT.md` once per project:
 @docs/standards/git-standards.md
 @docs/standards/documentation-standard.md
 @docs/standards/development-standards.md
+@docs/standards/security-standards.md
+@docs/standards/multi-agent-protocol.md
+@docs/standards/telemetry-feedback-loop.md
 @docs/prd.md
 
 ## Method
@@ -288,13 +291,14 @@ Standards missing? `curl -sSL https://raw.githubusercontent.com/dot-matrix-labs/
 ## Do Not
 
 - Use any language other than TypeScript, or npm/npx instead of bun.
-- Mock, stub, or fabricate fixtures. Silence or skip failing tests.
-- Use an ORM, Docker, external auth (Auth0/Clerk), GraphQL/WebSockets (unless PRD requires), or heavy state libs (Redux/Zustand).
+- Fabricate test data. Use recorded golden fixtures from real services, not invented responses. Silence or skip failing tests.
+- Use an ORM, Docker for the application (Postgres container at V1 is fine), external auth (Auth0/Clerk), GraphQL/WebSockets (unless PRD requires), or heavy state libs (Redux/Zustand).
 - Add a package for functionality buildable in ~50 lines.
 - Develop or test on Mac/Windows. Run headed browser tests.
 - Commit without staging both planning docs. Batch >~10 files into one commit. Push a PR >~20 files.
 - Write logic before planning and stubbing. Over-abstract before three concrete cases exist.
 - Put anything other than a reproduction instruction in `retroactive_prompt`.
+- Store secrets in code, commit messages, or Git-Brain metadata. Use environment variables.
 ```
 
 ## Deploy Script: `scripts/install-agent-config.sh`
