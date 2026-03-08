@@ -68,7 +68,7 @@ No Docker. No ORMs. No SaaS auth vendors. No mocks in tests.
 
 **Calypso RS** — the next level: a minimalist Rust stack end-to-end, with a fully WASM client for state management and DOM rendering. No React.
 
-**Alien Stack** — our research lab paper on the future of software process. Someday.
+**[Alien Stack](https://github.com/dot-matrix-labs/alien-stack)** — our research lab paper on the future of software process. Someday.
 
 ---
 
