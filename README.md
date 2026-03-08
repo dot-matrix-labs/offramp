@@ -47,6 +47,26 @@ This vision has always required superhuman implementation capacity. We have arri
 
 ---
 
+## The Blueprint
+
+Calypso is opinionated. Several choices are counter-intuitive coming from a human development culture — they make full sense once humans are out of the development loop.
+
+**Process** — The agent operates as a self-advancing state machine. Each commit updates the implementation plan and writes the next prompt. The agent is never waiting for human input between tasks. When there is nothing left to build, it enters hardening mode.
+
+**Testing** — Never mock. Not APIs, not the database, not the DOM. Humans mock because writing the real thing takes time they do not have. Agents do not have that constraint. Mocks hide bugs; real fixtures catch them. All browser tests run in headless Chromium — agents have no display server, and neither should the test suite.
+
+**Dependencies** — DIY over buy. Humans import libraries to avoid writing code. Agents write the code directly, perfectly tree-shaken to the exact behavior needed, with no transitive dependency surface to audit or upgrade. Buy only when the domain is genuinely specialized (cryptography, payment SDKs, compliance-critical integrations).
+
+**Data** — No ORMs. Agents write SQL directly with no cognitive overhead. ORMs exist to make databases approachable for humans; they abstract away performance and generate massive footprint. The agent does not need the abstraction. Start with SQLite, graduate to PostgreSQL.
+
+**UX** — Beauty is a gate condition, not a preference. An ugly early version sets an anchor that is nearly impossible to reverse. The AI agent is a first-class user of every application it builds: it interacts through typed APIs, not through browser automation or interfaces designed for human perception. Admin is also a first-class user — never through raw database tooling or developer consoles.
+
+**Security** — The threat model is not "prevent breaches." It is "make a breach useless." Greenfield applications have no brownfield trade-offs to honor, so there is no excuse for anything less than banking-grade authorization, HIPAA-grade privacy, and adversarial hardening from day one.
+
+**Deployment** — Bare metal Linux, systemd, no Docker. Docker solves environment consistency for human teams working across machines. Agents run on a known Linux host; the abstraction layer adds complexity with no benefit.
+
+---
+
 ## Reference Implementation
 
 Before making a giant leap, we start with familiar tooling. The supergreen principles can be applied today with the stack you already know.
