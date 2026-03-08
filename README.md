@@ -98,8 +98,8 @@ Once you go post-human, the stack goes lower. The constraints that TypeScript an
 
 ## Documentation
 
-- [Calypso Blueprint](prompts/calypso-blueprint.md) — full architecture and process standard
-- [UX Blueprint](prompts/ux-blueprint.md) — UX posture, agent UX, beauty as a gate condition
-- [Data Security Blueprint](prompts/data-security-blueprint.md) — agent auth, scopes, and security posture
-- [Scaffold Task Entrypoint](prompts/scaffold-task.md) — the agent's first action on a new project
-- [Blueprint Authoring Standard](prompts/blueprint-standard.md) — how blueprints are written and structured
+- [Calypso Blueprint](prompts/blueprints/calypso-blueprint.md) — full architecture and process standard (TOC)
+- [UX Blueprint](prompts/blueprints/ux-blueprint.md) — UX posture, agent UX, beauty as a gate condition
+- [Data Security Blueprint](prompts/blueprints/data-security-blueprint.md) — agent auth, scopes, and security posture
+- [Scaffold Task Entrypoint](prompts/process/scaffold-task.md) — the agent's first action on a new project
+- [Blueprint Authoring Standard](blueprint-standard.md) — how blueprints are written and structured

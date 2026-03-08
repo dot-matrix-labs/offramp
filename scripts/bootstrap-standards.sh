@@ -4,23 +4,25 @@ set -e
 # Create standards directory
 mkdir -p docs/standards
 
-# List of standard files to download
+# List of standard files to download (path:localname)
 FILES=(
-  "calypso-blueprint.md"
-  "development-standards.md"
-  "documentation-standard.md"
-  "git-standards.md"
-  "product-owner-interview.md"
-  "scaffold-task.md"
+  "blueprints/calypso-blueprint.md:calypso-blueprint.md"
+  "development/development-standards.md:development-standards.md"
+  "process/documentation-standard.md:documentation-standard.md"
+  "process/git-standards.md:git-standards.md"
+  "process/product-owner-interview.md:product-owner-interview.md"
+  "process/scaffold-task.md:scaffold-task.md"
 )
 
 BASE_URL="https://raw.githubusercontent.com/dot-matrix-labs/calypso/main/prompts"
 
 echo "Downloading Calypso standards..."
 
-for FILE in "${FILES[@]}"; do
-  echo "  - $FILE"
-  curl -sSL "$BASE_URL/$FILE" -o "docs/standards/$FILE"
+for ENTRY in "${FILES[@]}"; do
+  REMOTE_PATH="${ENTRY%%:*}"
+  LOCAL_NAME="${ENTRY##*:}"
+  echo "  - $LOCAL_NAME"
+  curl -sSL "$BASE_URL/$REMOTE_PATH" -o "docs/standards/$LOCAL_NAME"
 done
 
 echo "Done. Standards saved to ./docs/standards/"

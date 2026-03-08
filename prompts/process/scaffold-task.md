@@ -6,8 +6,8 @@
 Calypso is an architecture-first framework for building web applications continuously using AI agents. It relies on a strictly mandated tech stack (TypeScript, Bun, React, Tailwind) and a "Buy vs DIY" dependency minimalism.
 
 Before proceeding with your tasks, you must read and adhere to the following core documents:
-1. [The Calypso Blueprint](https://raw.githubusercontent.com/dot-matrix-labs/calypso/main/prompts/calypso-blueprint.md) (Strict architectural constraints)
-2. [Product Owner Interview](https://raw.githubusercontent.com/dot-matrix-labs/calypso/main/prompts/product-owner-interview.md) (Requirements gathering protocol)
+1. [The Calypso Blueprint](https://raw.githubusercontent.com/dot-matrix-labs/calypso/main/prompts/blueprints/calypso-blueprint.md) (Strict architectural constraints)
+2. [Product Owner Interview](https://raw.githubusercontent.com/dot-matrix-labs/calypso/main/prompts/process/product-owner-interview.md) (Requirements gathering protocol)
 
 ## Environment Detection Rule
 Before executing the checklist below, **detect the host environment you are currently operating in**.
