@@ -3,8 +3,8 @@
 A method, git-native tools, and a TypeScript reference implementation for building **supergreen** software:
 
 - **Fused AI** — one AI over coherent, owned data
-- **Tree-shaken** — no bloat, no unnecessary dependencies
-- **Correct by construction** — architecture that enforces its own constraints
+- **Tree-shaken** — distill the 5% of features you actually use across your SaaS vendors into one seamless app
+- **Correct by construction** — every line verified, maximal control over the bytes, DIY over buy
 - **Self-improving** — the agent has access to live logs and telemetry, is never idle, and enters hardening mode when there is nothing left to build
 
 ---
@@ -32,7 +32,7 @@ AI lets every fruit stand build NASA-quality software, if you let it. A solo ope
 
 But there is a catch.
 
-**To unlock AI's full capability, you need to go supergreen.** Orchestrating your existing SaaS stack with AI wrappers is a local maximum — you are routing around the constraints of software that was never designed for this environment. Supergreen software is fused AI-native from the start: tree-shaken to carry only what it needs, correct by construction through architecture that enforces its own constraints, and self-improving — the agent has access to live logs and telemetry, is never idle, and enters hardening mode when there is nothing left to build. That is what Calypso is for.
+**To unlock AI's full capability, you need to go supergreen.** Orchestrating your existing SaaS stack with AI wrappers is a local maximum — you are routing around the constraints of software that was never designed for this environment. Supergreen software is fused AI-native from the start: tree-shaken to distill the 5% of features you actually use across your vendors into one seamless app, correct by construction with every line verified and maximal control over the bytes, and self-improving — the agent has access to live logs and telemetry, is never idle, and enters hardening mode when there is nothing left to build. That is what Calypso is for.
 
 There is a second, deeper problem with the fragmented SaaS model: *N* smart AIs deployed across *N* vendor data silos will always produce worse outcomes than a single AI — even a less capable one — operating over fused, coherent data. Fragmentation is not just an operational cost. It is a fundamental cap on the quality of every AI-assisted decision your organization can make. You cannot reason well across data you do not hold.
 
