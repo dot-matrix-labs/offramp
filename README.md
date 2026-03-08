@@ -28,15 +28,22 @@ Context: I am replacing GitHub Projects for a software team of 3.
 
 ## The Vision
 
-AI lets every fruit stand build NASA-quality software, if you let it. A solo operator can now produce applications that would have taken a 20-person engineering team two years to ship. That is not an exaggeration — it is the current state of the art.
+Since 2025, a solo operator can produce applications that would have taken a 20-person engineering team two years to ship. That is not an exaggeration — it is the current state of the art. AI lets every fruit stand build NASA-quality software, if you let it.
 
-But there is a catch.
+From 2026, we can go further. Super apps that leave behind the constraints of the human development cycle entirely — continuously verified, continuously improved, never idle.
 
-**To unlock AI's full capability, you need to go supergreen.** Orchestrating your existing SaaS stack with AI wrappers is a local maximum — you are routing around the constraints of software that was never designed for this environment. Supergreen software is fused AI-native from the start: tree-shaken to distill the 5% of features you actually use across your vendors into one seamless app, correct by construction with every line verified and maximal control over the bytes, and self-improving — the agent has access to live logs and telemetry, is never idle, and enters hardening mode when there is nothing left to build. That is what Calypso is for.
+**To get there, you need to go supergreen.** Orchestrating your existing SaaS stack with AI wrappers is a local maximum. You are routing around the constraints of software that was never designed for this environment.
 
-There is a second, deeper problem with the fragmented SaaS model: *N* smart AIs deployed across *N* vendor data silos will always produce worse outcomes than a single AI — even a less capable one — operating over fused, coherent data. Fragmentation is not just an operational cost. It is a fundamental cap on the quality of every AI-assisted decision your organization can make. You cannot reason well across data you do not hold.
+There is a deeper problem with the fragmented SaaS model: *N* smart AIs across *N* vendor data silos will always produce worse outcomes than a single AI — even a less capable one — over fused, coherent data. You cannot reason well across data you do not hold. Fragmentation is a fundamental cap on every AI-assisted decision your organization can make.
 
 This vision has always required superhuman implementation capacity. We have arrived at the moment that exists.
+
+**Supergreen:**
+
+- **Fused AI** — one AI over coherent, owned data
+- **Tree-shaken** — distill the 5% of features you actually use across your SaaS vendors into one seamless app
+- **Correct by construction** — every line verified, maximal control over the bytes, DIY over buy
+- **Self-improving** — the agent has access to live logs and telemetry, is never idle, and enters hardening mode when there is nothing left to build
 
 ---
 
