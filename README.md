@@ -30,7 +30,7 @@ Context: I am replacing GitHub Projects for a software team of 3.
 
 Since 2025, a solo operator can produce applications that would have taken a 20-person engineering team two years to ship. That is not an exaggeration — it is the current state of the art. AI lets every fruit stand build NASA-quality software, if you let it.
 
-From 2026, we can go further. Super apps that leave behind the constraints of the human development cycle entirely — continuously verified, continuously improved, never idle.
+From 2026, we can go further. Super apps that leave behind human constraints entirely — deeply fused systems, highly complex security policies, deeply verified, continuously improved, never idle.
 
 **To get there, you need to go supergreen.** Orchestrating your existing SaaS stack with AI wrappers is a local maximum. You are routing around the constraints of software that was never designed for this environment.
 
