@@ -7,7 +7,7 @@
 
 ## Database placement
 
-All auth data lives in `calypso_app`, accessed via the `app_rw` role. This includes: passkey credentials, token revocation list, agent registry, recovery shards, and the DP budget table. Auth data is never written to `calypso_analytics` or `calypso_audit` (except that auth events — login, logout, failed attempt — are written to `calypso_audit` via the `audit_w` role, the same as any other audit log entry).
+All auth data lives in `calypso_app`, stored as entity types within the graph model. This includes: `user` entities, `passkey_credential` entities, `agent` entities, and `recovery_shard` entities. These are distinct types in the `entity_types` registry with their own schemas and sensitivity settings.
 
 ---
 

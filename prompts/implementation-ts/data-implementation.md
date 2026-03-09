@@ -6,15 +6,23 @@
 
 ## Database
 
-PostgreSQL from the first commit. Three databases, three roles, enforced from scaffold.
+PostgreSQL from the first commit. Three core tables in `calypso_app` provide a flexible property graph model.
+
+| Table | Purpose |
+|---|---|
+| `entities` | The nodes: `id`, `type`, `properties` (JSONB), `tenant_id`, `version`. |
+| `relations` | The edges: `id`, `source_id`, `target_id`, `type`, `properties` (JSONB). |
+| `entity_types` | The registry: `type` (PK), `schema` (JSONB), `sensitive` (text[]), `kms_key_id`. |
+
+### Roles and Privileges
 
 | Database | Role | Privileges |
 |---|---|---|
-| `calypso_app` | `app_rw` | Read + write on all transactional tables |
-| `calypso_analytics` | `analytics_w` | `INSERT` only on all analytics tables |
-| `calypso_audit` | `audit_w` | `INSERT` only on the audit log table — no `UPDATE`, `DELETE`, `TRUNCATE` |
+| `calypso_app` | `app_rw` | Read + write on `entities`, `relations`, `entity_types`. |
+| `calypso_analytics` | `analytics_w` | `INSERT` only on analytics entities/relations. |
+| `calypso_audit` | `audit_w` | `INSERT` only on the audit log table. |
 
-The application server holds three separate connection pools, one per role. No connection pool is shared across databases. `app_rw` credentials are never used to write to analytics or audit — this is enforced at the credential level, not by application logic.
+The application server holds three separate connection pools. `app_rw` credentials are used for the transactional graph; `analytics_w` for the analytics tier; `audit_w` for the append-only audit log.
 
 ### Dev environment
 
@@ -28,12 +36,11 @@ Docker Compose starts PostgreSQL and Vault. An `init.sql` script (run once on fi
 
 ### Migrations
 
-Numbered `.sql` files in `/apps/server/migrations/` (e.g., `0001_create_users.sql`, `0002_add_passkeys.sql`), applied in ascending numeric order at startup. Migration runner is DIY (~40 lines):
+Core graph tables are established in the first migration (`0001_initial_graph.sql`). Because the schema is flexible (JSONB properties), business evolution rarely requires further DDL migrations.
 
-- Creates `_migrations` table on first run
-- Queries applied filenames, runs each pending file inside a transaction
-- If any migration fails, the transaction rolls back and startup halts — the application never starts in a partially-migrated state
-- Migrations run only at startup; no runtime migration API
+- **Schema Evolution**: Adding a new entity type is `INSERT INTO entity_types`. Adding a property is `UPDATE entity_types SET schema = ...`.
+- **Validation**: Performed in the application layer against the JSON Schema in the registry before SQL execution.
+- **Rollback**: Registry changes are audited and can be reverted by updating the type registry back to a previous state.
 
 ### Queries
 
@@ -43,10 +50,9 @@ Parameterized SQL via the `postgres` client (`sql\`SELECT ... WHERE id = ${id}\`
 
 ## Encryption
 
-- Application-layer field encryption: AES-256-GCM via Web Crypto API (`crypto.subtle`)
-- Encrypt before insert, decrypt after read — database stores only ciphertext for sensitive columns
-- Key-per-table: separate KMS key IDs for each sensitive table/domain
-- KMS client abstraction: interface over Vault, AWS KMS, or GCP KMS — switchable without code changes
+- Application-layer field encryption: AES-256-GCM via Web Crypto API.
+- **Key-per-type**: The `entity_types` registry declares which properties are `sensitive` and which `kms_key_id` protects them.
+- Encrypt before insert, decrypt after read: The `FieldEncryptor` intercepts writes, checks the registry, and encrypts sensitive keys within the JSONB property blob.
 
 ### Ciphertext envelope format
 
@@ -157,8 +163,8 @@ interface AuditEntry {
   action: string;
   actorId: string;
   actorKind: 'user' | 'agent' | 'system';
-  resourceType: string;
-  resourceId: string;
+  entityType: string;
+  entityId: string;
   timestamp: number;
   result: 'allowed' | 'denied';
 }

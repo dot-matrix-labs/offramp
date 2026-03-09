@@ -26,7 +26,7 @@ Every design choice in this blueprint addresses at least one of these scenarios.
 | Phished or stolen user credentials | User sessions, personal data, account integrity |
 | Algorithm confusion in token verification (e.g., `alg: none` or HS256 substitution) | Token integrity; forged tokens must never be accepted |
 | Compromised admin account | All user data, system configuration, encryption keys |
-| Rogue AI agent exceeding its authorized scope | Customer records, write access to production tables, other agents' credentials |
+| Rogue AI agent exceeding its authorized scope | Customer records, write access to production entity types, other agents' credentials |
 | Replay of intercepted authentication tokens | Session integrity; replayed tokens must not grant access |
 | Credential stuffing or brute-force attacks against login endpoints | Account availability and integrity |
 | Single insider unilaterally approving a privileged operation | Root key material, bulk data exports, key rotation |
@@ -128,7 +128,7 @@ Token verification accepts exactly one signing algorithm. The algorithm is confi
 
 **Solution:** Every issued token carries a `jti` (JWT ID) claim — a unique identifier generated at issuance. The server maintains a revocation store keyed on `jti`. Auth middleware checks the revocation store on every request before accepting a token as valid. A revoked `jti` returns 401 regardless of token signature and expiry. Revocation entries expire from the store after the token's own `exp` timestamp passes — there is no value in retaining a revocation entry for a token that would be expired anyway.
 
-**Consistency model:** The revocation store must be consistent across all server instances. An in-memory `Set` is not acceptable for any deployment with more than one process — a token revoked against instance A is still valid against instance B. The revocation store must be a shared, durable backing store (database table, Redis with persistence) that all instances query. For a single-process deployment, in-memory with synchronous DB persistence on every write is acceptable; the constraint must be documented and enforced as a deployment invariant.
+**Consistency model:** The revocation store must be consistent across all server instances. An in-memory `Set` is not acceptable for any deployment with more than one process — a token revoked against instance A is still valid against instance B. The revocation store must be a shared, durable backing store (durable graph entities, Redis with persistence) that all instances query. For a single-process deployment, in-memory with synchronous persistence on every write is acceptable; the constraint must be documented and enforced as a deployment invariant.
 
 **Unavailability:** If the revocation store is unreachable, the auth middleware must fail closed — it must deny requests rather than allow them through on the assumption that the token is not revoked. An unreachable revocation store is an operational incident, not a graceful degradation scenario.
 
@@ -147,16 +147,16 @@ Token verification accepts exactly one signing algorithm. The algorithm is confi
 │  ┌──────────┐  ┌──────────────┐  ┌─────────────┐ │
 │  │ Passkey   │  │ Token        │  │ Auth        │ │
 │  │ Store     │  │ Issuer       │  │ Middleware   │ │
-│  │ (public   │  │ (pinned alg, │  │ (validates  │ │
-│  │  keys,    │  │  scoped      │  │  token +    │ │
-│  │  cred IDs)│  │  claims)     │  │  scope on   │ │
-│  └─────┬─────┘  └──────┬───────┘  │  every req) │ │
+│  │ (typed    │  │ (pinned alg, │  │ (validates  │ │
+│  │  entities)│  │  scoped      │  │  token +    │ │
+│  └─────┬─────┘  │  claims)     │  │  scope on   │ │
+│        │        └──────┬───────┘  │  every req) │ │
 │        │               │          └──────┬──────┘ │
 │        └───────┬───────┘                 │        │
 │                │                         │        │
 │         ┌──────▼──────┐          ┌───────▼──────┐ │
-│         │ Relational  │          │ Resource     │ │
-│         │ Database    │          │ Handlers     │ │
+│         │ Property    │          │ Resource     │ │
+│         │ Graph (PG)  │          │ Handlers     │ │
 │         └─────────────┘          └──────────────┘ │
 └──────────────────────────────────────────────────┘
            │
@@ -167,7 +167,7 @@ Token verification accepts exactly one signing algorithm. The algorithm is confi
     └─────────────┘
 ```
 
-All authentication components — passkey verification, token issuance, session management — run within the same application process. The Passkey Store holds registered public keys in the relational database. The Token Issuer creates tokens with a signing key held in an external Key Store (hardware-backed in production). Auth Middleware runs on every protected route.
+All authentication components — passkey verification, token issuance, session management — run within the same application process. The Passkey Store holds registered public keys as `passkey_credential` entities in the property graph. The Token Issuer creates tokens with a signing key held in an external Key Store (hardware-backed in production). Auth Middleware runs on every protected route.
 
 **Trade-offs vs. other architectures:** Simplest to deploy and reason about. No network boundary between auth and application logic, which reduces latency but means a vulnerability in the application layer has direct access to the auth components. Does not support federated identity or multi-product SSO without significant rework.
 

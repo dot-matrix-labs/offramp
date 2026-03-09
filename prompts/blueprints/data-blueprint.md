@@ -47,13 +47,17 @@ The analytics tier and the transactional tier are distinct stores with distinct 
 
 Four layers protect data at rest: disk encryption, database-level encryption, application-layer field encryption, and (where applicable) user-held keys. Each layer has a different threat model and a different key. Disk encryption protects against physical theft but not against a compromised database process. Database encryption protects against file exfiltration but not against a compromised database user. Field encryption protects against database compromise but not against a compromised application server. Layering ensures that no single point of failure exposes customer data.
 
-### PostgreSQL is the database — write standard SQL
+### Schema as data, not DDL
 
-The stack uses PostgreSQL from the first commit across all three stores: transactional, analytics, and audit. Business logic depends on parameterized queries and standard SQL constructs — not on engine-specific features (custom types, proprietary operators, extensions) except where a specific extension is explicitly justified and documented. This constraint is not about portability to a different engine; it is about keeping queries readable, testable, and free of hidden coupling that surfaces as bugs during migrations within PostgreSQL itself (version upgrades, managed service switches).
+The domain model is not stable. Business needs evolve, agents discover new entities, and relationships change daily. Relational schemas encoded as DDL (Data Definition Language) become a bottleneck if every change requires a migration, downtime, and coordination. Instead, the system uses a **Property Graph on PostgreSQL** model: a fixed, three-table schema that treats the data model itself as data. Adding a new entity type or property is an `INSERT` or `UPDATE` to the type registry, not a structural alteration of the database. Type schema versioning replaces migrations. When a property is added, existing entities without it remain valid. When a property is removed, the application stops reading it; existing values become inert.
+
+### PostgreSQL is the database — use standard SQL with Graph patterns
+
+The stack uses PostgreSQL across all stores. This provides proven security (RBAC, RLS), encryption, and operational maturity. Rather than a separate graph database, the system implements property graph patterns—entities, relations, and type registries—directly on PostgreSQL using JSONB for flexible properties and recursive CTEs for traversal. This combines the flexibility of a graph with the reliability of a 30-year-old relational engine.
 
 ### Data minimization is a privacy control, not a policy preference
 
-Every field persisted is a field that can be breached, subpoenaed, sold, or misused. The decision to collect a field requires justification: what product function depends on it, how long must it be retained, and what is the plan for deletion. Fields collected "for future use" are liabilities with no offsetting value. Retention policies are enforced by automated deletion, not by human discipline.
+Every field persisted is a field that can be breached, subpoenaed, or misused. The decision to collect a field requires justification: what product function depends on it, how long must it be retained, and what is the plan for deletion. The type registry enforces this for each entity type. Fields collected "for future use" are liabilities with no offsetting value. Retention policies are enforced by automated deletion, not by human discipline.
 
 ### Agents operate on aggregated data only
 
@@ -81,13 +85,32 @@ Every read of sensitive data is logged before the read is executed — not after
 
 **Trade-offs:** Encrypted fields cannot be indexed, searched, or sorted by the database engine. Queries that filter on encrypted fields require application-layer decryption of candidate rows or a separate plaintext index of non-sensitive derived values (e.g., a hash for lookup). This pattern adds latency to reads and writes proportional to the number of encrypted fields.
 
-### Pattern 2: Key-Per-Table
+### Pattern 2: Property Graph on PostgreSQL
 
-**Problem:** A single encryption key for all tables means that compromise of one key exposes every table in the database.
+**Problem:** Static schemas (DDL) are rigid and make business velocity dependent on database migrations.
 
-**Solution:** Each table (or logical data domain) uses a separate encryption key managed by the key management service. A compromise of the key for the `payment_tokens` table does not expose the `user_profiles` table. Key metadata maps table names to key identifiers; the application resolves the correct key at query time.
+**Solution:** Store all domain data in three tables: `entities` (nodes), `relations` (edges), and `entity_types` (the registry).
+- **`entities`**: Stores all objects with a `type` and a `properties` JSONB column.
+- **`relations`**: Stores typed edges between entities (`source_id`, `target_id`, `type`, `properties`).
+- **`entity_types`**: Stores the schema (JSON Schema), sensitivity metadata, and KMS key IDs for each type.
 
-**Trade-offs:** More keys means more key management complexity — rotation schedules, access policies, and audit trails multiply. Cross-table queries that involve encrypted fields from multiple tables require multiple key lookups. For small systems with few tables, the operational overhead may exceed the security benefit.
+**Trade-offs:** Losing some native column constraints (`NOT NULL`, `CHECK`). These are replaced by JSON Schema validation and partial unique indexes on JSONB fields. Recursive CTEs for graph traversal can be slower than simple JOINs at extreme depths, but more than sufficient for business data graphs (org structures, task trees).
+
+### Pattern 3: Type-Registry Validation
+
+**Problem:** Moving to a schema-less JSONB model can lead to data corruption if not enforced.
+
+**Solution:** The application layer validates every write against the schema defined in `entity_types`. This registry is live metadata that the validation layer and the `FieldEncryptor` use to decide how to handle each property.
+
+**Trade-offs:** Validation logic moves from the database engine to the application tier. This increases application complexity but allows for more expressive validation and versioned schema evolution without DDL.
+
+### Pattern 4: Key-Per-Type Encryption
+
+**Problem:** A single encryption key for all data means that compromise of one key exposes everything.
+
+**Solution:** The `entity_types` registry declares which properties are `sensitive` and which `kms_key_id` protects them. The `FieldEncryptor` reads this registry to encrypt specific keys within the JSONB blob before storage.
+
+**Trade-offs:** Requires the registry to be consistent across all application instances. Rotation is handled per entity type.
 
 ### Pattern 3: Aggregation-Tier Separation
 
@@ -157,7 +180,7 @@ The baseline architecture from the first commit. A single PostgreSQL instance ho
 │                                                  │
 │  ┌─────────────┐   ┌──────────────────────────┐  │
 │  │  Business   │   │    Encryption Layer       │  │
-│  │  Logic      │──►│    (AES-256-GCM, HKDF)    │  │
+│  │  Logic      │──►│ (per-type, registry-sync)  │  │
 │  └──────┬──────┘   └────────────┬─────────────┘  │
 │         │                       │                │
 │  ┌──────▼──────┐   ┌────────────▼─────────────┐  │
@@ -171,12 +194,11 @@ The baseline architecture from the first commit. A single PostgreSQL instance ho
           ▼                  ▼               ▼
 ┌──────────────────┐  ┌──────────────┐  ┌──────────────┐
 │  calypso_app     │  │calypso_      │  │calypso_audit │
-│  (transactional, │  │analytics     │  │(INSERT-only  │
-│   encrypted PII, │  │(pseudonymous │  │ role,        │
-│   revocation,    │  │ events,      │  │ append-only  │
-│   DP budget)     │  │ DP export)   │  │ table)       │
-└──────────────────┘  └──────────────┘  └──────────────┘
-          │
+│ (entities,       │  │analytics     │  │(INSERT-only  │
+│  relations,      │  │(pseudonymous │  │ role,        │
+│  entity_types)   │  │ events,      │  │ append-only  │
+└──────────────────┘  │ DP export)   │  │ table)       │
+          │           └──────────────┘  └──────────────┘
           ▼
 ┌──────────────────┐
 │  KMS             │
@@ -242,24 +264,34 @@ Per-tenant key hierarchies isolate encryption so that compromise of one tenant's
 
 ---
 
+## Alternative Considered: Apache AGE
+
+**Apache AGE** is a PostgreSQL extension that adds native openCypher (graph query language) support. It stores data in regular PostgreSQL tables using table inheritance, which means WAL replication, pg_dump, PITR, and standard backups all work.
+
+**Assessment:** AGE is architecturally sound and openCypher is categorically better than recursive CTEs for graph traversal. The blocker is managed service availability — AGE is not currently available on AWS RDS or GCP Cloud SQL.
+
+**Recommendation:** Track AGE for future adoption. Build on the DIY Property Graph model now. The transition path later is straightforward: dump entity boundaries and relations, bulk load into AGE graph structures, and rewrite recursive CTEs to openCypher.
+
+---
+
 ## Implementation Checklist
 
 ### Alpha Gate
 
 - [ ] Three PostgreSQL databases provisioned: `calypso_app`, `calypso_analytics`, `calypso_audit`
-- [ ] Three database roles created with correct privilege scope: `app_rw`, `analytics_w` (insert-only), `audit_w` (insert-only). Verified: `app_rw` cannot write to audit or analytics; `audit_w` cannot `UPDATE` or `DELETE`
-- [ ] Docker Compose dev environment starts PostgreSQL and Vault; `bun run dev` requires no manual database setup
-- [ ] All database queries use parameterized statements; no string concatenation in query construction
-- [ ] Application-layer encryption active for all PII columns (names, emails, addresses, payment tokens)
-- [ ] Key management service integrated; no encryption keys in environment variables or config files
-- [ ] Audit logging operational for all authentication events and sensitive data reads
-- [ ] Audit log entries written before data access is granted (log-first ordering verified by test)
-- [ ] Separate analytics event store operational from day one; analytics queries never touch `calypso_app`
-- [ ] Analytics events pseudonymized with session-scoped identifiers before storage
-- [ ] No plaintext PII present in application logs (verified by adversarial test suite per Pattern 8)
-- [ ] Migrations applied at startup in a transaction; startup halts on failure; applied migrations recorded in `_migrations` table
-- [ ] Backup encryption verified: run `pg_dump`, inspect output, confirm PII columns contain ciphertext. Document which KMS key ID protects the backup and where that key's custody lives independently of the KMS
-- [ ] Point-in-time recovery configured and tested: restore to an arbitrary timestamp, verify data consistency
+- [ ] Three database roles created with correct privilege scope: `app_rw`, `analytics_w`, `audit_w`
+- [ ] Core property graph tables initialized: `entities`, `relations`, `entity_types`
+- [ ] Docker Compose dev environment starts PostgreSQL and Vault
+- [ ] All database queries use parameterized statements; no string concatenation
+- [ ] Application-layer encryption active for sensitive properties in JSONB
+- [ ] Key management service integrated; no encryption keys in config files
+- [ ] Audit logging operational for all auth events and entity reads
+- [ ] Audit log entries written before data access is granted (log-first ordering)
+- [ ] Separate analytics event store operational; analytics queries never touch `calypso_app`
+- [ ] Analytics events pseudonymized with session-scoped identifiers
+- [ ] No plaintext PII present in application logs (verified by adversarial test suite)
+- [ ] Single core migration applied to establish graph tables
+- [ ] Point-in-time recovery configured and tested
 
 ### Beta Gate
 
