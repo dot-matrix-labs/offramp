@@ -78,7 +78,7 @@ Agents have no display server, no GUI toolkit, no interactive browser. All visua
 
 **Problem:** Developers need to see the running application during development. Traditional approaches involve local servers, ngrok tunnels, or separate staging deployments — all of which add environment delta.
 
-**Solution:** The development host exposes a designated port for the running application. The development server *is* the preview. There is no separate preview environment, no tunnel, no proxy unless explicitly chosen. The URL is the host's IP or domain at the designated port.
+**Solution:** The development host exposes a designated port for the running application. The development server *is* the preview, running as a container (Docker/Podman) to assure parity with production. There is no separate preview environment, no tunnel, no proxy unless explicitly chosen. The URL is the host's IP or domain at the designated port.
 
 **Trade-offs:** The development host must have a stable, routable IP address and appropriate firewall rules. Running untested code on a network-exposed host carries risk — acceptable for development and demo purposes, not for production.
 
@@ -101,12 +101,19 @@ Agents have no display server, no GUI toolkit, no interactive browser. All visua
 │  Bare-Metal Linux Host (cloud VPS)          │
 │                                             │
 │  ┌───────────────────────────────────────┐  │
+│  │  Container Engine (Docker/Podman)     │  │
+│  │  ┌───────────────┐                    │  │
+│  │  │  App Container│                    │  │
+│  │  │  (port N)     │                    │  │
+│  │  └───────────────┘                    │  │
+│  └───────────────────────────────────────┘  │
+│                                             │
+│  ┌───────────────────────────────────────┐  │
 │  │  Terminal Multiplexer Session         │  │
-│  │                                       │  │
-│  │  ┌─────────────┐  ┌───────────────┐  │  │
-│  │  │  Agent CLI   │  │  Dev Server   │  │  │
-│  │  │  (coding)    │  │  (port N)     │  │  │
-│  │  └─────────────┘  └───────────────┘  │  │
+│  │  ┌─────────────┐                      │  │
+│  │  │  Agent CLI   │                      │  │
+│  │  │  (coding)    │                      │  │
+│  │  └─────────────┘                      │  │
 │  └───────────────────────────────────────┘  │
 │                                             │
 │  docs/standards/  ← bootstrapped from repo  │
@@ -125,10 +132,17 @@ Agents have no display server, no GUI toolkit, no interactive browser. All visua
 ┌──────────────────────────────────────────────────────┐
 │  Bare-Metal Linux Host                               │
 │                                                      │
+│  ┌────────────────────────────────────────────────┐  │
+│  │  Container Engine (Docker/Podman)              │  │
+│  │  ┌─────────────┐      ┌─────────────┐          │  │
+│  │  │ Container A │      │ Container B │          │  │
+│  │  │ Port 31415  │      │ Port 31416  │          │  │
+│  │  └─────────────┘      └─────────────┘          │  │
+│  └────────────────────────────────────────────────┘  │
+│                                                      │
 │  ┌──────────────────┐  ┌──────────────────────────┐  │
 │  │  Multiplexer: A  │  │  Multiplexer: B          │  │
 │  │  Agent CLI (web)  │  │  Agent CLI (server)      │  │
-│  │  Port 31415       │  │  Port 31416              │  │
 │  └──────────────────┘  └──────────────────────────┘  │
 │                                                      │
 │  Shared:                                             │
@@ -182,7 +196,7 @@ Agents have no display server, no GUI toolkit, no interactive browser. All visua
 - [ ] `tmux` session created; agent CLI launched inside it
 - [ ] Bootstrap script executed; `docs/standards/` populated with current conventions
 - [ ] Agent has read all files in `docs/standards/` before writing any code
-- [ ] Dev server starts and is accessible at `http://<host>:31415`
+- [ ] Dev server container starts and is accessible at `http://<host>:31415`
 - [ ] SSH disconnect and reattach tested; `tmux` session survives
 
 ### Beta Gate

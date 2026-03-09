@@ -12,6 +12,8 @@ Software development is a state machine. Each unit of work transforms the projec
 
 A correct process for agent-driven development makes the state machine explicit. The product requirements describe *what* to build. The implementation plan describes *how* to build it and tracks completion. The next-prompt file tells the agent exactly what to do when it wakes up. Together, these three documents form a closed loop: every commit advances the plan and writes the instructions for the next commit. The agent becomes self-advancing — a human can walk away for hours and return to find meaningful, ordered progress.
 
+**Scope Note:** This blueprint applies exclusively to the agent's *engineering and development roles* (e.g., writing code, planning features, scaffolding projects). It does not govern any administrative, operational, or in-app roles the agent may hold on behalf of end-users within the deployed software. Those roles are governed by the respective functional blueprints including Auth, Data, and UX.
+
 The cost of ignoring this blueprint is an agent that produces impressive-looking code in random order, skipping foundational work to build visible features, leaving gaps that compound until the project requires a human to manually re-plan and re-prioritize. The process is not overhead — it is the mechanism that converts an agent from a sophisticated autocomplete into a reliable development partner.
 
 ---
