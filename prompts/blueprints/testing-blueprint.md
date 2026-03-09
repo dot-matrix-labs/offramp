@@ -40,7 +40,7 @@ A mock is a lie agreed upon between the test author and the test runner. It repl
 
 ### Test on the target, not a simulation
 
-Code that will run on Linux must be tested on Linux. Code that will render in a browser must be tested in a browser — a real headless browser engine, not a DOM simulation. The delta between the test environment and the production environment is the space where bugs hide. Eliminate the delta entirely.
+Code that will run in a Kubernetes container in production must be tested in a Kubernetes container. Code that will render in a browser must be tested in a browser — a real headless browser engine, not a DOM simulation. For integration tests (tests which require deploying the app and serving it, or interacting with a PostgreSQL database), we will deploy the application to a local or CI Kubernetes cluster first. The delta between the test environment and the production environment is the space where bugs hide. Eliminate the delta entirely.
 
 ### Tests are written before code
 
@@ -97,22 +97,22 @@ When a test fails, the failure message must identify which suite, which test, an
 ### Architecture A: Single-Host Full Suite (solo agent, early-stage)
 
 ```
-┌──────────────────────────────────────────────────────┐
-│  Development Host (Linux)                            │
-│                                                      │
-│  ┌────────────┐  ┌────────────┐  ┌───────────────┐  │
-│  │ Unit Tests │  │ Integration│  │ Browser Tests │  │
-│  │ (test      │  │ Tests      │  │ (headless     │  │
-│  │  runner)   │  │ (fixtures) │  │  engine)      │  │
-│  └─────┬──────┘  └─────┬──────┘  └───────┬───────┘  │
-│        │               │                 │           │
-│        └───────────────┼─────────────────┘           │
-│                        ▼                             │
-│              Test Runner CLI                         │
-│              (single command, all suites)            │
-└──────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────┐
+│  Development Host                                     │
+│                                                       │
+│  ┌────────────┐  ┌───────────────┐  ┌───────────────┐ │
+│  │ Unit Tests │  │ Integration   │  │ Browser Tests │ │
+│  │ (local     │  │ Tests (K8s    │  │ (headless     │ │
+│  │  runner)   │  │  deployment)  │  │  engine)      │ │
+│  └─────┬──────┘  └───────┬───────┘  └───────┬───────┘ │
+│        │                 │                  │         │
+│        └─────────────────┼──────────────────┘         │
+│                          ▼                            │
+│                Test Runner CLI                        │
+│                (single command, all suites)           │
+└───────────────────────────────────────────────────────┘
 
-CI mirrors this exactly on Linux runners.
+CI mirrors this exactly on runners, spinning up a local K8s cluster (e.g., kind or minikube) for integration tests.
 ```
 
 **When appropriate:** Early-stage projects with a single agent. All tests run on the same host. Fast feedback loop.
@@ -126,14 +126,15 @@ CI mirrors this exactly on Linux runners.
 │  CI Platform (triggered on push/PR)             │
 │                                                 │
 │  ┌──────────────────┐  ┌────────────────────┐   │
-│  │ Workflow: Unit   │  │ Workflow: API      │   │
-│  │ lint → test      │  │ lint → test        │   │
+│  │ Workflow: Unit   │  │ Workflow: K8s Integ│   │
+│  │ lint → test      │  │ build cont → deploy│   │
+│  │                  │  │ → test             │   │
 │  └────────┬─────────┘  └────────┬───────────┘   │
 │           │                     │               │
 │  ┌────────┴─────────┐  ┌───────┴────────────┐   │
-│  │ Workflow:        │  │ Workflow:           │   │
+│  │ Workflow:        │  │ Workflow:          │   │
 │  │ Component        │  │ Full-Page E2E      │   │
-│  │ lint → browser   │  │ lint → browser     │   │
+│  │ lint → browser   │  │ deploy → browser   │   │
 │  │ test             │  │ test               │   │
 │  └──────────────────┘  └────────────────────┘   │
 │                                                 │
@@ -182,7 +183,7 @@ CI mirrors this exactly on Linux runners.
 - [ ] Vitest configured and running for unit tests; at least one passing test
 - [ ] Playwright installed with OS dependencies; headless Chromium launches
 - [ ] Golden fixture recorder built; at least one external API fixture recorded from live traffic
-- [ ] Integration tests run against recorded fixtures, not mocks or fabricated data
+- [ ] Integration tests run against a deployed container in Kubernetes (e.g., local `kind` cluster), with real PostgreSQL connections
 - [ ] Component tests run in headless Chromium via Playwright, not JSDOM
 - [ ] Full-page E2E test suite has at least one passing test covering a core workflow
 - [ ] All four CI workflows created (unit, integration, component, E2E)
@@ -222,4 +223,4 @@ CI mirrors this exactly on Linux runners.
 
 - **Ignored flakiness.** Re-running a failed test "because it is flaky" instead of investigating the root cause. Flaky tests are tests with hidden dependencies on timing, ordering, or shared state. Every flaky test is a bug — in the test, in the code, or in the environment.
 
-- **Test environment shortcuts.** Running tests on macOS locally "just to check" before pushing to CI. The tests pass on macOS. They fail on Linux in CI. The developer blames CI instead of recognizing the environment delta. Tests run on the target platform or they don't count.
+- **Test environment shortcuts.** Running integration tests natively on the host instead of inside the full Kubernetes container deployment. If production runs in Kubernetes, integration tests must run against containers in Kubernetes. Tests run on the target ecosystem or they don't count.

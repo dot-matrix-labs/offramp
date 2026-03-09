@@ -8,11 +8,11 @@
 
 ## Vision
 
-Deployment is the moment a codebase becomes a system. Code that passes every test and satisfies every requirement is worthless if it cannot be started, kept running, observed when it misbehaves, and recovered when it fails. Most deployment complexity exists to manage the gap between the development environment and the production environment. When that gap is eliminated — when the development host and the deployment target are the same operating system, the same runtime, the same process model — deployment reduces to its essential operations: build, start, supervise, observe.
+Deployment is the moment a codebase becomes a system. Code that passes every test and satisfies every requirement is worthless if it cannot be started, kept running, observed when it misbehaves, and recovered when it fails. Most deployment complexity exists to manage the gap between the development environment and the production environment. When that gap is eliminated — when the development host, the test environment, and the deployment target are the exact same containerized runtime — deployment reduces to its essential operations: build, containerize, and orchestrate.
 
-The deployment strategy for agent-built software has one additional requirement that traditional deployments lack: an AI agent must be able to diagnose a production issue by reading logs, not by watching dashboards or receiving pages. Every log, trace, and error report must be structured for machine consumption first and human consumption second. A log file that requires a human to scroll through thousands of identical timeout errors to find the one meaningful exception is a log file that wastes an agent's context window and hides the signal in noise.
+The deployment strategy for agent-built software has two fundamental requirements that traditional deployments lack. First, an AI agent must be able to diagnose a production issue by reading logs, not by watching dashboards or receiving pages. Second, human-convenience tooling like hot-reloading (`vite dev`) optimizes for incremental human thought, but agents write full files and prefer exact reproduction. By building the code exactly as it will run in production and running it in a background container for dev previews, we eliminate hybrid environment bugs and drastically reduce the toolchain complexity across environments.
 
-The cost of ignoring this blueprint is a system that works in development and fails in production in ways no one can diagnose. Processes that die silently and are not restarted. Errors that repeat ten thousand times and fill the disk while the root cause remains invisible. Deployments that require manual SSH sessions, custom scripts, and tribal knowledge that no agent can access. Simple deployment is not a shortcut — it is a discipline that makes the system operable by any agent in any session.
+The cost of ignoring this blueprint is a system that works in development and fails in production in ways no one can diagnose. Environments that drift. Errors that repeat ten thousand times and fill the disk while the root cause remains invisible. Deployments that require tribal knowledge that no agent can access. Containerized deployment is not overhead — it is the discipline that makes the system identically operable by any agent in any session, from local dev to enterprise Kubernetes.
 
 ---
 
@@ -20,23 +20,27 @@ The cost of ignoring this blueprint is a system that works in development and fa
 
 | Scenario | What must be protected |
 |---|---|
-| Application process crashes and is not restarted | Service availability — the process supervisor must restart crashed processes automatically |
+| Application container crashes and is not restarted | Service availability — the container orchestrator must restart crashed containers automatically |
 | Server runs out of disk space due to unrotated logs | Host stability — log retention policies must prevent disk exhaustion |
 | Error occurs in the browser and is never reported to the server | Observability completeness — browser errors must be captured and forwarded to the server |
 | Agent reads logs to diagnose an issue but context window fills with duplicate errors | Diagnostic efficiency — deduplicated error summaries must exist alongside chronological logs |
 | Deployment requires manual steps that an agent cannot perform | Deployment autonomy — the full deploy process must be scriptable and non-interactive |
 | Environment variables containing secrets are committed to the repository | Secret protection — production secrets must never be in version control |
 | A deploy happens with failing tests | Deployment safety — CI must gate all deployments |
-| The server is unreachable and no one knows why | Network observability — the process supervisor and health checks must report status |
+| The server is unreachable and no one knows why | Network observability — the container orchestrator and health checks must report status |
 | A rollback is needed but the previous version is not available | Rollback capability — previous builds must be recoverable from version control |
 
 ---
 
 ## Core Principles
 
-### The process supervisor is not optional
+### Containers are the great unifier
 
-An application process that is started manually and dies when the SSH session ends is not deployed — it is running. Deployment means the process starts at boot, restarts on crash, and reports its status to the operating system's service manager. The supervisor is the operating system's native process manager, not a custom script, not a Node process manager, not a container orchestrator.
+An application process that is started manually and dies when the session ends is not deployed — it is running. Deployment means the application is packaged as an immutable container image, deployed to an orchestrator, and restarted on crash. We exclusively use containerized services. For enterprise deployments, the most credible architecture is Kubernetes. By enforcing containers across all environments, we reduce the amount of code and tools we need to maintain for hybrid environments and create sane reproductions across dev, test, and prod.
+
+### No incremental hot-reloading dev servers
+
+We will not use tools like `vite dev` to create hot-reloadable, on-the-fly servers. While human developers find the build-and-deploy cycle annoying, agents do not care. We will build the code with our runtime (e.g., Bun) and deploy it in the background to a running container, exactly as if it were production. This enforces environment parity from the first line of code.
 
 ### Logs are for machines first
 
@@ -58,13 +62,13 @@ Environment variables containing secrets (API keys, database passwords, signing 
 
 ## Design Patterns
 
-### Pattern 1: Native Process Supervision
+### Pattern 1: Immutable Container Builds
 
-**Problem:** Application processes crash, and in development-to-production transitions the most common failure mode is a process that dies and no one restarts it. Custom restart scripts are fragile, inconsistent, and invisible to the operating system.
+**Problem:** Applications behave differently in development, test, and production environments due to host-level drift, installed dependencies, or missing system libraries.
 
-**Solution:** Register the application as a service with the operating system's native process supervisor. The supervisor starts the process at boot, restarts it on crash with configurable backoff, captures stdout/stderr to the system journal, and exposes status through standard tooling. No custom PID files, no wrapper scripts, no third-party process managers.
+**Solution:** Every deployment—including local development previews—starts by building an immutable container image. The container encapsulates the exact runtime, dependencies, and compiled application assets.
 
-**Trade-offs:** Ties deployment to a specific init system. Acceptable because the deployment target is always Linux with a known init system. If the target changes, the supervisor configuration changes — the pattern remains the same.
+**Trade-offs:** Building a container image for every local change is slower than a hot-reloading development server. This is a deliberate trade-off: human impatience is discarded in favor of perfect mechanical reproducibility for the agent.
 
 ### Pattern 2: Dual-Log Architecture
 
@@ -98,17 +102,17 @@ The agent reads the unique log first to understand the error landscape, then con
 
 ## Plausible Architectures
 
-### Architecture A: Single-Binary Direct Serve (solo app, early-stage)
+### Architecture A: Background Dev Container (solo app, early-stage)
 
 ```
 ┌─────────────────────────────────────────────┐
-│  Linux Host                                 │
+│  Development Host                           │
 │                                             │
 │  ┌───────────────────────────────────────┐  │
-│  │  Process Supervisor                   │  │
+│  │  Container Engine (Docker/Podman)     │  │
 │  │                                       │  │
 │  │  ┌─────────────────────────────────┐  │  │
-│  │  │  Application Runtime            │  │  │
+│  │  │  App Container (Immutable)      │  │  │
 │  │  │  - Serves API routes            │  │  │
 │  │  │  - Serves static assets (built) │  │  │
 │  │  │  - Writes chronological log     │  │  │
@@ -116,35 +120,39 @@ The agent reads the unique log first to understand the error landscape, then con
 │  │  └─────────────────────────────────┘  │  │
 │  └───────────────────────────────────────┘  │
 │                                             │
-│  .env        ← runtime secrets              │
+│  .env        ← injected at container start  │
 │  .env.test   ← test credentials (committed) │
-│  /var/log/app/ ← log rotation               │
+│  Container Logs ← stdout/stderr             │
 └─────────────────────────────────────────────┘
 ```
 
-**When appropriate:** Single application, single host, early through mid-stage. The runtime serves both API and static assets directly. No reverse proxy, no CDN, no container layer.
+**When appropriate:** Local development and preview environments. The runtime serves both API and static assets from a background container. No `vite dev`, no hot reloading on the host.
 
-**Trade-offs:** No TLS termination (add a reverse proxy when needed). No horizontal scaling. No asset caching beyond browser defaults. Acceptable for development, demos, and low-traffic production.
+**Trade-offs:** Slightly slower iteration loop compared to traditional local dev, but guarantees the code running is identical to production packaging.
 
-### Architecture B: Reverse Proxy + Application (TLS, multiple apps)
+### Architecture B: Kubernetes Enterprise Deployment (production, scale)
 
 ```
 ┌──────────────────────────────────────────────────┐
-│  Linux Host                                      │
+│  Kubernetes Cluster                              │
 │                                                  │
 │  ┌────────────────────────────────────────────┐  │
-│  │  Process Supervisor                        │  │
+│  │  Ingress Controller (TLS, routing)         │  │
 │  │                                            │  │
 │  │  ┌──────────────┐  ┌───────────────────┐  │  │
-│  │  │ Reverse Proxy │  │ App A (port X)    │  │  │
-│  │  │ (port 443)    │──│ App B (port Y)    │  │  │
-│  │  │ TLS, routing  │  │ ...               │  │  │
+│  │  │ App Service  │  │ App Pods          │  │  │
+│  │  │ (ClusterIP)  │──│ (ReplicaSet)      │  │  │
+│  │  │              │  │                   │  │  │
 │  │  └──────────────┘  └───────────────────┘  │  │
 │  └────────────────────────────────────────────┘  │
 │                                                  │
-│  Each app: own service, own logs, own .env       │
+│  ConfigMaps/Secrets ← injected securely          │
 └──────────────────────────────────────────────────┘
 ```
+
+**When appropriate:** Any enterprise-grade deployment. Kubernetes acts as the universal orchestrator for routing, replication, and self-healing.
+
+**Trade-offs:** Adds Kubernetes cluster operational overhead. Justified because Kubernetes is the most credible architecture for enterprise deployments and provides declarative infrastructure APIs perfect for agents.
 
 **When appropriate:** Multiple applications on one host, or any application that needs TLS. The reverse proxy handles TLS termination and routes requests to the correct application by domain or path.
 
@@ -166,7 +174,7 @@ The agent reads the unique log first to understand the error landscape, then con
 │    1. SSH to production host                       │
 │    2. Pull latest code                             │
 │    3. Build (browser + server)                     │
-│    4. Restart service via process supervisor        │
+│    4. Apply manifests to Kubernetes                │
 │    5. Health check (HTTP 200 from /health)         │
 │    6. Report success or rollback                   │
 │       │                                            │
@@ -177,7 +185,7 @@ The agent reads the unique log first to understand the error landscape, then con
 
 **When appropriate:** Production deployments where every deploy must be gated by passing tests. The CI platform handles the deploy, not a human SSH session. Rollback is pulling the previous commit and restarting.
 
-**Trade-offs:** Requires SSH access from CI to production host (key management). Deploy is sequential (not blue/green). Acceptable for single-host deployments; add a load balancer for zero-downtime when scale demands it.
+**Trade-offs:** Replaces direct SSH access with Kubernetes API access (kubeconfig). Deploy is declarative. Acceptable for any scale; adding replication implies zero-downtime rolls.
 
 ---
 
@@ -189,12 +197,14 @@ The agent reads the unique log first to understand the error landscape, then con
 
 ### Alpha Gate
 
-- [ ] `systemd` service file created and application starts on `systemctl start`
-- [ ] Application restarts automatically after `kill -9`; verified by checking uptime
-- [ ] `.env` file exists on host, is `.gitignore`d, and contains all required secrets
+### Alpha Gate
+
+- [ ] `Dockerfile` or container manifest created and application starts via container runtime
+- [ ] Container orchestrator (e.g., K8s or local Docker) restarts automatically after crash
+- [ ] Secrets injected into container securely (not baked into image)
 - [ ] `.env.test` committed with test-only credentials
-- [ ] Stdout/stderr captured to journal; `journalctl -u calypso-server` shows output
-- [ ] Log file written to `/var/log/calypso/app.log` with structured entries
+- [ ] Stdout/stderr captured by container engine; logs accessible via standard container tools
+- [ ] Node/Bun process writes structured entries to standard output/error
 - [ ] Trace ID generated and propagated browser → server → response header
 - [ ] Browser error forwarding implemented; errors appear in server logs
 - [ ] Health endpoint (`/health`) returns 200 when the application is running
@@ -222,14 +232,14 @@ The agent reads the unique log first to understand the error landscape, then con
 
 ## Antipatterns
 
-- **Process babysitting.** Starting the application with `bun run` in a tmux pane and hoping it does not crash. When it does, no one notices until a user reports downtime. The process supervisor exists to eliminate this class of failure entirely.
+- **Hybrid environments.** Developing with hot-reloading dev servers (`vite dev`) locally, but deploying compiled containers in production. This guarantees environment drift and "works on my machine" bugs. Agents do not benefit from hot-reloading. Build the container. Run the container.
 
-- **Log and pray.** Writing logs to stdout and never configuring rotation, retention, or aggregation. The disk fills up. The application crashes because it cannot write. The logs that would explain the problem are the cause of the problem.
+- **Process babysitting.** Starting the application with `bun run` in a tmux pane and hoping it does not crash. When it does, no one notices until a user reports downtime. The container orchestrator exists to eliminate this class of failure entirely.
 
-- **Dashboard-only observability.** Building a monitoring dashboard that a human must watch. An AI agent cannot watch a dashboard. Observability for agent-operated systems means structured logs and error summaries that an agent can read as text files.
+- **Log and pray.** Writing logs to a file without configuring rotation, retention, or aggregation in your orchestrator. The volume fills up. The container crashes because it cannot write. Rely on container `stdout` and cluster-level log aggregation.
 
-- **Manual deploy rituals.** A deployment that requires SSHing into a server and running a sequence of commands from memory or a wiki page. The sequence is wrong. A step is skipped. The deploy fails in a way that is hard to diagnose and harder to roll back. Scripted deploys are repeatable, auditable, and agent-executable.
+- **Dashboard-only observability.** Building a monitoring dashboard that a human must watch. An AI agent cannot watch a dashboard. Observability for agent-operated systems means structured logs and error summaries that an agent can fetch via CLI tools over the cluster namespace.
 
-- **Secrets in version control.** Committing `.env` files with production API keys because "it is a private repository." Private repositories get cloned to CI runners, developer laptops, and agent sandboxes. Every copy is a potential leak vector. Production secrets exist only on the production host.
+- **Manual deploy rituals.** A deployment that requires running a sequence of commands from memory. Scripted container builds and declarative Kubernetes applies are repeatable, auditable, and agent-executable.
 
 - **Silent browser errors.** Catching browser errors in `console.error` and assuming someone will see them. No one sees browser console output in production. Errors that are not forwarded to the server are errors that do not exist from the system's perspective.

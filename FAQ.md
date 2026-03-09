@@ -12,9 +12,9 @@ Because you don't deploy on a Mac server. Trying to build code that works for de
 
 The Calypso Blueprint mandates that all development occurs natively on a bare-metal Linux host in the cloud (using `tmux` and an AI agent like Claude/Gemini/Codex). This guarantees that the execution context exactly mirrors the deployment and testing environments.
 
-### "Why not just use Docker for consistency?"
+### "Why exclusively use containers and Kubernetes?"
 
-Docker adds an unnecessary layer of networking, volume management, and build-time complexity for a single-stack application. By developing directly on the Linux target host, we eliminate the "works on my container but not in production" class of bugs. A single `systemd` service and `.env` file run natively is fundamentally easier for AI agents to write, debug, and maintain than troubleshooting broken Dockerfile layers.
+Instead of relying on human conveniences like hot-reloading `vite dev` servers that cause hybrid environment drift, we enforce strict environment parity by deploying exclusively to containers (even for local dev previews). While a strict build-and-deploy cycle in the background for local development might be annoying for human developers, AI agents do not care. A single `Dockerfile` and declarative Kubernetes manifests vastly reduce the amount of toolchain maintenance needed for multiple environments and create sane, exact reproductions across dev, test, and production.
 
 ## Architecture & Testing
 

@@ -10,7 +10,7 @@
 | Category | Tool | Runtime | Location |
 |---|---|---|---|
 | Unit tests | Vitest | Bun (CLI) | `/tests/unit` |
-| API integration tests | Vitest + golden fixtures | Bun (CLI) | `/tests/integration` |
+| API integration tests | Vitest + golden fixtures + deployed container | Kubernetes (e.g. kind) + Bun (CLI) | `/tests/integration` |
 | React component tests | Vitest + Playwright | Headless Chromium | `/tests/e2e` (component) |
 | Full-page user story tests | Playwright | Headless Chromium | `/tests/e2e` (pages) |
 
@@ -25,11 +25,12 @@
 ```
 
 Each workflow:
-1. Installs Bun
+1. Installs Bun and container tooling (e.g., Docker, kind)
 2. Installs dependencies
 3. Runs lint + format check
-4. Runs its specific test suite
-5. Reports pass/fail independently
+4. (For Integration): Builds container & deploys to local cluster
+5. Runs its specific test suite
+6. Reports pass/fail independently
 
 Merge is blocked unless all four workflows pass.
 

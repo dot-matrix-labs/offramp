@@ -172,7 +172,7 @@ Check every applicable box. The commit-msg hook blocks if any box remains unchec
 - [ ] TypeScript only — no .js or .mjs logic files added or modified
 - [ ] Bun only — no npm, npx, or yarn calls introduced anywhere
 - [ ] No mocks — no jest.mock, sinon, vi.mock, or msw on external dependencies
-- [ ] No forbidden libs — no ORM, Docker config, external auth provider, Redux/Zustand added
+- [ ] No forbidden libs — no ORM, external auth provider, Redux/Zustand added
 - [ ] No skipped tests — no .skip(), .todo(), xit(), or commented-out test cases
 - [ ] implementation-plan.md — completed tasks checked off; new discoveries added
 - [ ] next-prompt.md — overwritten with the complete, self-contained prompt for the next commit
