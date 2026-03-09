@@ -5,29 +5,29 @@
 
 ---
 
-## Process Supervision
+## Container Packaging
 
-Applications are managed as `systemd` services:
+Applications are packaged as immutable Docker containers and deployed via Kubernetes:
 
-```ini
-# /etc/systemd/system/calypso-server.service
-[Unit]
-Description=Calypso Server
-After=network.target
+```dockerfile
+# apps/server/Dockerfile
+FROM oven/bun:1 AS base
+WORKDIR /app
+COPY package.json bun.lockb ./
+RUN bun install --frozen-lockfile
+COPY . .
 
-[Service]
-Type=simple
-WorkingDirectory=/opt/calypso
-ExecStart=/usr/local/bin/bun run apps/server/index.ts
-Restart=always
-RestartSec=5
-EnvironmentFile=/opt/calypso/.env
+# Build the app explicitly for exact reproducibility
+RUN bun build apps/server/index.ts --target bun --outfile dist/server.js
 
-[Install]
-WantedBy=multi-user.target
+# Production stage
+FROM oven/bun:1-distroless
+WORKDIR /app
+COPY --from=base /app/dist/server.js ./
+CMD ["bun", "run", "server.js"]
 ```
 
-No Docker, no PM2, no custom restart scripts.
+No systemd services, no PM2, no custom restart scripts natively on the host.
 
 ## Environment Variables
 
@@ -38,9 +38,9 @@ No Docker, no PM2, no custom restart scripts.
 
 ## Logging
 
-- **Chronological log:** stdout captured by `systemd` journal + rotated file at `/var/log/calypso/app.log`
-- **Unique error log:** `/var/log/calypso/uniques.log` — deduplicated error categories with count and last-seen timestamp
-- **Rotation:** Daily, 14-day retention. Managed by the OS log rotation facility.
+- **Chronological log:** `stdout` captured by the container orchestrator (e.g., Kubernetes) and aggregated.
+- **Unique error log:** `/var/log/calypso/uniques.log` — deduplicated error categories with count and last-seen timestamp (persisted via standard volume mounts if required, or handled by a dedicated service).
+- **Rotation:** Managed by the cluster log aggregation facility (e.g., Fluentd, Promtail).
 
 ## Browser Error Forwarding
 
@@ -61,15 +61,14 @@ All errors POST to `/api/logs` with `{ traceId, error, stack, url, timestamp }`.
 ## Build and Deploy
 
 - Browser: `bun build apps/web/index.tsx --outdir dist/web`
-- Server: runs directly via Bun (no build step required for TypeScript)
-- Deploy: `git pull && bun install && bun build && systemctl restart calypso-server`
+- Server: `docker build -f apps/server/Dockerfile -t calypso-server:latest .`
+- Deploy: `kubectl apply -f k8s/deployments/server.yaml` (or helm upgrade/etc.)
 
 ## Dependency Justification
 
 | Package | Reason | Buy or DIY |
 |---|---|---|
-| `systemd` | OS-native process supervisor; no alternative on Linux | Buy (system package) |
-| `logrotate` | OS-native log rotation; battle-tested, zero dependencies | Buy (system package) |
+| `kubernetes` | Universal container orchestration; required for enterprise deployments | Buy (managed service) |
 | UUID generation | Single function; agent generates internal implementation | DIY |
 | Error forwarding client | Thin wrapper around fetch; no library needed | DIY |
 
@@ -77,4 +76,4 @@ All errors POST to `/api/logs` with `{ traceId, error, stack, url, timestamp }`.
 
 ## Antipatterns (TypeScript/Bun-Specific)
 
-- **Container theater.** Wrapping a single Bun process in a Docker container for "consistency" when the development host and the production host are the same Linux distribution with the same runtime. The container adds a build step, a layer of indirection, and a new category of debugging (container networking, volume mounts, image versioning) — all to solve a problem that does not exist.
+- **Hot-reloading `vite dev` loops.** Using hyper-optimized development servers locally instead of deploying the containerized build. Agents prefer reproducible background deployments that precisely match production, omitting human-convenience tooling that breaks environment parity.

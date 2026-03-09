@@ -212,7 +212,7 @@ The baseline architecture from the first commit. A single PostgreSQL instance ho
 - `analytics_w` — insert-only on `calypso_analytics`; no read, no access to other databases
 - `audit_w` — insert-only on `calypso_audit`; no `UPDATE`, no `DELETE`, no `TRUNCATE`, no access to other databases
 
-**Development setup:** Docker Compose starts PostgreSQL and Vault. `bun run dev` expects both services running. A single `init.sql` script creates the three databases and three roles on first start.
+**Development setup:** Local development uses Kubernetes (e.g., `kind`) or full-stack Docker Compose to deploy the application container *alongside* PostgreSQL and Vault. We do *not* run the application directly on the host. `bun build` creates the container, and it is deployed into the local environment. A single `init.sql` script creates the three databases and three roles on database initialization.
 
 **Trade-offs:** All three databases share one PostgreSQL instance — an instance-level failure takes down all three simultaneously. This is acceptable for pre-production and early production; the single instance is replaced by independent managed databases when availability SLAs require it. The event pipeline is in-process, so analytics event delivery is synchronous with request handling — lag is zero but pipeline failures surface as request errors. An async pipeline (separate worker, queue) is a production upgrade, not a day-one requirement.
 
@@ -281,7 +281,7 @@ Per-tenant key hierarchies isolate encryption so that compromise of one tenant's
 - [ ] Three PostgreSQL databases provisioned: `calypso_app`, `calypso_analytics`, `calypso_audit`
 - [ ] Three database roles created with correct privilege scope: `app_rw`, `analytics_w`, `audit_w`
 - [ ] Core property graph tables initialized: `entities`, `relations`, `entity_types`
-- [ ] Docker Compose dev environment starts PostgreSQL and Vault
+- [ ] Local development environment deploys application containers, PostgreSQL, and Vault uniformly
 - [ ] All database queries use parameterized statements; no string concatenation
 - [ ] Application-layer encryption active for sensitive properties in JSONB
 - [ ] Key management service integrated; no encryption keys in config files

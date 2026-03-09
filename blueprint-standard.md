@@ -128,7 +128,7 @@ Every blueprint must contain the following sections in this order. Sections may 
 
 ### 6. Reference Implementation — Calypso TypeScript
 
-**Purpose:** Translate the principles, patterns, and architectures into a concrete implementation using the Calypso standard stack: TypeScript, Bun, React, SQLite/PostgreSQL.
+**Purpose:** Translate the principles, patterns, and architectures into a concrete implementation using the Calypso standard stack: TypeScript, Bun, React, and PostgreSQL.
 
 **Rules:**
 - This section is explicitly marked as one implementation of the blueprint, not the definitive implementation
@@ -206,7 +206,7 @@ Every blueprint must contain the following sections in this order. Sections may 
 
 After drafting a blueprint, apply this test to sections 1–5 (Vision through Plausible Architectures):
 
-> Remove every TypeScript, Bun, React, SQLite, and PostgreSQL reference from sections 1–5. Does the document still make complete sense?
+> Remove every TypeScript, Bun, React, and PostgreSQL reference from sections 1–5. Does the document still make complete sense?
 
 If yes: sections 1–5 are correctly decoupled. Section 6 carries all implementation specifics.
 

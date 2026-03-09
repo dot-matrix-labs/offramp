@@ -15,7 +15,7 @@ JS_FILES=$(find apps packages -type f \( -name "*.js" -o -name "*.mjs" \) \
 [ -n "$JS_FILES" ] && VIOLATIONS+=("JavaScript files found (TypeScript only):\n${JS_FILES}")
 
 # Forbidden packages
-FORBIDDEN="redux|zustand|mobx|prisma|typeorm|drizzle-orm|@auth0/|@clerk/|mongoose|docker"
+FORBIDDEN="redux|zustand|mobx|prisma|typeorm|drizzle-orm|@auth0/|@clerk/|mongoose"
 PKG_HITS=$(find . -name "package.json" ! -path "*/node_modules/*" \
   -exec grep -lE "$FORBIDDEN" {} \; 2>/dev/null || true)
 [ -n "$PKG_HITS" ] && VIOLATIONS+=("Forbidden packages detected in:\n${PKG_HITS}")

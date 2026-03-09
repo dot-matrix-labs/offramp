@@ -59,7 +59,7 @@ Before executing the checklist below, **detect the host environment you are curr
 
 ### 4. Deployment Posture
 - [ ] The project includes `.env` file templates.
-- [ ] There is a foundational plan or structure for bare-metal Linux deployment using `systemd` (No Dockerfiles present).
+- [ ] There is a foundational plan or structure for Kubernetes container deployment (e.g., Dockerfiles and minimal K8s manifests present).
 - [ ] 
 ### 5. Check your work
 - [ ] **Blueprint Compliance** did you follow all the instructions, and not go off the rails?
