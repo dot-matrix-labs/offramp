@@ -19,7 +19,7 @@ Agent, bootstrap a new Calypso project.
 First, run:
 curl -sSL https://raw.githubusercontent.com/dot-matrix-labs/calypso/main/scripts/bootstrap-standards.sh | bash
 
-Then read docs/standards/calypso-blueprint.md before doing anything else.
+Then read ./prompts/process/scaffold-task.md before doing anything else.
 
 Context: I am replacing GitHub Projects for a software team of 3.
 ```
@@ -100,6 +100,7 @@ Once you go post-human, the stack goes lower. The constraints that TypeScript an
 
 - [Calypso Blueprint](prompts/blueprints/calypso-blueprint.md) — full architecture and process standard (TOC)
 - [UX Blueprint](prompts/blueprints/ux-blueprint.md) — UX posture, agent UX, beauty as a gate condition
-- [Data Security Blueprint](prompts/blueprints/data-security-blueprint.md) — agent auth, scopes, and security posture
+- [Data Blueprint](prompts/blueprints/data-blueprint.md) — data architecture, storage, and security posture
+- [Auth Blueprint](prompts/blueprints/auth-blueprint.md) — agent auth, scopes, and authentication
 - [Scaffold Task Entrypoint](prompts/process/scaffold-task.md) — the agent's first action on a new project
 - [Blueprint Authoring Standard](blueprint-standard.md) — how blueprints are written and structured

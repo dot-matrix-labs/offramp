@@ -1,37 +1,24 @@
 #!/bin/bash
 set -e
 
-# Create standards directory
-mkdir -p docs/standards
+REPO="https://github.com/dot-matrix-labs/calypso.git"
 
-# List of standard files to download (path:localname)
-FILES=(
-  "blueprints/calypso-blueprint.md:calypso-blueprint.md"
-  "development/development-standards.md:development-standards.md"
-  "process/documentation-standard.md:documentation-standard.md"
-  "process/git-standards.md:git-standards.md"
-  "process/product-owner-interview.md:product-owner-interview.md"
-  "process/scaffold-task.md:scaffold-task.md"
-)
+echo "Downloading Calypso prompts..."
 
-BASE_URL="https://raw.githubusercontent.com/dot-matrix-labs/calypso/main/prompts"
+git clone --depth=1 --filter=blob:none --sparse "$REPO" .calypso-bootstrap
+cd .calypso-bootstrap
+git sparse-checkout set prompts
+cd ..
 
-echo "Downloading Calypso standards..."
+cp -r .calypso-bootstrap/prompts ./prompts
+rm -rf .calypso-bootstrap
 
-for ENTRY in "${FILES[@]}"; do
-  REMOTE_PATH="${ENTRY%%:*}"
-  LOCAL_NAME="${ENTRY##*:}"
-  echo "  - $LOCAL_NAME"
-  curl -sSL "$BASE_URL/$REMOTE_PATH" -o "docs/standards/$LOCAL_NAME"
-done
-
-echo "Done. Standards saved to ./docs/standards/"
-
+echo ""
+echo "Done. Prompts saved to ./prompts/"
 echo ""
 echo "================================================================================"
 echo "AGENT INSTRUCTION:"
-echo "The agent MUST now read these local files in ./docs/standards/ as the first"
-echo "action of the session. Do NOT proceed with any development or documentation"
-echo "tasks until these standards are read; otherwise, you may fabricate"
-echo "conventions that violate the Calypso architecture."
+echo "The agent MUST read the files in ./prompts/ as the first action of the session."
+echo "Do NOT proceed with any development or documentation tasks until these are read;"
+echo "otherwise, you may fabricate conventions that violate the Calypso architecture."
 echo "================================================================================"
