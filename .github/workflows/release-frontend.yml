@@ -13,6 +13,7 @@ on:
       - "apps/frontend/**"
       - "packages/**"
   workflow_dispatch:
+  workflow_call:
     inputs:
       force_base_rebuild:
         description: "Force base image rebuild before layering app"

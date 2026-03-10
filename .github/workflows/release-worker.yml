@@ -11,6 +11,7 @@ on:
       - "apps/worker/**"
       - "packages/**"
   workflow_dispatch:
+  workflow_call:
 
 env:
   REGISTRY: ghcr.io
