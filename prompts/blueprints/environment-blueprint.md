@@ -252,8 +252,7 @@ The agent executes the following steps from inside the developer container after
    - Bootstraps DOKS (DigitalOcean Kubernetes Service)
    - Applies manifests from k8s/ directory
    - Outputs cluster endpoint and kubeconfig
-3. Agent runs bootstrap-standards.sh to load current conventions
-4. Agent reads all files in docs/standards/ before proceeding
+3. Agent reads all files in prompts/ before proceeding
 ```
 
 ### Kubernetes Manifest Structure
@@ -337,8 +336,7 @@ interface ProvisionConfig {
 - [ ] Worker container running and claiming tasks from the task queue; submitting results via API
 - [ ] Database container running and accepting connections from frontend and worker containers only; not exposed externally; dev container cannot reach it (verified via network policy)
 - [ ] `tmux` session active inside developer container; SSH disconnect and reattach tested
-- [ ] Bootstrap standards script executed; `docs/standards/` populated inside developer container
-- [ ] Agent has read all files in `docs/standards/` before writing any code
+- [ ] Agent has read all files in `prompts/` before writing any code
 
 ### Beta Gate
 
