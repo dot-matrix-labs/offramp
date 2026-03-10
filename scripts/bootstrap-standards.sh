@@ -12,6 +12,9 @@ FILES=(
   "process/git-standards.md:git-standards.md"
   "process/product-owner-interview.md:product-owner-interview.md"
   "process/scaffold-task.md:scaffold-task.md"
+  "process/new-project-bootstrap.md:new-project-bootstrap.md"
+  "blueprints/environment-blueprint.md:environment-blueprint.md"
+  "blueprints/worker-blueprint.md:worker-blueprint.md"
 )
 
 BASE_URL="https://raw.githubusercontent.com/dot-matrix-labs/calypso/main/prompts"

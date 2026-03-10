@@ -2,14 +2,17 @@
 # Calypso Blueprint
 
 > [!IMPORTANT]
-> **Agent Development Gate:** You are only to proceed with feature development after all steps in [scaffold-task.md](../process/scaffold-task.md) are verified as complete.
+> **New project?** Follow [new-project-bootstrap.md](../process/new-project-bootstrap.md) before anything else. That document provisions the cluster, creates the GitHub repo, and seeds the scaffold.
 
 > [!IMPORTANT]
-> **Bootstrap Requirement:** At the start of every session, run:
+> **Session start (existing project):** At the start of every session, run:
 > ```
 > curl -sSL https://raw.githubusercontent.com/dot-matrix-labs/calypso/main/scripts/bootstrap-standards.sh | bash
 > ```
 > Then read all files in `./docs/standards/` before proceeding. Do NOT begin any development or documentation work until this is complete.
+
+> [!IMPORTANT]
+> **Development gate:** You are only to proceed with feature development after all steps in [scaffold-task.md](../process/scaffold-task.md) are verified as complete.
 
 ---
 
