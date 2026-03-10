@@ -1,35 +1,32 @@
 FROM oven/bun:1-alpine
 
 LABEL org.opencontainers.image.source="https://github.com/dot-matrix-labs/calypso"
-LABEL org.opencontainers.image.description="Calypso frontend container — serves tagged release bundles only, no build capability"
+LABEL org.opencontainers.image.description="Calypso frontend container — serves pre-built release bundle, no build capability"
 LABEL org.opencontainers.image.licenses="MIT"
 
-# No package manager. No git. No build tools.
-# This image receives pre-built release artifacts via webhook and serves them.
+# The built bundle is COPYed in by CI at image build time.
+# This container has no build tools, no package manager, no git, no shell.
+# All release lifecycle is managed by the container orchestrator (Kubernetes).
+
+ARG RELEASE_TAG=unknown
+ENV RELEASE_TAG=${RELEASE_TAG}
 
 WORKDIR /app
 
-# Copy the server that handles release serving and webhook-triggered updates
 COPY server.ts ./server.ts
 
-# Pre-install only the runtime dependency the server needs
-# (no devDependencies, no build step — server.ts uses Bun built-ins only)
+# Bundle is built by CI before docker build and passed as build context.
+# The CI step: bun build → outputs to ./dist → docker build copies it here.
+COPY dist/ ./dist/
 
 RUN addgroup -S frontend && adduser -S -G frontend frontend
-
-# Release artifacts land here at runtime (fetched by the update handler)
-RUN mkdir -p /app/release && chown -R frontend:frontend /app
+RUN chown -R frontend:frontend /app
 
 USER frontend
 
 EXPOSE 8080
 
-# RELEASE_TAG and UPDATE_SECRET must be set at runtime via environment
-ENV RELEASE_TAG=""
-ENV UPDATE_SECRET=""
-ENV GITHUB_REPO=""
-
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
     CMD wget -qO- http://localhost:8080/health || exit 1
 
 CMD ["bun", "run", "server.ts"]

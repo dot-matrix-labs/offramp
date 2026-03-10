@@ -1,4 +1,10 @@
-name: Build — calypso/worker
+name: Base image — calypso/worker
+
+# Rebuilds the base image when container-level dependencies change
+# (bun version, Node version, vendor CLI binary versions, Dockerfile).
+# Day-to-day releases go through release-worker.yml.
+# After a base rebuild, triggers release-worker to re-layer the current
+# worker bundle onto the new base and deploy.
 
 on:
   push:
@@ -15,7 +21,7 @@ env:
   IMAGE: ghcr.io/dot-matrix-labs/calypso/worker
 
 jobs:
-  build:
+  build-base:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -35,22 +41,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.IMAGE }}
-          tags: |
-            type=sha,prefix=sha-,format=short
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-
-      - name: Build and push
+      - name: Build and push base image
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: containers/worker
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ${{ env.IMAGE }}:base-${{ github.sha }}
+            ${{ env.IMAGE }}:base-latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
+
+  trigger-app-release:
+    needs: build-base
+    if: github.event_name != 'pull_request'
+    uses: ./.github/workflows/release-worker.yml
+    secrets: inherit

@@ -1,0 +1,55 @@
+# Network policy — enforces the capability boundaries from the environment blueprint.
+# The dev container cannot reach postgres. The postgres service is only reachable
+# by the frontend (app user) and worker (agent user) pods.
+
+# Postgres: only reachable from frontend and worker
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-ingress
+  namespace: calypso
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: frontend
+        - podSelector:
+            matchLabels:
+              app: worker
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+# Dev container: no egress to postgres
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dev-egress
+  namespace: calypso
+spec:
+  podSelector:
+    matchLabels:
+      app: dev
+  policyTypes:
+    - Egress
+  egress:
+    # Allow DNS
+    - ports:
+        - protocol: UDP
+          port: 53
+    # Allow egress to internet (GitHub, cloud APIs, vendor APIs)
+    # but explicitly not to postgres — the postgres NetworkPolicy above
+    # blocks ingress from dev regardless, providing defence in depth.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8      # cluster-internal — blocks accidental postgres access
+              - 172.16.0.0/12
+              - 192.168.0.0/16

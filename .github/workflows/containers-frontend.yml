@@ -1,4 +1,11 @@
-name: Build — calypso/frontend
+name: Base image — calypso/frontend
+
+# Rebuilds the base image when container-level dependencies change
+# (bun version, Alpine base, Dockerfile).
+# This is rare. Day-to-day releases go through release-frontend.yml which
+# layers compiled app code on top of this base image without rebuilding it.
+# On merge to main, after building the new base, triggers release-frontend
+# so the current app bundle is re-layered onto the new base immediately.
 
 on:
   push:
@@ -13,9 +20,11 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE: ghcr.io/dot-matrix-labs/calypso/frontend
+  NAMESPACE: calypso
+  DEPLOYMENT: frontend
 
 jobs:
-  build:
+  build-base:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -35,22 +44,24 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.IMAGE }}
-          tags: |
-            type=sha,prefix=sha-,format=short
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-
-      - name: Build and push
+      - name: Build and push base image
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: containers/frontend
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ${{ env.IMAGE }}:base-${{ github.sha }}
+            ${{ env.IMAGE }}:base-latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
+
+  # After base rebuild, re-layer the current app onto the new base and deploy.
+  # This keeps the running cluster on the new base without waiting for the next
+  # app code change to trigger release-frontend.
+  trigger-app-release:
+    needs: build-base
+    if: github.event_name != 'pull_request'
+    uses: ./.github/workflows/release-frontend.yml
+    secrets: inherit
