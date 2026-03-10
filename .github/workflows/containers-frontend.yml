@@ -1,18 +1,18 @@
-name: Build — calypso/webserver
+name: Build — calypso/frontend
 
 on:
   push:
     branches: [main]
     paths:
-      - "containers/webserver/**"
+      - "containers/frontend/**"
   pull_request:
     paths:
-      - "containers/webserver/**"
+      - "containers/frontend/**"
   workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE: ghcr.io/dot-matrix-labs/calypso/webserver
+  IMAGE: ghcr.io/dot-matrix-labs/calypso/frontend
 
 jobs:
   build:
@@ -47,7 +47,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: containers/webserver
+          context: containers/frontend
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

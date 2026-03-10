@@ -10,7 +10,7 @@
 
 The promise of AI-led development is that the agent does not just write code — it designs and operates the full system from the first commit. This promise breaks immediately if the environment the agent develops in differs from the environment the software runs in. A developer container on a laptop, a staging server with hand-installed packages, a production cluster configured differently by a human operator: each gap is a place where the software will silently stop working. Agents are worse at detecting these gaps than experienced human engineers, because agents cannot see the physical machine, cannot smell that something is wrong, and will confidently produce work that passes every test in the wrong environment.
 
-Calypso eliminates the gap by collapsing development and production into the same container topology from the first day. The developer container, the web server container, and the database container that run during a prototype session are the same containers — same base images, same constraints, same network rules — that run in production. There is no "works on my machine" because the machine is always the same machine: a container orchestrated by the same runtime that production uses. When the agent vibe-codes a UI for a business process, it is not creating a throwaway demo. It is designing the full production system for free. The prototype and the production artifact are the same build, tagged and released through the same pipeline.
+Calypso eliminates the gap by collapsing development and production into the same container topology from the first day. The developer container, the frontend container, and the database container that run during a prototype session are the same containers — same base images, same constraints, same network rules — that run in production. There is no "works on my machine" because the machine is always the same machine: a container orchestrated by the same runtime that production uses. When the agent vibe-codes a UI for a business process, it is not creating a throwaway demo. It is designing the full production system for free. The prototype and the production artifact are the same build, tagged and released through the same pipeline.
 
 This model also eliminates an entire category of developer-experience engineering. Local development tooling, hot-reload servers, environment-specific feature flags, "devmode" database connections, ngrok tunnels, and staging environments are all symptoms of a broken environment model. They exist because development and production were allowed to diverge. Calypso does not invest in making divergence comfortable. It invests in making divergence impossible. Best practices are enforced from the first commit not because best practices feel good, but because allowing exceptions at prototype stage means rewriting the system when those exceptions compound. Agents do not benefit from environment-specific affordances the way human developers do — they benefit from a simple, consistent, fully-specified world. Simplicity is the agent's native environment.
 
@@ -23,14 +23,14 @@ The cost of ignoring this blueprint is the compounding cost of complexity. Teams
 | Scenario | What must be protected |
 |---|---|
 | Agent develops with tools or runtimes not present in production | Production parity — a capability that exists only in the dev container must not reach production-bound code |
-| Web server container is used to build or compile code at runtime | Release integrity — every artifact served in production must have been vetted, tested, and released before the server sees it |
+| Frontend container is used to build or compile code at runtime | Release integrity — every artifact served in production must have been vetted, tested, and released before the server sees it |
 | Database container is modified or queried by an agent directly | Data integrity and audit trail — agents must not have direct access to the database process or its host |
-| Agent installs packages or modifies global state on the web server or database container | Container immutability — non-developer containers must be immutable; unexpected mutations indicate a compromised or misconfigured system |
+| Agent installs packages or modifies global state on the frontend or database container | Container immutability — non-developer containers must be immutable; unexpected mutations indicate a compromised or misconfigured system |
 | Cluster is provisioned with environment-specific configuration differences between demo and production | Topology parity — a cluster that behaves differently in demo mode versus production mode is two different systems pretending to be one |
 | Developer runs agent tooling locally instead of in the developer container | Headless integrity and environment parity — local environments reintroduce all the divergence that containerization eliminates |
 | IDE or editor runs locally and connects to local files instead of the remote container | Convention contamination — local file edits bypass the container's toolchain and may introduce platform-specific artifacts |
 | Cluster is destroyed and must be reprovisioned | State durability — all non-ephemeral state must live in version control or the database volume, never on the container filesystem |
-| A release is deployed to the web server without passing CI and the release pipeline | Release gate integrity — the web server must not be configurable to pull untagged, untested, or unreleased artifacts |
+| A release is deployed to the frontend without passing CI and the release pipeline | Release gate integrity — the frontend must not be configurable to pull untagged, untested, or unreleased artifacts |
 | Agent session drops mid-task due to SSH timeout or network interruption | Session continuity — in-flight agent context and partially applied changes must survive disconnection |
 | Integration or end-to-end test connects to the live database instead of an ephemeral test instance | Data integrity — test runs must never read from or write to the production or demo database |
 | Developer container is granted network access to the cluster database service | Database isolation — the dev container's network policy must make the cluster database unreachable, even accidentally |
@@ -46,15 +46,15 @@ The container topology that runs during the first demo session is the same topol
 
 ### Containers are role-specialized and capability-constrained
 
-Each container type exists for exactly one role and has only the capabilities required for that role. The developer container can run agents, build artifacts, and push to version control. The web server container can serve pre-built release bundles. The database container can store and retrieve data. No container has capabilities that belong to another role. A container that can do more than its role requires is a container that can fail in more ways than its role implies.
+Each container type exists for exactly one role and has only the capabilities required for that role. The developer container can run agents, build artifacts, and push to version control. The frontend container can serve pre-built release bundles. The database container can store and retrieve data. No container has capabilities that belong to another role. A container that can do more than its role requires is a container that can fail in more ways than its role implies.
 
 ### Building from source is a developer-only capability
 
-Compilation, bundling, transpilation, dependency installation, and any other transformation of source code into a deployable artifact happens exclusively in the developer container. The web server container receives only tagged, tested, released artifacts. It cannot build from source because it does not have the tools, and it must not have the tools. Building in production is an antipattern regardless of whether "production" means a customer deployment or a demo to a single stakeholder.
+Compilation, bundling, transpilation, dependency installation, and any other transformation of source code into a deployable artifact happens exclusively in the developer container. The frontend container receives only tagged, tested, released artifacts. It cannot build from source because it does not have the tools, and it must not have the tools. Building in production is an antipattern regardless of whether "production" means a customer deployment or a demo to a single stakeholder.
 
 ### Agents run in the developer container only
 
-AI agents — whether LLM CLI tools, autonomous coding agents, or orchestration frameworks — run inside the developer container. They do not run on the web server container. They do not run on the database container. They do not run on the developer's local device. The developer container is the agent's workspace. Everything outside it is infrastructure the agent manages through APIs, not infrastructure the agent inhabits.
+AI agents — whether LLM CLI tools, autonomous coding agents, or orchestration frameworks — run inside the developer container. They do not run on the frontend container. They do not run on the database container. They do not run on the developer's local device. The developer container is the agent's workspace. Everything outside it is infrastructure the agent manages through APIs, not infrastructure the agent inhabits.
 
 ### Test databases are ephemeral and isolated from all persistent data
 
@@ -70,9 +70,9 @@ The developer does not manually configure servers, install software, or wire tog
 
 ### Pattern 1: Immutable Release Artifact
 
-**Problem:** Software deployed to the web server must be known-good before it arrives. A web server that can pull arbitrary code — from the main branch, from a development server, from a local machine — is a web server that can serve untested code.
+**Problem:** Software deployed to the frontend must be known-good before it arrives. A frontend that can pull arbitrary code — from the main branch, from a development server, from a local machine — is a frontend that can serve untested code.
 
-**Solution:** The developer container produces a release artifact (a built bundle), pushes it through the standard CI pipeline, passes all automated tests, and tags a version on the version control host. The web server container is notified of the new release tag via a webhook or polling mechanism and downloads the artifact from the release registry. The web server has no credentials to the version control system and no build tooling. Its only capability is fetching a named version and serving it.
+**Solution:** The developer container produces a release artifact (a built bundle), pushes it through the standard CI pipeline, passes all automated tests, and tags a version on the version control host. The frontend container is notified of the new release tag via a webhook or polling mechanism and downloads the artifact from the release registry. The frontend has no credentials to the version control system and no build tooling. Its only capability is fetching a named version and serving it.
 
 **Trade-offs:** Adds a mandatory release step between "code compiles" and "code is visible in the browser." For rapid iteration this feels slow, but the pipeline is fast by design (pre-built artifact, not build-on-deploy). The overhead is the correct feedback mechanism: if the release pipeline is too slow to support iteration, the pipeline needs to be optimized, not bypassed.
 
@@ -83,7 +83,7 @@ The developer does not manually configure servers, install software, or wire tog
 **Solution:** Three purpose-built container types, each with a minimal image, minimal capability set, and a single responsibility:
 
 - **Developer Container:** full operating system, agent CLIs, language runtimes, build tools, version control client, cloud CLI, and a Docker daemon (Docker-in-Docker). Can write code, run tests, spin up ephemeral test containers, build artifacts, push releases. Cannot serve production traffic. Cannot reach the cluster database over the network.
-- **Web Server Container:** minimal base image (not a full OS), a single runtime, a single entry point. Serves pre-built release bundles on a designated port. Cannot install packages, cannot execute build steps, cannot write to persistent volumes.
+- **Frontend Container:** minimal base image (not a full OS), a single runtime, a single entry point. Serves pre-built release bundles on a designated port. Cannot install packages, cannot execute build steps, cannot write to persistent volumes.
 - **Database Container:** distroless base image, database binary and dependencies only. Volume-mounted for persistence. No shell, no package manager, no agent access. Backed up on a schedule to durable object storage.
 
 **Trade-offs:** Three containers require a container orchestrator. This is not a cost — it is an explicit design choice that brings network policy enforcement, restart behavior, health checking, and scaling as standard features. The alternative (fewer, larger containers) trades these features for a simpler mental model that breaks as soon as the system grows.
@@ -116,11 +116,11 @@ The ephemeral test container uses the same image as the cluster database contain
 
 ### Pattern 6: Webhook-Driven Release Delivery
 
-**Problem:** The web server must know when a new release is available and retrieve it without polling continuously or requiring manual intervention.
+**Problem:** The frontend must know when a new release is available and retrieve it without polling continuously or requiring manual intervention.
 
-**Solution:** The release pipeline (CI, on the developer container's push) publishes a tagged release to the version control host. The version control host sends a webhook to the web server container's update endpoint. The web server fetches the new artifact, verifies its checksum, hot-swaps the served bundle, and responds to the webhook with success or failure. No human touches the web server between "agent pushes code" and "new version is live."
+**Solution:** The release pipeline (CI, on the developer container's push) publishes a tagged release to the version control host. The version control host sends a webhook to the frontend container's update endpoint. The frontend fetches the new artifact, verifies its checksum, hot-swaps the served bundle, and responds to the webhook with success or failure. No human touches the frontend between "agent pushes code" and "new version is live."
 
-**Trade-offs:** Requires the web server to expose an update endpoint, which must be authenticated and hardened. Webhook delivery is not guaranteed; the web server should also support manual triggering and should log the version it is currently serving so discrepancies can be detected.
+**Trade-offs:** Requires the frontend to expose an update endpoint, which must be authenticated and hardened. Webhook delivery is not guaranteed; the frontend should also support manual triggering and should log the version it is currently serving so discrepancies can be detected.
 
 ---
 
@@ -142,7 +142,7 @@ The ephemeral test container uses the same image as the cluster database contain
 │  │  └───────────────────────┘                              │    │
 │  │                                                         │    │
 │  │  ┌───────────────────────┐                              │    │
-│  │  │  Web Server Container │  ← Serves tagged releases   │    │
+│  │  │  Frontend Container │  ← Serves tagged releases   │    │
 │  │  │  (minimal image)      │    Webhook update endpoint   │    │
 │  │  │  Port: 443 / 80       │    No build tooling          │    │
 │  │  └───────────────────────┘                              │    │
@@ -154,14 +154,14 @@ The ephemeral test container uses the same image as the cluster database contain
 │  │  └───────────────────────┘                              │    │
 │  │                                                         │    │
 │  │  Internal network: containers communicate by service    │    │
-│  │  External exposure: web server port only                │    │
+│  │  External exposure: frontend port only                │    │
 │  └─────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────┘
 
   Local Device (developer)
   ┌────────────────────┐
   │  IDE (SSH remote)  │──── SSH ──→  Developer Container
-  │  Browser           │──── HTTPS ─→ Web Server Container
+  │  Browser           │──── HTTPS ─→ Frontend Container
   └────────────────────┘
 ```
 
@@ -186,7 +186,7 @@ The ephemeral test container uses the same image as the cluster database contain
 │  ┌─────────────────────────────────────────┐                     │
 │  │  Web Tier (replicated)                  │                     │
 │  │  ┌─────────────┐   ┌─────────────┐      │                     │
-│  │  │ Web Server  │   │ Web Server  │      │  ← Load-balanced   │
+│  │  │ Frontend  │   │ Frontend  │      │  ← Load-balanced   │
 │  │  │ Container   │   │ Container   │      │    release serving  │
 │  │  └─────────────┘   └─────────────┘      │                     │
 │  └─────────────────────────────────────────┘                     │
@@ -213,12 +213,13 @@ The ephemeral test container uses the same image as the cluster database contain
 
 ### Container Images
 
-Calypso provides three base images, published to the project's container registry. Projects derive from these images without modifying them unless a blueprint-documented reason exists.
+Calypso provides four base images, published to the project's container registry. Projects derive from these images without modifying them unless a blueprint-documented reason exists.
 
 | Image | Base | Installed | Not Installed |
 |---|---|---|---|
-| `calypso/dev` | Ubuntu LTS | `claude`, `gemini`, `codex`, `bun`, `node`, `npm`, `git`, `gh`, `bash`, `apt`, `tmux`, `openssh-server`, `playwright-deps` | Web server runtime, database |
-| `calypso/webserver` | Alpine minimal | `bun` (runtime only) | `apt`, `npm`, `git`, `gh`, build tools, shells |
+| `calypso/dev` | Ubuntu LTS | `claude`, `gemini`, `codex`, `bun`, `node`, `npm`, `git`, `gh`, `bash`, `apt`, `tmux`, `openssh-server`, `playwright-deps`, `dockerd` | Frontend runtime, database |
+| `calypso/frontend` | Alpine minimal | `bun` (runtime only) | `apt`, `npm`, `git`, `gh`, build tools, shells |
+| `calypso/worker` | Minimal + Node | `bun`, `node`, vendor CLI binaries (`claude`, `gemini`, `codex`) | Shell, `apt`, `git`, `gh`, build tools |
 | `calypso/postgres` | Distroless | PostgreSQL binary and libs | Everything else |
 
 ### Bootstrap Workflow
@@ -244,8 +245,8 @@ k8s/
   dev/
     deployment.yaml       ← developer container deployment
     service.yaml          ← SSH service (ClusterIP + NodePort)
-  web/
-    deployment.yaml       ← web server deployment (replicated)
+  frontend/
+    deployment.yaml       ← frontend deployment (replicated)
     service.yaml          ← HTTPS ingress
     configmap.yaml        ← current release tag (updated by webhook)
   db/
@@ -255,15 +256,15 @@ k8s/
   ingress.yaml            ← external traffic routing
 ```
 
-### Web Server Release Update
+### Frontend Release Update
 
-The web server container runs a minimal Bun HTTP server that:
+The frontend container runs a minimal Bun HTTP server that:
 1. Serves the current release bundle from an in-memory or local-filesystem cache
 2. Exposes `POST /update` — authenticated with a shared secret — to receive a new release tag
 3. On receiving a valid update request, downloads the named release artifact from GitHub Releases, verifies its checksum, and hot-swaps the served bundle
 
 ```typescript
-// Minimal interface — full implementation in packages/webserver
+// Minimal interface — full implementation in packages/frontend
 interface ReleaseManifest {
   tag: string;
   artifactUrl: string;
@@ -295,7 +296,7 @@ interface ProvisionConfig {
 |---|---|---|
 | `kubectl` / `helm` | Kubernetes is complex; the CLI is the canonical control plane interface | Yes — Buy |
 | `doctl` (DigitalOcean CLI) | Cloud provider API surface is large; official CLI is the supported interface | Yes — Buy |
-| Bun (web server runtime) | Consistent with project standard; fast cold starts for minimal containers | Yes — Buy |
+| Bun (frontend runtime) | Consistent with project standard; fast cold starts for minimal containers | Yes — Buy |
 | GitHub Actions (CI) | Release pipeline must run outside the developer container; hosted CI is the standard | Yes — Buy |
 | PostgreSQL (distroless image) | Standard relational database; distroless image eliminates shell-based attack surface | Yes — Buy |
 
@@ -310,19 +311,19 @@ interface ProvisionConfig {
 - [ ] All three container types running and healthy per `kubectl get pods`
 - [ ] Developer container SSH endpoint reachable; local IDE connected via SSH remote
 - [ ] Agent CLI (`claude`, `gemini`, or equivalent) running inside developer container, not on local device
-- [ ] Web server container serving a release bundle at the designated external port
-- [ ] Database container running and accepting connections from web server and developer containers only; not exposed externally
+- [ ] Frontend container serving a release bundle at the designated external port
+- [ ] Database container running and accepting connections from frontend and developer containers only; not exposed externally
 - [ ] `tmux` session active inside developer container; SSH disconnect and reattach tested
 - [ ] Bootstrap standards script executed; `docs/standards/` populated inside developer container
 - [ ] Agent has read all files in `docs/standards/` before writing any code
 
 ### Beta Gate
 
-- [ ] Release pipeline configured: push to main triggers CI, CI builds artifact, CI publishes GitHub Release, webhook triggers web server update
+- [ ] Release pipeline configured: push to main triggers CI, CI builds artifact, CI publishes GitHub Release, webhook triggers frontend update
 - [ ] Web server update endpoint authenticated; HMAC signature validated on every update request
 - [ ] Database volume backup scheduled and tested; restore procedure documented and executed at least once
-- [ ] Firewall rules verified: only web server port and developer container SSH port reachable externally
-- [ ] Web server container image verified to contain no build tooling (`git`, `npm`, `bun install`, `tsc` absent)
+- [ ] Firewall rules verified: only frontend port and developer container SSH port reachable externally
+- [ ] Frontend container image verified to contain no build tooling (`git`, `npm`, `bun install`, `tsc` absent)
 - [ ] Database container verified to have no shell access (`kubectl exec` into db container fails as expected)
 - [ ] Integration test suite spins up an ephemeral database container, runs to completion, and tears it down — confirmed via `docker ps` showing no residual containers after the suite exits
 - [ ] Network policy verified: `kubectl exec` into developer container cannot reach the cluster database service by hostname or IP
@@ -332,7 +333,7 @@ interface ProvisionConfig {
 
 ### V1 Gate
 
-- [ ] Multi-node cluster deployed with web server replicated across at least two nodes
+- [ ] Multi-node cluster deployed with frontend replicated across at least two nodes
 - [ ] Database replica configured; failover tested
 - [ ] Cluster monitoring active: container restarts, disk pressure, memory pressure all generate alerts
 - [ ] Release rollback procedure implemented and tested: bad release detected, previous release re-served without manual intervention
@@ -346,7 +347,7 @@ interface ProvisionConfig {
 
 - **IDE running against local files.** Using an IDE in local mode against a local checkout of the repository bypasses the container's toolchain. Files edited locally may have different line endings, symlink behavior, or import resolution than files edited inside the container. The IDE must connect to the developer container via SSH remote.
 
-- **Web server container with build tools installed.** Adding `npm`, `bun install`, `tsc`, or any build capability to the web server container turns it into a shadow developer container with no CI gate. Code built inside the web server has not been tested. A web server that can build from source can serve untested code.
+- **Frontend container with build tools installed.** Adding `npm`, `bun install`, `tsc`, or any build capability to the frontend container turns it into a shadow developer container with no CI gate. Code built inside the frontend has not been tested. A frontend that can build from source can serve untested code.
 
 - **Agents accessing the database container directly.** An agent that connects to the database process directly — whether through a shell, through an admin client, or through a root-level credential — can make schema changes, data mutations, and configuration changes with no audit trail and no review gate. Agents interact with the database through the application's data layer only.
 
@@ -354,7 +355,7 @@ interface ProvisionConfig {
 
 - **Manual cluster provisioning.** Clicking through a cloud provider's web console, running ad-hoc CLI commands, or following a written runbook to provision the cluster creates undocumented state. The next time the cluster must be provisioned — whether due to failure, scaling, or migration — the process will produce a different result. Provisioning is code.
 
-- **Serving from the main branch.** Configuring the web server to pull and serve the latest commit from the main branch eliminates the release gate entirely. Every commit to main — including commits with failing tests, incomplete features, or broken builds — would be immediately served. The web server serves tagged releases only.
+- **Serving from the main branch.** Configuring the frontend to pull and serve the latest commit from the main branch eliminates the release gate entirely. Every commit to main — including commits with failing tests, incomplete features, or broken builds — would be immediately served. The frontend serves tagged releases only.
 
 - **Skipping the release pipeline for "just a demo."** A demo is a production event. An investor, a customer, or a stakeholder who sees the demo is seeing the product. Code served at a demo that has not passed CI, has not been tested, and has not been released is code that might fail during the demo. The pipeline is not a formality for demos; it is the mechanism that makes demos reliable.
 
@@ -364,4 +365,4 @@ interface ProvisionConfig {
 
 - **Ephemeral test containers not torn down on failure.** A test runner that spins up a database container but only tears it down on success will accumulate zombie containers on the developer node every time a test fails. Over a long development session this exhausts ports, disk, and memory. Teardown must happen in a finally block — unconditionally — regardless of test outcome.
 
-- **Local port-forwarding as a substitute for the web server container.** Forwarding a local development server port to a browser — via SSH tunnel, ngrok, or a similar tool — is not a preview environment. It is a local server with production traffic pointed at it. It has no release gate, no deployment artifact, and no parity with the actual web server container. It is invisible to the release pipeline and to every other agent on the project.
+- **Local port-forwarding as a substitute for the frontend container.** Forwarding a local development server port to a browser — via SSH tunnel, ngrok, or a similar tool — is not a preview environment. It is a local server with production traffic pointed at it. It has no release gate, no deployment artifact, and no parity with the actual frontend container. It is invisible to the release pipeline and to every other agent on the project.

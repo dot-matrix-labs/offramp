@@ -25,3 +25,4 @@
 | [auth-blueprint.md](./auth-blueprint.md) | Authentication, authorization, session management, agent auth |
 | [data-blueprint.md](./data-blueprint.md) | Data persistence, encryption, privacy, analytics tier |
 | [ux-blueprint.md](./ux-blueprint.md) | UX posture, agent UX, admin as user, beauty gate |
+| [agent-service-blueprint.md](./agent-service-blueprint.md) | Worker container design, task queue subscription, write-through API, delegated user tokens, per-worker-type DB roles |
