@@ -72,17 +72,6 @@ The git pre-commit hook (defined in `git-standards.md`) verifies that both `docs
 4. Verify all tests run (and fail, since no implementation exists)
 5. Write initial implementation plan and next-prompt
 
-## Maturity Stages
-
-| Stage | Key Deliverables |
-|---|---|
-| Scaffold | Repo, CI, test stubs, planning docs |
-| Prototype | Mock data, minimal UI, basic flows, no persistence |
-| Demoware | Partial integrations, realistic UI, stable demo workflows |
-| Alpha | Full persistence, authentication, core business logic |
-| Beta | External integrations, performance, reliability, metrics |
-| V1 | Production stability, observability, backups |
-
 ## Dependency Justification
 
 | Package | Reason | Buy or DIY |

@@ -101,7 +101,7 @@ The KMS issues a new key version for the table's key ID. New writes immediately 
 
 ### Backup
 
-Audit log backed up independently from `calypso_app`. A backup of `calypso_app` must never include the audit log — they are separate databases. Audit log replication to append-only cold storage is required before V1.
+Audit log backed up independently from `calypso_app`. A backup of `calypso_app` must never include the audit log — they are separate databases. Audit log replication to append-only cold storage is required.
 
 ---
 

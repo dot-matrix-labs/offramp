@@ -43,7 +43,7 @@ All auth data lives in `calypso_app`, stored as entity types within the graph mo
 
 - **Auth middleware:** single function extracts the cookie, verifies the JWT (pinned algorithm + expiry + `jti` revocation check), and attaches the user or agent to the request context
 - Applied to all protected routes
-- **Rate limiting:** login and register endpoints are rate-limited (configurable; default 10 req/min per IP — treat this as a development default; production values require deliberate review). IP-based rate limiting degrades behind shared NAT (offices, mobile carriers); before V1, add per-username rate limiting in addition to per-IP, and implement progressive delay (exponential backoff) rather than hard cutoff.
+- **Rate limiting:** login and register endpoints are rate-limited (configurable; default 10 req/min per IP — treat this as a development default; production values require deliberate review). IP-based rate limiting degrades behind shared NAT (offices, mobile carriers); also add per-username rate limiting in addition to per-IP, and implement progressive delay (exponential backoff) rather than hard cutoff.
 
 ## Agent Scope Enforcement
 

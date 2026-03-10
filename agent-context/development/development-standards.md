@@ -4,7 +4,7 @@
 
 CONTEXT MAP
   this ◀──referenced by── agent-communication.md §Workflow: New Feature Development
-  this ──requires────────▶ blueprints/process-blueprint.md (maturity stages)
+  this ──requires────────▶ blueprints/process-blueprint.md
 
 ## Overview
 

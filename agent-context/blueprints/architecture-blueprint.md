@@ -187,8 +187,6 @@ See [`agent-context/implementation-ts/architecture-implementation.md`](../implem
 
 ## Implementation Checklist
 
-### Alpha Gate
-
 - [ ] Repository initialized with `/apps/web`, `/apps/server`, `/packages/core`, `/packages/ui`, `/tests` structure
 - [ ] `/apps/web` builds a browser bundle; no server imports resolve at build time
 - [ ] `/apps/server` builds and starts a Bun server; no browser/DOM imports resolve
@@ -198,18 +196,12 @@ See [`agent-context/implementation-ts/architecture-implementation.md`](../implem
 - [ ] At least one REST endpoint defined with typed request/response matching `/packages/core` types
 - [ ] Vitest configured and running for unit tests
 - [ ] Playwright configured and running for browser tests (headless)
-
-### Beta Gate
-
 - [ ] All API endpoints have corresponding TypeScript types in `/packages/core`
 - [ ] Integration tests validate API responses match shared types
 - [ ] No `any` types in API contracts; strict TypeScript enforced
 - [ ] Dependency tree audited; no unnecessary transitive dependencies
 - [ ] New package addition requires documented justification in `docs/dependencies.md`
 - [ ] Build times measured; no single build step exceeds 30 seconds
-
-### V1 Gate
-
 - [ ] Decoupling test passed: removing all Bun/React/Tailwind references from Principles and Patterns sections leaves them intact
 - [ ] All packages have explicit, documented responsibilities with no overlap
 - [ ] Zero unused dependencies in `package.json` / `bun.lockb`

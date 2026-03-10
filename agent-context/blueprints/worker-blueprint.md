@@ -151,7 +151,7 @@ CREATE POLICY agent_type_isolation ON task_queue
 
 ## Plausible Architectures
 
-### Architecture A: Single Agent Type, Single Replica (early stage)
+### Architecture A: Single Agent Type, Single Replica
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -182,7 +182,7 @@ CREATE POLICY agent_type_isolation ON task_queue
 
 **When appropriate:** Single agent type, early-stage project, low task volume. One replica is sufficient. The task claim is atomic so no queue starvation occurs with a single consumer.
 
-**Trade-offs vs. other architectures:** No redundancy — if the worker container dies, tasks queue up until it restarts. No horizontal scaling. Acceptable at early stage where task volume is low and the task queue provides natural buffering.
+**Trade-offs vs. other architectures:** No redundancy — if the worker container dies, tasks queue up until it restarts. No horizontal scaling. Acceptable for low task volume where the task queue provides natural buffering.
 
 ---
 
@@ -322,8 +322,6 @@ async function submitResult(apiBase: string, task: AgentTask, result: TaskResult
 
 ## Implementation Checklist
 
-### Alpha Gate
-
 - [ ] Agent container image builds with no shell binary (`/bin/sh` absent, verified via `docker run ... which sh` returning non-zero)
 - [ ] Agent DB role created with SELECT-only grants on task queue view; INSERT/UPDATE/DELETE produce permission errors (tested)
 - [ ] Task claim endpoint performs atomic update; concurrent claim of the same task by two agents results in exactly one success (load-tested with two replicas)
@@ -333,18 +331,12 @@ async function submitResult(apiBase: string, task: AgentTask, result: TaskResult
 - [ ] Vendor CLI binary invoked without shell; `Bun.spawn` call uses array form, not string-with-shell
 - [ ] Structured execution log entries written to audit table via API on every vendor invocation
 - [ ] Agent service token distinct from user tokens and from frontend tokens; each has non-overlapping scope claims
-
-### Beta Gate
-
 - [ ] Per-agent-type database roles verified to be isolated: agent_coding cannot SELECT from task_queue_view_analysis (tested)
 - [ ] Delegated token TTL enforced: token presented after expiry returns 401 regardless of use count
 - [ ] Task retry semantics tested: agent crashes after claim, task re-enters queue after timeout, new claim succeeds
 - [ ] Vendor API key rotation tested: new key injected via K8s Secret update, agent picks up new key on restart without image rebuild
 - [ ] Audit log entries verified to contain input and output hashes, not plaintext content
 - [ ] Agent container image rebuilt and redeployed via CI on changes to `containers/agent/**`; no manual steps required
-
-### V1 Gate
-
 - [ ] Agent type isolation penetration tested: agent_coding credential used to attempt direct DB write — confirms permission denied at DB layer
 - [ ] Delegated token replay attack tested: token intercepted and replayed — confirms 403 on second use
 - [ ] Agent horizontal scaling tested: N replicas claiming from the same queue with zero duplicate task execution under sustained load

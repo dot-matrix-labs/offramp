@@ -58,9 +58,9 @@ An agent should never need to decide "what should I do now?" by analyzing the en
 
 The agent does not guess what the product should do. It generates structured interview questions for the Product Owner, collects answers, and writes a canonical Product Requirements Document. The PRD is owned by the human; the implementation plan is derived from it by the agent. This separation ensures the human controls *what* and the agent controls *how*.
 
-### Maturity gates enforce sequencing
+### Infrastructure enforces sequencing
 
-Development proceeds through defined stages — scaffold, prototype, demoware, alpha, beta, V1 — with explicit criteria for advancing. An agent cannot skip to beta-level features while alpha-level infrastructure is incomplete. The gates are not bureaucracy; they prevent the agent from building a beautiful facade on a foundation that does not exist.
+An agent cannot begin feature work while foundational infrastructure is incomplete. Repository, CI, test stubs, and deployment must be operational before the first feature commit. A checklist of concrete, verifiable conditions governs this — the conditions are not bureaucracy; they prevent the agent from building a beautiful facade on a foundation that does not exist.
 
 ---
 
@@ -96,22 +96,13 @@ The three documents form a hierarchy: the PRD constrains the plan, and the plan 
 
 **Trade-offs:** The interview process takes time upfront. Product Owners may resist the formality. But the alternative — building from informal requirements and iterating on misunderstandings — costs far more in rework.
 
-### Pattern 4: Maturity-Staged Development
+### Pattern 4: Infrastructure Before Features
 
 **Problem:** Agents optimize for visible output. Given a feature list, an agent will build the most impressive-looking features first, leaving infrastructure, testing, and error handling for "later." Later arrives and the codebase is a demo with no foundation.
 
-**Solution:** Development proceeds through defined stages, each with prerequisites that must be met before advancing:
+**Solution:** Before implementing any feature, the repository, CI pipeline, test stubs, and deployment infrastructure must be operational. The rule is simple: if the scaffold is not complete, no feature work begins. The scaffold is not a phase — it is a prerequisite that must be satisfied immediately and maintained throughout development.
 
-- **Scaffold:** Repository, CI, test stubs — no features yet.
-- **Prototype:** Mock data, minimal UI, basic flows — no persistence.
-- **Demoware:** Partial integrations, realistic UI, stable demo workflows.
-- **Alpha:** Full persistence, authentication, core business logic.
-- **Beta:** External integrations, performance, reliability, metrics.
-- **V1:** Production stability, observability, backups.
-
-Each stage's gate is a checklist of concrete, verifiable conditions.
-
-**Trade-offs:** Rigid staging can slow down a team that knows exactly what it is building and wants to jump to alpha. The stages are guidelines for the default case — a human can override the sequence when appropriate.
+**Trade-offs:** This discipline requires resisting the pull toward visible progress. An agent that has not shipped a feature may appear unproductive. The alternative — building features on a broken foundation — produces work that cannot be tested, deployed, or extended.
 
 ---
 
@@ -206,37 +197,25 @@ Each stage's gate is a checklist of concrete, verifiable conditions.
 
 > The following is the Calypso TypeScript reference implementation. The principles and patterns above apply equally to other stacks; this section illustrates one concrete realization in the Calypso monorepo.
 
-See [`agent-context/implementation-ts/process-implementation.md`](../implementation-ts/process-implementation.md) for the full stack specification: planning document locations, implementation plan format, next-prompt format, pre-commit hook enforcement, scaffold checklist, and maturity stage table.
+See [`agent-context/implementation-ts/process-implementation.md`](../implementation-ts/process-implementation.md) for the full stack specification: planning document locations, implementation plan format, next-prompt format, pre-commit hook enforcement, and scaffold checklist.
 
 ---
 
 ## Implementation Checklist
 
-### Alpha Gate
-
 - [ ] `docs/prd.md` exists and contains testable acceptance criteria from a structured interview
 - [ ] `docs/plans/implementation-plan.md` exists and has been updated within the last commit
 - [ ] `docs/plans/next-prompt.md` exists and contains a valid, self-contained next action
 - [ ] Pre-commit hook rejects commits that do not include plan and next-prompt updates
-- [ ] All scaffold tasks completed: repo, CI, test stubs verified
-- [ ] Implementation plan tasks are grouped by maturity stage
+- [ ] All scaffold tasks completed: repo, CI, test stubs verified before any feature work
 - [ ] At least one full loop demonstrated: commit → plan update → next-prompt → next commit resumes from prompt
 - [ ] Human has reviewed and approved the PRD
 - [ ] Agent has not built any features ahead of scaffold completion
-
-### Beta Gate
-
 - [ ] Implementation plan accurately reflects all completed and remaining work (audited by human)
 - [ ] Next-prompt chain has been unbroken for at least 10 consecutive commits
 - [ ] Human override of next-prompt tested and agent respected the override
 - [ ] Multiple sessions demonstrated: agent resumes from next-prompt after session boundary
 - [ ] Plan includes discovered tasks (tasks added during implementation, not just initial planning)
-- [ ] Maturity gate criteria documented for each stage transition
-
-### V1 Gate
-
-- [ ] Full lifecycle demonstrated: scaffold through V1 stage with plan tracking throughout
-- [ ] Implementation plan archived or versioned at each stage transition
 - [ ] Process documentation in `docs/` reflects the actual process used (not aspirational)
 - [ ] Recovery procedure tested: agent resumes correctly after a crashed session with uncommitted work
 - [ ] Human can onboard a new agent to the project using only the three planning documents

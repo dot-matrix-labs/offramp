@@ -179,7 +179,7 @@ Every read of sensitive data is logged before the read is executed — not after
 
 ## Plausible Architectures
 
-### Architecture A: Three-Database Single-Instance (scaffold through beta)
+### Architecture A: Three-Database Single-Instance
 
 The baseline architecture from the first commit. A single PostgreSQL instance hosts three databases: `calypso_app` (transactional), `calypso_analytics` (analytics events), `calypso_audit` (audit log). The application server holds three separate connection pools with three separate database roles — the transactional role cannot write to the analytics or audit databases. The KMS runs as a separate process (local Vault in development via Docker Compose, cloud KMS in production). Analytics events flow from the application through an in-process event pipeline that pseudonymizes before writing to `calypso_analytics`.
 
@@ -293,8 +293,6 @@ See [`agent-context/implementation-ts/data-implementation.md`](../implementation
 
 ## Implementation Checklist
 
-### Alpha Gate
-
 - [ ] Three PostgreSQL databases provisioned: `calypso_app`, `calypso_analytics`, `calypso_audit`
 - [ ] Three database roles created with correct privilege scope: `app_rw`, `analytics_w`, `audit_w`
 - [ ] Core property graph tables initialized: `entities`, `relations`, `entity_types`
@@ -309,9 +307,6 @@ See [`agent-context/implementation-ts/data-implementation.md`](../implementation
 - [ ] No plaintext PII present in application logs (verified by adversarial test suite)
 - [ ] Single core migration applied to establish graph tables
 - [ ] Point-in-time recovery configured and tested
-
-### Beta Gate
-
 - [ ] Differential privacy mechanism active on analytics exports; privacy budget (epsilon) configured per query class; budget exhaustion rejects queries, does not silently reduce noise
 - [ ] Key rotation procedure tested end-to-end: rotate a table key, verify old rows remain readable via `keyVersion` lookup, verify new writes use the new key
 - [ ] Per-tenant key isolation implemented (if multi-tenant); one tenant's key compromise verified not to expose another's data
@@ -320,9 +315,6 @@ See [`agent-context/implementation-ts/data-implementation.md`](../implementation
 - [ ] Schema migration rollback tested: apply migration, roll back, verify no data loss or corruption
 - [ ] Session pseudonym rotation verified: pseudonyms change per session (or per configured interval)
 - [ ] Audit log tamper resistance verified: `audit_w` role cannot modify existing entries; confirmed by attempting `UPDATE` and `DELETE` with the audit role
-
-### V1 Gate
-
 - [ ] KMS backed by hardware security module (HSM); no software-only key storage in production
 - [ ] Automated key rotation operational on schedule; zero-downtime rekeying verified under load
 - [ ] Immutable audit log replicated to cold storage; retention policy enforced
@@ -365,7 +357,7 @@ The data layer and the auth layer share one threat: a rogue agent accessing cust
 
 ## Incident Response: Data Compromise
 
-The V1 Gate requires a runbook. At minimum it must cover:
+A runbook is required. At minimum it must cover:
 
 - **Field-level key compromise:** identify which table's key was compromised; rotate that key immediately (not the full database key); re-encrypt affected rows using the new key in a background job; audit all reads of that table for the preceding key lifetime to assess the exfiltration window; other tables' keys are unaffected.
 - **Database backup exfiltration:** determine whether the backup was encrypted at the field level (it must be); if field encryption was active, the attacker holds ciphertext and needs the KMS keys to decrypt — immediately audit KMS access logs for unauthorized key usage; if field encryption was not active for any reason, treat the exfiltrated data as plaintext and notify affected users.

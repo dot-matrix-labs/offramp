@@ -188,8 +188,6 @@ See [`agent-context/implementation-ts/testing-implementation.md`](../implementat
 
 ## Implementation Checklist
 
-### Alpha Gate
-
 - [ ] Vitest configured and running for unit tests; at least one passing test
 - [ ] Playwright installed with OS dependencies; headless Chromium launches
 - [ ] Golden fixture recorder built; at least one external API fixture recorded from live traffic
@@ -200,18 +198,12 @@ See [`agent-context/implementation-ts/testing-implementation.md`](../implementat
 - [ ] Each CI workflow includes lint/format check before test execution
 - [ ] Merge gate configured: all workflows must pass before merge
 - [ ] Test stubs exist for all planned feature areas (failing is expected; missing is not)
-
-### Beta Gate
-
 - [ ] No mocks in any test file; grep for `mock`, `jest.fn`, `vi.fn` returns zero results in test code
 - [ ] Fixture refresh pipeline runs on schedule; schema drift alerts configured
 - [ ] All four test suites run in under five minutes total in CI
 - [ ] Zero flaky tests; any intermittent failure is treated as a bug and fixed immediately
 - [ ] Test coverage measured and reported (not gated, but visible)
 - [ ] Component tests cover all critical UI components with at least one interaction test each
-
-### V1 Gate
-
 - [ ] Full-page E2E tests cover all user-facing workflows documented in the PRD
 - [ ] Golden fixtures refreshed within the last 30 days; no stale fixtures
 - [ ] CI passes on every commit to main for the last 50 commits (no broken-window tolerance)

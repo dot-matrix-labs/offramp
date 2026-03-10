@@ -206,8 +206,6 @@ See [`agent-context/implementation-ts/deployment-implementation.md`](../implemen
 
 ## Implementation Checklist
 
-### Alpha Gate
-
 - [ ] `Dockerfile` or container manifest created and application starts via container runtime
 - [ ] Container orchestrator (e.g., K8s or local Docker) restarts automatically after crash
 - [ ] Secrets injected into container securely (not baked into image)
@@ -217,9 +215,6 @@ See [`agent-context/implementation-ts/deployment-implementation.md`](../implemen
 - [ ] Trace ID generated and propagated browser → server → response header
 - [ ] Browser error forwarding implemented; errors appear in server logs
 - [ ] Health endpoint (`/health`) returns 200 when the application is running
-
-### Beta Gate
-
 - [ ] `uniques.log` implemented; deduplicated error categories with counts
 - [ ] Log rotation configured; 14-day retention verified
 - [ ] Deploy script exists and is idempotent (running twice has no side effects)
@@ -229,9 +224,6 @@ See [`agent-context/implementation-ts/deployment-implementation.md`](../implemen
 - [ ] Deployment verified to use immutable image digest (not mutable tag) in `kubectl get deployment -o yaml`
 - [ ] Disk usage monitoring; alert when log volume exceeds threshold
 - [ ] All environment variables documented in `docs/` with descriptions (not values)
-
-### V1 Gate
-
 - [ ] Zero manual SSH steps required for a standard deploy
 - [ ] Health check includes dependency status (database, external APIs reachable)
 - [ ] Trace ID search: given a trace ID, all related log entries can be retrieved in one query

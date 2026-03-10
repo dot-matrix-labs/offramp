@@ -131,7 +131,7 @@ The ephemeral test container uses the same image as the cluster database contain
 
 ## Plausible Architectures
 
-### Architecture A: Single-Node Kubernetes Cluster (solo project, early stage)
+### Architecture A: Single-Node Kubernetes Cluster (solo project)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -173,13 +173,13 @@ The ephemeral test container uses the same image as the cluster database contain
   └────────────────────┘
 ```
 
-**When appropriate:** Single developer or single agent working on a new project. All three app containers on one node is sufficient for early stages, demo, and demoware. Cost-minimal — one instance. The topology is identical to multi-node production; only the physical distribution differs.
+**When appropriate:** Single developer or single agent working on a project. Cost-minimal — one instance. The topology is identical to multi-node production; only the physical distribution differs.
 
-**Trade-offs vs. other architectures:** No redundancy — if the node fails, everything fails. Acceptable at early stage because all durable state is in version control and the database volume backup. Not appropriate once the application serves real end users.
+**Trade-offs vs. other architectures:** No redundancy — if the node fails, everything fails. Acceptable for a single-node deployment because all durable state is in version control and the database volume backup. Not appropriate once the application serves real end users.
 
 ---
 
-### Architecture B: Multi-Node Cluster (team, Beta / V1 stage)
+### Architecture B: Multi-Node Cluster (team)
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
@@ -318,8 +318,6 @@ interface ProvisionConfig {
 
 ## Implementation Checklist
 
-### Alpha Gate
-
 - [ ] Cloud host provisioned and accessible via SSH; agent running directly on the host
 - [ ] `scripts/provision-cluster.sh` executed; cluster endpoint reachable via `kubectl`
 - [ ] All three container types running and healthy per `kubectl get pods`
@@ -329,9 +327,6 @@ interface ProvisionConfig {
 - [ ] Database container running and accepting connections from frontend and worker containers only; not exposed externally
 - [ ] `tmux` session active on host; SSH disconnect and reattach tested
 - [ ] Agent has read all files in `agent-context/` before writing any code
-
-### Beta Gate
-
 - [ ] Release pipeline configured: push to main triggers CI, CI builds release overlay image, CI patches deployment with immutable digest, rollout completes within timeout
 - [ ] Rollback tested: deploy a bad image (readiness probe fails), confirm CI runs `kubectl rollout undo`, old pods resume serving
 - [ ] Database volume backup scheduled and tested; restore procedure documented and executed at least once
@@ -343,9 +338,6 @@ interface ProvisionConfig {
 - [ ] Test suite connection string verified to point at the ephemeral container port, not any cluster service
 - [ ] Provisioning script idempotent: running it twice produces a clean cluster without manual cleanup
 - [ ] Cluster reprovisioned from scratch; new cluster reaches ready state without manual steps
-
-### V1 Gate
-
 - [ ] Multi-node cluster deployed with frontend replicated across at least two nodes
 - [ ] Database replica configured; failover tested
 - [ ] Cluster monitoring active: container restarts, disk pressure, memory pressure all generate alerts

@@ -57,7 +57,7 @@ Session tokens are stored in HTTP-only, secure, same-site-strict cookies and are
 
 Every agent credential carries explicit scope claims and expires within 24 hours. An agent that needs access to analytics data receives a token that grants read access to the analytics schema and nothing else. An agent that needs to write transformation code receives a token scoped to that operation. Broad, long-lived agent tokens are not issued, regardless of convenience. The blast radius of a compromised agent credential is bounded by both scope and time: a leaked token grants narrow access for hours, not broad access forever.
 
-Worker daemon service accounts are a distinct credential category from per-task agent tokens. A worker container's service identity token — used to authenticate API calls for claiming tasks and submitting results — is a long-lived credential stored as a Kubernetes Secret. It must be scoped to the minimum API surface the worker requires (task claim and result submission only), must be rotatable without container restart (the application reads it from the mounted secret path, which Kubernetes updates in-place), and must be rotated on a documented schedule (Beta gate: rotation tested; V1 gate: rotation automated). The short-lived constraint in this principle applies to per-task delegated user tokens, not to worker service identity tokens.
+Worker daemon service accounts are a distinct credential category from per-task agent tokens. A worker container's service identity token — used to authenticate API calls for claiming tasks and submitting results — is a long-lived credential stored as a Kubernetes Secret. It must be scoped to the minimum API surface the worker requires (task claim and result submission only), must be rotatable without container restart (the application reads it from the mounted secret path, which Kubernetes updates in-place), and must be rotated on a documented schedule (rotation tested and automated). The short-lived constraint in this principle applies to per-task delegated user tokens, not to worker service identity tokens.
 
 ### No single actor authorizes privileged operations
 
@@ -272,8 +272,6 @@ See [`agent-context/implementation-ts/auth-implementation.md`](../implementation
 
 ## Implementation Checklist
 
-### Alpha Gate
-
 - [ ] Passkey registration flow implemented: users can enroll a platform authenticator or hardware key
 - [ ] Passkey assertion flow implemented: users can log in with an enrolled passkey
 - [ ] Token signing algorithm pinned at deployment configuration; tokens with unexpected algorithm rejected
@@ -286,9 +284,6 @@ See [`agent-context/implementation-ts/auth-implementation.md`](../implementation
 - [ ] Agent token TTL enforced at a maximum of 24 hours
 - [ ] Rate limiting active on authentication endpoints (registration, assertion, token refresh)
 - [ ] Authentication events (login, logout, failed attempt, registration) written to audit log
-
-### Beta Gate
-
 - [ ] Key recovery flow implemented and tested end-to-end: passphrase + second factor re-enrolls a new passkey
 - [ ] Recovery events trigger out-of-band notification to all enrolled devices
 - [ ] Token refresh rotation implemented: each refresh produces a new token and invalidates the old one
@@ -298,9 +293,6 @@ See [`agent-context/implementation-ts/auth-implementation.md`](../implementation
 - [ ] Agent re-registration flow tested: revoking and re-issuing agent credentials with new scopes
 - [ ] Authentication configuration (algorithm, TTL, scope definitions) managed via deployment config, not runtime API
 - [ ] Failed authentication attempts trigger progressive delays or temporary lockout
-
-### V1 Gate
-
 - [ ] Automated credential rotation operational for signing keys; no manual key rotation required
 - [ ] Session revocation tested: revoking a session immediately prevents further access (no grace period)
 - [ ] Agent re-authentication enforced daily in production; verified in monitoring
@@ -344,7 +336,7 @@ The [Data Blueprint](./data-blueprint.md) provides the second layer: agents are 
 
 ## Incident Response: Authentication Compromise
 
-The V1 Gate requires a written and tested runbook. At minimum it must cover:
+A written and tested runbook is required. At minimum it must cover:
 
 - **Signing key compromise:** immediately rotate the signing key (requires M-of-N); invalidate all outstanding tokens by advancing a key version counter that all verification paths check; force re-authentication for all users and agents; preserve the old key read-only for forensics until all pre-rotation tokens have expired.
 - **Agent credential compromise:** revoke the affected agent's token via the revocation store; remove the agent from the registry; audit all requests made by the agent's `sub` claim for the preceding 24 hours; re-register the agent with new credentials and, if the scope was broad, a narrowed scope.
