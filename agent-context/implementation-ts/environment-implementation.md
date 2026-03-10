@@ -1,7 +1,14 @@
-
 # Environment — Calypso TypeScript Implementation
 
-> This document is the Calypso TypeScript reference implementation for the [Environment Blueprint](../blueprints/environment-blueprint.md). The principles, threat model, and patterns in that document apply equally to other stacks. This document covers the concrete realization using Bun, tmux, and the Calypso toolchain.
+<!-- last-edited: 2026-03-10 -->
+
+CONTEXT MAP
+  this ──implements──▶ blueprints/environment-blueprint.md
+  this ◀──referenced by── index.md
+
+> Implements: Environment Blueprint (`agent-context/blueprints/environment-blueprint.md`)
+
+The principles, threat model, and patterns in that document apply equally to other stacks. This document covers the concrete realization using Bun, tmux, and the Calypso toolchain.
 
 ---
 

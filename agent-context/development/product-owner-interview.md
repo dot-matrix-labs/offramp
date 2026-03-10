@@ -1,20 +1,76 @@
-# For Agents: Product Owner Requirements Questionnaire
+# Product Owner Interview Template
 
-**Role:** You are an expert Software Architect and technical Product Manager operating within the strict constraints of the Calypso Blueprint (single-stack TypeScript/Bun/React/Tailwind, Bare-Metal Linux deployment, "Buy vs DIY" dependency policy, zero-mocking test philosophy). 
+<!-- last-edited: 2026-03-10 -->
 
-**Context:** The human Product Owner has provided a high-level, scaffold explanation of the business and the web application they want to build. Your goal is to extract the exact specifications needed to autonomously build a canonical Product Requirements Document (`docs/prd.md`), design domain data models, and implement the application from prototype to V1. The Product Owner/Manager will take ownership of maintaining and updating this `docs/prd.md` file moving forward.
+CONTEXT MAP
+  this ──extends──────────▶ agent-communication.md §Workflow: Product Requirements Collection (steps 1–7)
+  this ◀──referenced by──── init/scaffold-task.md §Step 10
 
-**Objective:** This questionnaire is a chore for the Product Owner. You must make their life as easy as possible. You must take the high-level explanation they provided, generate the required questions, and **pre-fill your best inferred answers for them to simply review and confirm.**
+> **Scope:** This document is the interview template supplement for the Product Requirements Collection workflow defined in `agent-communication.md §Workflow: Product Requirements Collection`. Follow the steps defined there; use this document for the questionnaire content at step 2. Do NOT duplicate those workflow steps here.
 
-**Instructions:**
-1. Generate a structured, markdown-formatted questionnaire covering the categories below. 
-2. **Pre-fill** the answer to every question based heavily on what you can infer from the Product Owner's initial prompt.
-3. If you cannot confidently infer an answer, **you must provide a set of multiple-choice options** (including an "Other (Please specify)" option). Do not leave open-ended blank text boxes unprompted.
-4. Focus only on product features, user stories, user roles, and workflows. Do not ask technical architecture questions.
+---
 
-## Questionnaire Categories to Include
+## Preconditions
 
-Generate and pre-fill high-impact questions under each of the following critical categories:
+```
+PRECONDITIONS:
+- [ ] The human Product Owner is available and has provided a high-level description of the application
+- [ ] No `docs/prd.md` exists, or the human has explicitly requested a requirements revision
+- [ ] Agent has read `agent-communication.md §Workflow: Product Requirements Collection` before this document
+
+If no high-level description has been provided: ask the Product Owner for a 2–3 sentence description of the application before generating questions.
+```
+
+---
+
+## Steps
+
+The full Product Requirements Collection workflow is defined in `agent-communication.md §Workflow: Product Requirements Collection`. The steps specific to conducting the interview (step 2 of that workflow) are:
+
+1. Read the Product Owner's high-level description.
+2. Generate structured questions using the **Questionnaire Categories** below.
+3. **Pre-fill your best inferred answers** for every question based on the description. Do not leave blank text boxes.
+4. If you cannot confidently infer an answer, provide multiple-choice options (including "Other — please specify").
+5. Present the pre-filled questionnaire to the Product Owner in a single message. Do not ask one question at a time.
+6. Wait for the Product Owner to confirm, correct, or expand on the pre-filled answers.
+7. Synthesize confirmed answers into `docs/prd.md` per `agent-communication.md §Workflow: Product Requirements Collection` step 4.
+
+---
+
+## Output Specification
+
+```
+OUTPUTS:
+- Pre-filled questionnaire presented to the Product Owner in a single message
+- `docs/prd.md` written after Product Owner confirms answers (see agent-communication.md for format)
+- External API test credentials collected and stored in `.env.test` (not committed to version control)
+```
+
+---
+
+## Failure Handling
+
+```
+IF the Product Owner's description is too vague to infer answers:
+  1. Ask for clarification on the core user goal only — one question.
+  2. Do NOT proceed to the full questionnaire until the core goal is clear.
+
+IF the Product Owner rejects the pre-filled answers extensively:
+  1. Acknowledge the corrections, update the pre-filled answers in place.
+  2. Re-present the revised questionnaire for final confirmation.
+  3. Do NOT write docs/prd.md until the Product Owner has confirmed.
+
+IF external API credentials are not provided at interview time:
+  1. Note the missing credentials in docs/prd.md under "Constraints".
+  2. Write a task in docs/plans/implementation-plan.md: "Collect test credentials for [service]".
+  3. Continue — do not block PRD creation on missing credentials.
+```
+
+---
+
+## Questionnaire Categories
+
+Generate and pre-fill high-impact questions under each of the following critical categories. Present as a single markdown-formatted questionnaire addressed to the Product Owner. Pre-fill every answer based on the Product Owner's description; use multiple-choice options where you cannot confidently infer. Focus on product features, user stories, user roles, and workflows only — do not ask technical architecture questions.
 
 ### 1. Product Vision & Value Proposition
 * What is the core problem this application solves for the user?

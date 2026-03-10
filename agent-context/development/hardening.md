@@ -1,5 +1,67 @@
 # Hardening Mode
 
+<!-- last-edited: 2026-03-10 -->
+
+CONTEXT MAP
+  this ◀──referenced by── agent-communication.md §Workflow: Hardening
+  this ──requires────────▶ implementation-ts/[domain]-implementation.md (correctness and antipattern checklists)
+
+---
+
+## Preconditions
+
+```
+PRECONDITIONS:
+- [ ] All tests pass on the current branch (`bun test` exits 0)
+- [ ] No uncommitted feature work is in the working tree
+- [ ] `docs/plans/next-prompt.md` contains no executable feature task (or an explicit human instruction to enter hardening)
+- [ ] `agent-context/development/hardening.md` has been read in full (this file)
+
+If any precondition is not met: Do NOT enter hardening. If tests are failing, fix them first (follow agent-communication.md §Workflow: New Feature Development). If feature tasks are pending, complete them first.
+```
+
+---
+
+## Output Specification
+
+```
+OUTPUTS:
+- One commit on a branch named `harden/<discipline>-<YYYYMMDD>`, prefixed `harden:`
+- One pull request opened against main, named `harden/auto-<YYYYMMDD>` or similar
+- PR changes MUST NOT exceed 5 files
+- All tests pass after the hardening commit
+- `docs/plans/next-prompt.md` updated with next state (or confirmation of no further work in this discipline)
+- The hardening target is documented in the commit's GIT_BRAIN_METADATA.retroactive_prompt
+```
+
+---
+
+## Failure Handling
+
+```
+IF step "Run bun test --coverage" fails:
+  1. The test failure is itself the highest-priority finding.
+  2. Exit hardening. Fix the failing test under the New Feature Development workflow.
+  3. Return to hardening only after all tests pass.
+
+IF step "Select ONE discipline" produces no findings:
+  1. Move to the next lower priority discipline.
+  2. IF all five disciplines are clean: write that status to docs/plans/next-prompt.md and stop.
+  3. Do NOT invent work to fill the session.
+
+IF the hardening fix introduces a new test failure:
+  1. Revert the change immediately (git checkout -- <files>).
+  2. Re-diagnose. The fix was incomplete or incorrect.
+  3. Do NOT push a hardening commit that breaks existing tests.
+
+IF a hardening finding requires a new feature, new endpoint, or new configuration option:
+  1. STOP. This is not hardening work.
+  2. Add a task to docs/plans/implementation-plan.md under the appropriate phase.
+  3. Write that task to docs/plans/next-prompt.md and exit the hardening session.
+```
+
+---
+
 Second operational mode. No finish line. Continuous background improvement while the project is idle on feature revision.
 
 Hardening never invents product direction. It only improves what exists. If you are unsure whether a change belongs in hardening or features, it belongs in features — put it in the backlog and stop.

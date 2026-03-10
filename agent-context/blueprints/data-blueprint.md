@@ -1,5 +1,12 @@
 # Data Blueprint
 
+<!-- last-edited: 2026-03-10 -->
+
+CONTEXT MAP
+  this ◀──implemented by── implementation-ts/data-implementation.md
+  this ──requires────────▶ blueprints/auth-blueprint.md (complementary — access control layer)
+  this ◀──referenced by──── index.md
+
 > [!IMPORTANT]
 > This blueprint defines Calypso's data management posture: how data is persisted, encrypted, partitioned, and analyzed while preserving customer privacy. It is the companion to the [Auth Blueprint](./auth-blueprint.md) which covers identity and access control.
 
@@ -273,6 +280,14 @@ Per-tenant key hierarchies isolate encryption so that compromise of one tenant's
 **Assessment:** AGE is architecturally sound and openCypher is categorically better than recursive CTEs for graph traversal. The blocker is managed service availability — AGE is not currently available on AWS RDS or GCP Cloud SQL.
 
 **Recommendation:** Track AGE for future adoption. Build on the DIY Property Graph model now. The transition path later is straightforward: dump entity boundaries and relations, bulk load into AGE graph structures, and rewrite recursive CTEs to openCypher.
+
+---
+
+## Reference Implementation — Calypso TypeScript
+
+> The following is the Calypso TypeScript reference implementation. The principles and patterns above apply equally to other stacks; this section illustrates one concrete realization using TypeScript, Bun, PostgreSQL, and Web Crypto.
+
+See [`agent-context/implementation-ts/data-implementation.md`](../implementation-ts/data-implementation.md) for the full stack specification: three-database setup, property graph schema, AES-256-GCM ciphertext envelope format, key rotation procedure, analytics pseudonymization, audit log-first pattern, and dependency justification.
 
 ---
 

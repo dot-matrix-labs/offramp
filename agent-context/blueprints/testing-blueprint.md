@@ -1,5 +1,11 @@
-
 # Testing Blueprint
+
+<!-- last-edited: 2026-03-10 -->
+
+CONTEXT MAP
+  this ◀──implemented by── implementation-ts/testing-implementation.md
+  this ──requires────────▶ blueprints/environment-blueprint.md (ephemeral test containers)
+  this ◀──referenced by──── index.md
 
 > [!IMPORTANT]
 > This blueprint defines the testing strategy for AI-agent-built software: what to test, how to test it, and how continuous integration enforces correctness at every commit.
@@ -172,9 +178,13 @@ CI mirrors this exactly on runners, spinning up a local K8s cluster (e.g., kind 
 
 ---
 
----
+## Reference Implementation — Calypso TypeScript
 
-> For the Calypso TypeScript implementation of these patterns, see [testing-implementation.md](../implementation-ts/testing-implementation.md).
+> The following is the Calypso TypeScript reference implementation. The principles and patterns above apply equally to other stacks; this section illustrates one concrete realization using Vitest, Playwright, and GitHub Actions.
+
+See [`agent-context/implementation-ts/testing-implementation.md`](../implementation-ts/testing-implementation.md) for the full stack specification: test categories, CI workflow structure, golden fixture format, browser test configuration, and dependency justification.
+
+---
 
 ## Implementation Checklist
 

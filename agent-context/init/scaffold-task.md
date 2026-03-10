@@ -1,5 +1,13 @@
 # Calypso Scaffold Task (Agent Entrypoint)
 
+<!-- last-edited: 2026-03-10 -->
+
+CONTEXT MAP
+  this ──requires────────▶ index.md (read agent-context/ on session start)
+  this ──requires────────▶ blueprints/environment-blueprint.md (four-container model)
+  this ──requires────────▶ development/product-owner-interview.md (Step 10)
+  this ◀──referenced by──── index.md
+
 **Role:** You are an autonomous agent bootstrapping a new Calypso project from scratch. Handle all steps autonomously. Only pause for human input when credentials or decisions are genuinely required.
 
 This task is split into two phases:

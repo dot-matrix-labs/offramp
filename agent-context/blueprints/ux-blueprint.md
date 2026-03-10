@@ -1,5 +1,12 @@
 # UX Blueprint
 
+<!-- last-edited: 2026-03-10 -->
+
+CONTEXT MAP
+  this ◀──implemented by── implementation-ts/ux-implementation.md
+  this ──requires────────▶ blueprints/auth-blueprint.md (agent scopes govern agent UX)
+  this ◀──referenced by──── index.md
+
 > [!IMPORTANT]
 > This blueprint defines the UX posture for all Calypso applications. UX is not a visual design concern alone — it is the contract between a service and every type of user that interacts with it, including administrators and AI agents.
 
@@ -199,9 +206,13 @@ Human Admin
 
 ---
 
----
+## Reference Implementation — Calypso TypeScript
 
-> For the Calypso TypeScript implementation of these patterns, see [ux-implementation.md](../implementation-ts/ux-implementation.md).
+> The following is the Calypso TypeScript reference implementation. The principles and patterns above apply equally to other stacks; this section illustrates one concrete realization using TypeScript, Bun, and React.
+
+See [`agent-context/implementation-ts/ux-implementation.md`](../implementation-ts/ux-implementation.md) for the full stack specification: package structure, core interfaces (`Capability`, `AgentPresence`, `AgentActionRecord`, `ServiceFlowState`), dependency justification, and Calypso-specific antipatterns.
+
+---
 
 ## Implementation Checklist
 

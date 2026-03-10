@@ -1,5 +1,11 @@
-
 # Deployment Blueprint
+
+<!-- last-edited: 2026-03-10 -->
+
+CONTEXT MAP
+  this ◀──implemented by── implementation-ts/deployment-implementation.md
+  this ──requires────────▶ blueprints/environment-blueprint.md (container topology)
+  this ◀──referenced by──── index.md
 
 > [!IMPORTANT]
 > This blueprint defines how AI-agent-built software is deployed, kept alive, observed, and recovered — from the first demo through production.
@@ -190,7 +196,13 @@ The agent reads the unique log first to understand the error landscape, then con
 
 ---
 
-> For the Calypso TypeScript implementation of these patterns, see [deployment-implementation.md](../implementation-ts/deployment-implementation.md).
+## Reference Implementation — Calypso TypeScript
+
+> The following is the Calypso TypeScript reference implementation. The principles and patterns above apply equally to other stacks; this section illustrates one concrete realization using TypeScript, Bun, and Kubernetes.
+
+See [`agent-context/implementation-ts/deployment-implementation.md`](../implementation-ts/deployment-implementation.md) for the full stack specification: Dockerfile multi-stage build, environment variable handling, logging setup, browser error forwarding, trace ID propagation, and build/deploy commands.
+
+---
 
 ## Implementation Checklist
 

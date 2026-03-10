@@ -1,7 +1,14 @@
-
 # Auth — Calypso TypeScript Implementation
 
-> This document is the Calypso TypeScript reference implementation for the [Auth Blueprint](../blueprints/auth-blueprint.md). The principles, threat model, and patterns in that document apply equally to other stacks. This document covers the concrete realization using TypeScript, Bun, PostgreSQL, and Web Crypto.
+<!-- last-edited: 2026-03-10 -->
+
+CONTEXT MAP
+  this ──implements──▶ blueprints/auth-blueprint.md
+  this ◀──referenced by── index.md
+
+> Implements: Authentication & Authorization Blueprint (`agent-context/blueprints/auth-blueprint.md`)
+
+The principles, threat model, and patterns in that document apply equally to other stacks. This document covers the concrete realization using TypeScript, Bun, PostgreSQL, and Web Crypto.
 
 ---
 

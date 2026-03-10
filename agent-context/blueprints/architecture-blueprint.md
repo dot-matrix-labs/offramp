@@ -1,5 +1,10 @@
-
 # Architecture Blueprint
+
+<!-- last-edited: 2026-03-10 -->
+
+CONTEXT MAP
+  this ◀──implemented by── implementation-ts/architecture-implementation.md
+  this ◀──referenced by──── index.md
 
 > [!IMPORTANT]
 > This blueprint defines the structural architecture for AI-agent-built web applications: how code is organized, how boundaries are enforced, and how dependencies are governed.
@@ -172,9 +177,13 @@ A monorepo with five top-level directories and obvious naming survives ten devel
 
 ---
 
----
+## Reference Implementation — Calypso TypeScript
 
-> For the Calypso TypeScript implementation of these patterns, see [architecture-implementation.md](../implementation-ts/architecture-implementation.md).
+> The following is the Calypso TypeScript reference implementation. The principles and patterns above apply equally to other stacks; this section illustrates one concrete realization using TypeScript, Bun, React, and PostgreSQL.
+
+See [`agent-context/implementation-ts/architecture-implementation.md`](../implementation-ts/architecture-implementation.md) for the full stack specification: repository structure, dependency policy table, build separation, and TypeScript-specific antipatterns.
+
+---
 
 ## Implementation Checklist
 

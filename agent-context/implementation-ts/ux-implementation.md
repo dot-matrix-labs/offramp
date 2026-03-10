@@ -1,7 +1,14 @@
-
 # UX — Calypso TypeScript Implementation
 
-> This document is the Calypso TypeScript reference implementation for the [UX Blueprint](../blueprints/ux-blueprint.md). The principles, threat model, and patterns in that document apply equally to other stacks. This document covers the concrete realization using TypeScript, Bun, React, and the Calypso monorepo layout.
+<!-- last-edited: 2026-03-10 -->
+
+CONTEXT MAP
+  this ──implements──▶ blueprints/ux-blueprint.md
+  this ◀──referenced by── index.md
+
+> Implements: UX Blueprint (`agent-context/blueprints/ux-blueprint.md`)
+
+The principles, threat model, and patterns in that document apply equally to other stacks. This document covers the concrete realization using TypeScript, Bun, React, and the Calypso monorepo layout.
 
 ---
 

@@ -1,5 +1,11 @@
 # New Module Development Workflow
 
+<!-- last-edited: 2026-03-10 -->
+
+CONTEXT MAP
+  this ◀──referenced by── agent-communication.md §Workflow: New Feature Development
+  this ──requires────────▶ blueprints/process-blueprint.md (maturity stages)
+
 ## Overview
 
 The **New Module Development** workflow is a structured process for building new features or modules from scratch. It follows a **Plan → Stub → Implement** cycle designed to:
@@ -17,7 +23,7 @@ Use this workflow when:
 - Implementing a complex architectural change
 - The task requires multiple sessions/agents to complete
 
-**Don't use for**: Small bug fixes, minor refactors, or simple one-file changes.
+**MUST NOT be used for**: Small bug fixes, minor refactors, or simple one-file changes.
 
 ## The Three Phases
 

@@ -1,4 +1,12 @@
-# Commit Messages
+# Git-Brain Commit Standard
+
+<!-- last-edited: 2026-03-10 -->
+
+CONTEXT MAP
+  this ──extends──────────▶ agent-communication.md §Workflow: Git Commit (adds Git-Brain metadata layer)
+  this ◀──referenced by──── index.md
+
+> **Scope:** This document defines the **Git-Brain metadata schema** and **git hook enforcement** for Calypso projects — the reasoning ledger layer on top of standard git commits. The basic git commit workflow (staging, message format, test gate) is defined in `agent-communication.md §Workflow: Git Commit`. This document does NOT duplicate that workflow; it extends it with structured commit metadata and hook automation specific to agent-driven development.
 
 In traditional software development, the "why" behind a code change is often lost. Git commit messages provide a summary of _what_ changed, but rarely capture the full reasoning, the alternative approaches considered, or the specific prompt that led to the solution.
 

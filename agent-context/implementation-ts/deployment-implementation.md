@@ -1,7 +1,14 @@
-
 # Deployment — Calypso TypeScript Implementation
 
-> This document is the Calypso TypeScript reference implementation for the [Deployment Blueprint](../blueprints/deployment-blueprint.md). The principles, threat model, and patterns in that document apply equally to other stacks. This document covers the concrete realization using Bun, systemd, and GitHub Actions.
+<!-- last-edited: 2026-03-10 -->
+
+CONTEXT MAP
+  this ──implements──▶ blueprints/deployment-blueprint.md
+  this ◀──referenced by── index.md
+
+> Implements: Deployment Blueprint (`agent-context/blueprints/deployment-blueprint.md`)
+
+The principles, threat model, and patterns in that document apply equally to other stacks. This document covers the concrete realization using Bun, Kubernetes, and GitHub Actions.
 
 ---
 

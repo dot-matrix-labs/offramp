@@ -1,7 +1,14 @@
-
 # Architecture — Calypso TypeScript Implementation
 
-> This document is the Calypso TypeScript reference implementation for the [Architecture Blueprint](../blueprints/architecture-blueprint.md). The principles, threat model, and patterns in that document apply equally to other stacks. This document covers the concrete realization using TypeScript, Bun, React, and Tailwind CSS.
+<!-- last-edited: 2026-03-10 -->
+
+CONTEXT MAP
+  this ──implements──▶ blueprints/architecture-blueprint.md
+  this ◀──referenced by── index.md
+
+> Implements: Architecture Blueprint (`agent-context/blueprints/architecture-blueprint.md`)
+
+The principles, threat model, and patterns in that document apply equally to other stacks. This document covers the concrete realization using TypeScript, Bun, React, and Tailwind CSS.
 
 ---
 

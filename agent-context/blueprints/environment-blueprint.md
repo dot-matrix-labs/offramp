@@ -1,5 +1,11 @@
-
 # Environment Blueprint
+
+<!-- last-edited: 2026-03-10 -->
+
+CONTEXT MAP
+  this ◀──implemented by── implementation-ts/environment-implementation.md
+  this ◀──requires────────── blueprints/deployment-blueprint.md (deploy pipeline)
+  this ◀──referenced by──── index.md
 
 > [!IMPORTANT]
 > This blueprint defines the environment model for AI-agent-driven software projects: what containers run, what they are allowed to do, how the cluster is provisioned, and why the development environment and the production environment are the same thing.

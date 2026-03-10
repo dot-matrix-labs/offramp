@@ -1,5 +1,12 @@
 # Authentication & Authorization Blueprint
 
+<!-- last-edited: 2026-03-10 -->
+
+CONTEXT MAP
+  this ◀──implemented by── implementation-ts/auth-implementation.md
+  this ──requires────────▶ blueprints/data-blueprint.md (complementary — data layer controls)
+  this ◀──referenced by──── index.md
+
 > [!IMPORTANT]
 > This blueprint defines Calypso's authentication and authorization posture: how users and agents prove identity, how sessions are managed, and how access is scoped and governed. Read this before the [Data Blueprint](./data-blueprint.md) which covers persistence, encryption, and privacy.
 
@@ -252,6 +259,14 @@ The Auth Gateway is the single entry point for all authentication. It inspects t
 **Trade-offs vs. other architectures:** Purpose-built for platforms where AI agents are first-class participants. The Auth Gateway adds a network hop and a component to maintain, but it cleanly separates the human and agent authentication concerns. The agent path can be scaled, rate-limited, and monitored independently. Risk: if the gateway is compromised, both paths are affected — the gateway must be hardened as a critical component.
 
 **Agent Registry access controls:** The Agent Registry holds the source of truth for which agents exist and what scopes they are authorized to hold. Write access to the registry is restricted to human operators authenticated through the human auth path — no agent or service account may create, modify, or delete registry entries. The registry's write endpoint requires a user token with an explicit `agent-registry:write` scope that is not included in any default operator role; it must be granted deliberately. All registry mutations are audit-logged with the operator identity, the previous state, and the new state. An agent whose registry entry is deleted or whose scopes are reduced must have its outstanding tokens immediately revoked — the Auth Gateway must check the registry on token issuance, not only at agent registration time.
+
+---
+
+## Reference Implementation — Calypso TypeScript
+
+> The following is the Calypso TypeScript reference implementation. The principles and patterns above apply equally to other stacks; this section illustrates one concrete realization using TypeScript, Bun, PostgreSQL, and Web Crypto.
+
+See [`agent-context/implementation-ts/auth-implementation.md`](../implementation-ts/auth-implementation.md) for the full stack specification: WebAuthn passkey flow, ES256 token signing, HTTP-only cookie storage, revocation table, agent scope enforcement pattern, and dependency justification.
 
 ---
 

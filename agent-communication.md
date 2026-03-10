@@ -703,6 +703,8 @@ The sections below define the step structure for each canonical workflow. These 
 
 #### Workflow: Git Commit
 
+> **Extended by:** `agent-context/development/git-standards.md` — defines the Git-Brain metadata schema (`GIT_BRAIN_METADATA`) and git hook scripts that enforce it. The steps below cover the commit workflow; that document covers the reasoning-ledger metadata layer. Both apply on every agent commit.
+
 **Goal:** Produce a correctly structured, signed, passing commit.
 
 **Preconditions:**

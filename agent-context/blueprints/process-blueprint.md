@@ -1,5 +1,11 @@
-
 # Process Blueprint
+
+<!-- last-edited: 2026-03-10 -->
+
+CONTEXT MAP
+  this ◀──implemented by── implementation-ts/process-implementation.md
+  this ◀──referenced by──── development/development-standards.md
+  this ◀──referenced by──── index.md
 
 > [!IMPORTANT]
 > This blueprint defines the development process for AI-agent-built software: how work is planned, how progress is tracked, and how an agent advances through a product lifecycle without continuous human prompting.
@@ -196,9 +202,13 @@ Each stage's gate is a checklist of concrete, verifiable conditions.
 
 ---
 
----
+## Reference Implementation — Calypso TypeScript
 
-> For the Calypso TypeScript implementation of these patterns, see [process-implementation.md](../implementation-ts/process-implementation.md).
+> The following is the Calypso TypeScript reference implementation. The principles and patterns above apply equally to other stacks; this section illustrates one concrete realization in the Calypso monorepo.
+
+See [`agent-context/implementation-ts/process-implementation.md`](../implementation-ts/process-implementation.md) for the full stack specification: planning document locations, implementation plan format, next-prompt format, pre-commit hook enforcement, scaffold checklist, and maturity stage table.
+
+---
 
 ## Implementation Checklist
 

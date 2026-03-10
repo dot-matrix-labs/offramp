@@ -1,6 +1,14 @@
 # Data — Calypso TypeScript Implementation
 
-> This document is the Calypso TypeScript reference implementation for the [Data Blueprint](../blueprints/data-blueprint.md). The principles, threat model, and patterns in that document apply equally to other stacks. This document covers the concrete realization using TypeScript, Bun, PostgreSQL, and Web Crypto.
+<!-- last-edited: 2026-03-10 -->
+
+CONTEXT MAP
+  this ──implements──▶ blueprints/data-blueprint.md
+  this ◀──referenced by── index.md
+
+> Implements: Data Blueprint (`agent-context/blueprints/data-blueprint.md`)
+
+The principles, threat model, and patterns in that document apply equally to other stacks. This document covers the concrete realization using TypeScript, Bun, PostgreSQL, and Web Crypto.
 
 ---
 

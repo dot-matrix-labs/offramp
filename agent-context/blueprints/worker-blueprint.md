@@ -1,5 +1,12 @@
-
 # Worker Service Blueprint
+
+<!-- last-edited: 2026-03-10 -->
+
+CONTEXT MAP
+  this ──requires────────▶ blueprints/auth-blueprint.md (agent credential mechanics)
+  this ──requires────────▶ blueprints/data-blueprint.md (data tier the agent operates on)
+  this ──requires────────▶ blueprints/environment-blueprint.md (worker container model)
+  this ◀──referenced by──── index.md
 
 > [!IMPORTANT]
 > This blueprint defines the agent-as-service execution model: how AI agents run as containerized daemons, what data they may read, why they may never write directly to the database, and how they submit results through user-authenticated API transactions. Read the [Auth Blueprint](./auth-blueprint.md) for agent credential mechanics and the [Data Blueprint](./data-blueprint.md) for the data tier the agent operates on.

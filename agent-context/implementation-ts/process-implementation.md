@@ -1,7 +1,14 @@
-
 # Process — Calypso TypeScript Implementation
 
-> This document is the Calypso TypeScript reference implementation for the [Process Blueprint](../blueprints/process-blueprint.md). The principles, threat model, and patterns in that document apply equally to other stacks. This document covers the concrete realization in the Calypso monorepo.
+<!-- last-edited: 2026-03-10 -->
+
+CONTEXT MAP
+  this ──implements──▶ blueprints/process-blueprint.md
+  this ◀──referenced by── index.md
+
+> Implements: Process Blueprint (`agent-context/blueprints/process-blueprint.md`)
+
+The principles, threat model, and patterns in that document apply equally to other stacks. This document covers the concrete realization in the Calypso monorepo.
 
 ---
 

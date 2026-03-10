@@ -1,7 +1,14 @@
-
 # Testing — Calypso TypeScript Implementation
 
-> This document is the Calypso TypeScript reference implementation for the [Testing Blueprint](../blueprints/testing-blueprint.md). The principles, threat model, and patterns in that document apply equally to other stacks. This document covers the concrete realization using Vitest, Playwright, and GitHub Actions.
+<!-- last-edited: 2026-03-10 -->
+
+CONTEXT MAP
+  this ──implements──▶ blueprints/testing-blueprint.md
+  this ◀──referenced by── index.md
+
+> Implements: Testing Blueprint (`agent-context/blueprints/testing-blueprint.md`)
+
+The principles, threat model, and patterns in that document apply equally to other stacks. This document covers the concrete realization using Vitest, Playwright, and GitHub Actions.
 
 ---
 

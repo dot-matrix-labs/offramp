@@ -1,4 +1,12 @@
-# Documentation Standard
+# Documentation Standard (Business Application)
+
+<!-- last-edited: 2026-03-10 -->
+
+CONTEXT MAP
+  this ──governs─────────▶ docs/ and README.md files within the PROJECT BEING BUILT
+  this ──does NOT govern─▶ agent-context/ (governed by agent-communication.md)
+
+> **Scope:** This document governs documentation structure within the **business application project** that Calypso agents build — the `docs/` directory, per-directory `README.md` files, and source code inline documentation. It does NOT govern `agent-context/` documents (those are governed by `agent-communication.md`).
 
 This document defines the Documentation Fractal methodology for Calypso projects.
 
