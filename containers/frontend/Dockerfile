@@ -15,10 +15,6 @@ WORKDIR /app
 
 COPY server.ts ./server.ts
 
-# Bundle is built by CI before docker build and passed as build context.
-# The CI step: bun build → outputs to ./dist → docker build copies it here.
-COPY dist/ ./dist/
-
 RUN addgroup -S frontend && adduser -S -G frontend frontend
 RUN chown -R frontend:frontend /app
 

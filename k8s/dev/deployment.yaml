@@ -52,6 +52,10 @@ spec:
             - name: docker-graph
               mountPath: /var/lib/docker
       volumes:
+        # workspace is intentionally emptyDir (ephemeral across pod restarts).
+        # All durable state must be committed to git. The tmux session survives
+        # SSH disconnects (pod keeps running), but uncommitted filesystem changes
+        # are lost if the pod is restarted or rescheduled.
         - name: workspace
           emptyDir: {}
         - name: docker-graph

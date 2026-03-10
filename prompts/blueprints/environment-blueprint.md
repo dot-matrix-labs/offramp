@@ -10,7 +10,7 @@
 
 The promise of AI-led development is that the agent does not just write code — it designs and operates the full system from the first commit. This promise breaks immediately if the environment the agent develops in differs from the environment the software runs in. A developer container on a laptop, a staging server with hand-installed packages, a production cluster configured differently by a human operator: each gap is a place where the software will silently stop working. Agents are worse at detecting these gaps than experienced human engineers, because agents cannot see the physical machine, cannot smell that something is wrong, and will confidently produce work that passes every test in the wrong environment.
 
-Calypso eliminates the gap by collapsing development and production into the same container topology from the first day. The developer container, the frontend container, and the database container that run during a prototype session are the same containers — same base images, same constraints, same network rules — that run in production. There is no "works on my machine" because the machine is always the same machine: a container orchestrated by the same runtime that production uses. When the agent vibe-codes a UI for a business process, it is not creating a throwaway demo. It is designing the full production system for free. The prototype and the production artifact are the same build, tagged and released through the same pipeline.
+Calypso eliminates the gap by collapsing development and production into the same container topology from the first day. The developer container, the frontend container, the worker container, and the database container that run during a prototype session are the same containers — same base images, same constraints, same network rules — that run in production. There is no "works on my machine" because the machine is always the same machine: a container orchestrated by the same runtime that production uses. When the agent vibe-codes a UI for a business process, it is not creating a throwaway demo. It is designing the full production system for free. The prototype and the production artifact are the same build, tagged and released through the same pipeline.
 
 This model also eliminates an entire category of developer-experience engineering. Local development tooling, hot-reload servers, environment-specific feature flags, "devmode" database connections, ngrok tunnels, and staging environments are all symptoms of a broken environment model. They exist because development and production were allowed to diverge. Calypso does not invest in making divergence comfortable. It invests in making divergence impossible. Best practices are enforced from the first commit not because best practices feel good, but because allowing exceptions at prototype stage means rewriting the system when those exceptions compound. Agents do not benefit from environment-specific affordances the way human developers do — they benefit from a simple, consistent, fully-specified world. Simplicity is the agent's native environment.
 
@@ -52,9 +52,11 @@ Each container type exists for exactly one role and has only the capabilities re
 
 Compilation, bundling, transpilation, dependency installation, and any other transformation of source code into a deployable artifact happens exclusively in the developer container. The frontend container receives only tagged, tested, released artifacts. It cannot build from source because it does not have the tools, and it must not have the tools. Building in production is an antipattern regardless of whether "production" means a customer deployment or a demo to a single stakeholder.
 
-### Agents run in the developer container only
+### AI coding assistants run in the developer container; AI workers run in the worker container
 
-AI agents — whether LLM CLI tools, autonomous coding agents, or orchestration frameworks — run inside the developer container. They do not run on the frontend container. They do not run on the database container. They do not run on the developer's local device. The developer container is the agent's workspace. Everything outside it is infrastructure the agent manages through APIs, not infrastructure the agent inhabits.
+Two distinct categories of AI process exist in the cluster and must not be conflated. AI coding assistants — Claude Code, Gemini CLI, Codex, and equivalent interactive LLM tools — run inside the developer container. They write code, run tests, push releases, and manage infrastructure. They do not run on the frontend container, the worker container, the database container, or the developer's local device.
+
+AI workers are a separate category: long-running daemon processes that consume tasks from a queue and call AI vendor APIs or vendor CLI binaries to perform production AI work. They run in the worker container, not the developer container. The worker container is purpose-built for this role — minimal, distroless-style, no shell. The developer container is purpose-built for the coding assistant role — full OS, full toolchain, SSH endpoint. Placing a worker daemon in the developer container, or a coding assistant in the worker container, violates the capability constraints that both containers are designed to enforce.
 
 ### Test databases are ephemeral and isolated from all persistent data
 
@@ -76,17 +78,18 @@ The developer does not manually configure servers, install software, or wire tog
 
 **Trade-offs:** Adds a mandatory release step between "code compiles" and "code is visible in the browser." For rapid iteration this feels slow, but the pipeline is fast by design (pre-built artifact, not build-on-deploy). The overhead is the correct feedback mechanism: if the release pipeline is too slow to support iteration, the pipeline needs to be optimized, not bypassed.
 
-### Pattern 2: Three-Container Separation of Concerns
+### Pattern 2: Four-Container Separation of Concerns
 
-**Problem:** Combining development capabilities, serving capabilities, and data storage in a single runtime or a small number of undifferentiated containers makes it impossible to enforce capability constraints and impossible to scale or replace components independently.
+**Problem:** Combining development capabilities, serving capabilities, AI work, and data storage in a single runtime or undifferentiated containers makes it impossible to enforce capability constraints and impossible to scale or replace components independently.
 
-**Solution:** Three purpose-built container types, each with a minimal image, minimal capability set, and a single responsibility:
+**Solution:** Four purpose-built container types, each with a minimal image, minimal capability set, and a single responsibility:
 
-- **Developer Container:** full operating system, agent CLIs, language runtimes, build tools, version control client, cloud CLI, and a Docker daemon (Docker-in-Docker). Can write code, run tests, spin up ephemeral test containers, build artifacts, push releases. Cannot serve production traffic. Cannot reach the cluster database over the network.
+- **Developer Container:** full operating system, AI coding assistant CLIs, language runtimes, build tools, version control client, cloud CLI, and a Docker daemon (Docker-in-Docker). Can write code, run tests, spin up ephemeral test containers, build artifacts, push releases. Cannot serve production traffic. Cannot reach the cluster database over the network.
 - **Frontend Container:** minimal base image (not a full OS), a single runtime, a single entry point. Serves pre-built release bundles on a designated port. Cannot install packages, cannot execute build steps, cannot write to persistent volumes.
-- **Database Container:** distroless base image, database binary and dependencies only. Volume-mounted for persistence. No shell, no package manager, no agent access. Backed up on a schedule to durable object storage.
+- **Worker Container:** minimal image with Bun runtime and vendor CLI binaries. Runs AI task daemons that consume from the task queue and call AI vendor APIs. No shell access. Read-only access to task queue views in the database. Cannot write to the database directly — all writes go through the API.
+- **Database Container:** distroless base image, database binary and dependencies only. Volume-mounted for persistence. No shell, no package manager, no direct agent access. Backed up on a schedule to durable object storage.
 
-**Trade-offs:** Three containers require a container orchestrator. This is not a cost — it is an explicit design choice that brings network policy enforcement, restart behavior, health checking, and scaling as standard features. The alternative (fewer, larger containers) trades these features for a simpler mental model that breaks as soon as the system grows.
+**Trade-offs:** Four containers require a container orchestrator. This is not a cost — it is an explicit design choice that brings network policy enforcement, restart behavior, health checking, and scaling as standard features. The alternative (fewer, larger containers) trades these features for a simpler mental model that breaks as soon as the system grows.
 
 ### Pattern 3: Ephemeral Test Containers
 
@@ -102,7 +105,7 @@ The ephemeral test container uses the same image as the cluster database contain
 
 **Problem:** Manual infrastructure provisioning is undocumented, non-reproducible, and not auditable. Every manually provisioned server is a unique artifact with undocumented state.
 
-**Solution:** The agent, starting from a cloud API key, runs a provisioning script that: creates a compute instance, bootstraps a container orchestrator (Kubernetes or equivalent), deploys all three container types from their template images, configures networking and ingress, and outputs the cluster endpoint. The provisioning script is checked into version control. Running it again produces an identical cluster. The developer's only manual action is providing the API key.
+**Solution:** The agent, starting from a cloud API key, runs a provisioning script that: creates a compute instance, bootstraps a container orchestrator (Kubernetes or equivalent), deploys all four container types from their template images, configures networking and ingress, and outputs the cluster endpoint. The provisioning script is checked into version control. Running it again produces an identical cluster. The developer's only manual action is providing the API key.
 
 **Trade-offs:** The agent must have write access to the cloud account during provisioning. This is a privileged operation and should be time-bounded: the API key used for provisioning should be revocable after the cluster is running. Ongoing cluster operations use narrower-scoped credentials.
 
@@ -114,13 +117,15 @@ The ephemeral test container uses the same image as the cluster database contain
 
 **Trade-offs:** Requires the IDE to support remote development over SSH (most modern editors do). Requires the developer container to have a stable, reachable SSH endpoint. Network latency affects editor responsiveness; this is an argument for locating the container in the nearest cloud region, not an argument for local development.
 
-### Pattern 6: Webhook-Driven Release Delivery
+### Pattern 6: Orchestrator-Driven Rolling Release
 
-**Problem:** The frontend must know when a new release is available and retrieve it without polling continuously or requiring manual intervention.
+**Problem:** Deploying a new version of any container must be zero-downtime, automatically verified against health checks, and automatically rolled back on failure — without any bespoke update server or webhook mechanism inside the container.
 
-**Solution:** The release pipeline (CI, on the developer container's push) publishes a tagged release to the version control host. The version control host sends a webhook to the frontend container's update endpoint. The frontend fetches the new artifact, verifies its checksum, hot-swaps the served bundle, and responds to the webhook with success or failure. No human touches the frontend between "agent pushes code" and "new version is live."
+**Solution:** The container orchestrator owns the entire release lifecycle. CI builds a new image, pushes it to the registry, and receives an immutable digest. CI then patches the target Deployment or StatefulSet with that digest via a narrow-scoped service account. The orchestrator performs a rolling update: it starts a new pod, waits for its readiness probe to pass, then terminates an old pod. This repeats until all replicas are updated. If any new pod fails its readiness probe before the rollout deadline, the orchestrator halts the rollout and CI triggers a rollback to the previous revision.
 
-**Trade-offs:** Requires the frontend to expose an update endpoint, which must be authenticated and hardened. Webhook delivery is not guaranteed; the frontend should also support manual triggering and should log the version it is currently serving so discrepancies can be detected.
+This pattern applies identically to the frontend, worker, and database containers. No container type has a special update mechanism. The orchestrator is the only update surface.
+
+**Trade-offs:** Requires a running Kubernetes cluster and a kubeconfig for the CI service account. The rollout deadline (`progressDeadlineSeconds`) must be tuned per container type — a database StatefulSet update takes longer than a frontend Deployment update. Setting the deadline too short causes false rollback failures; too long delays detection of real failures.
 
 ---
 
@@ -142,9 +147,15 @@ The ephemeral test container uses the same image as the cluster database contain
 │  │  └───────────────────────┘                              │    │
 │  │                                                         │    │
 │  │  ┌───────────────────────┐                              │    │
-│  │  │  Frontend Container │  ← Serves tagged releases   │    │
-│  │  │  (minimal image)      │    Webhook update endpoint   │    │
+│  │  │  Frontend Container   │  ← Serves tagged releases   │    │
+│  │  │  (minimal image)      │    K8s rolling update only   │    │
 │  │  │  Port: 443 / 80       │    No build tooling          │    │
+│  │  └───────────────────────┘                              │    │
+│  │                                                         │    │
+│  │  ┌───────────────────────┐                              │    │
+│  │  │  Worker Container     │  ← AI task daemon           │    │
+│  │  │  (minimal+bun+CLIs)   │    Reads task queue (RO)    │    │
+│  │  │  No shell             │    Writes via API only       │    │
 │  │  └───────────────────────┘                              │    │
 │  │                                                         │    │
 │  │  ┌───────────────────────┐                              │    │
@@ -165,7 +176,7 @@ The ephemeral test container uses the same image as the cluster database contain
   └────────────────────┘
 ```
 
-**When appropriate:** Single developer or single agent working on a new project. All three containers on one node is sufficient for early stages, demo, and demoware. Cost-minimal — one instance. The topology is identical to multi-node production; only the physical distribution differs.
+**When appropriate:** Single developer or single agent working on a new project. All four containers on one node is sufficient for early stages, demo, and demoware. Cost-minimal — one instance. The topology is identical to multi-node production; only the physical distribution differs.
 
 **Trade-offs vs. other architectures:** No redundancy — if the node fails, everything fails. Acceptable at early stage because all durable state is in version control and the database volume backup. Not appropriate once the application serves real end users.
 
@@ -184,10 +195,18 @@ The ephemeral test container uses the same image as the cluster database contain
 │  └──────────────────┘   └──────────────────┘                     │
 │                                                                  │
 │  ┌─────────────────────────────────────────┐                     │
-│  │  Web Tier (replicated)                  │                     │
+│  │  Frontend Tier (replicated)             │                     │
 │  │  ┌─────────────┐   ┌─────────────┐      │                     │
-│  │  │ Frontend  │   │ Frontend  │      │  ← Load-balanced   │
-│  │  │ Container   │   │ Container   │      │    release serving  │
+│  │  │  Frontend   │   │  Frontend   │  ← Load-balanced          │
+│  │  │  Container  │   │  Container  │    release serving         │
+│  │  └─────────────┘   └─────────────┘      │                     │
+│  └─────────────────────────────────────────┘                     │
+│                                                                  │
+│  ┌─────────────────────────────────────────┐                     │
+│  │  Worker Tier (replicated per type)      │                     │
+│  │  ┌─────────────┐   ┌─────────────┐      │                     │
+│  │  │  Worker     │   │  Worker     │  ← One deployment         │
+│  │  │  (coding)   │   │  (analysis) │    per worker type         │
 │  │  └─────────────┘   └─────────────┘      │                     │
 │  └─────────────────────────────────────────┘                     │
 │                                                                  │
@@ -241,41 +260,44 @@ The agent executes the following steps from inside the developer container after
 
 ```
 k8s/
-  namespace.yaml          ← project namespace
+  namespace.yaml              ← project namespace
+  network-policy.yaml         ← inter-container network rules
+  ingress.yaml                ← external TLS ingress
+  rbac/
+    ci-deployer.yaml          ← CI service account (patch deployments only)
+  secrets/
+    postgres-credentials.sh   ← secret creation script
+    worker-credentials.sh     ← secret creation script
   dev/
-    deployment.yaml       ← developer container deployment
-    service.yaml          ← SSH service (ClusterIP + NodePort)
+    deployment.yaml           ← developer container (Recreate strategy)
+    service.yaml              ← SSH NodePort
   frontend/
-    deployment.yaml       ← frontend deployment (replicated)
-    service.yaml          ← HTTPS ingress
-    configmap.yaml        ← current release tag (updated by webhook)
+    deployment.yaml           ← frontend (RollingUpdate, maxUnavailable=0)
+    service.yaml              ← ClusterIP
+  worker/
+    deployment.yaml           ← worker template (copy per worker type)
   db/
-    statefulset.yaml      ← postgres statefulset
-    pvc.yaml              ← persistent volume claim
-    service.yaml          ← internal ClusterIP only
-  ingress.yaml            ← external traffic routing
+    statefulset.yaml          ← postgres StatefulSet
+    service.yaml              ← internal ClusterIP only
 ```
 
-### Frontend Release Update
+### Release Pipeline
 
-The frontend container runs a minimal Bun HTTP server that:
-1. Serves the current release bundle from an in-memory or local-filesystem cache
-2. Exposes `POST /update` — authenticated with a shared secret — to receive a new release tag
-3. On receiving a valid update request, downloads the named release artifact from GitHub Releases, verifies its checksum, and hot-swaps the served bundle
+All container types follow the same two-stage release model:
 
-```typescript
-// Minimal interface — full implementation in packages/frontend
-interface ReleaseManifest {
-  tag: string;
-  artifactUrl: string;
-  sha256: string;
-}
+1. **Base image** (`containers/<type>/Dockerfile`) — rebuilt when runtime dependencies change (bun version, OS packages, vendor CLI binaries). Rare. Tagged `base-latest`.
+2. **Release overlay** (`apps/<type>/Dockerfile.release`) — layers the compiled application bundle onto the current base image. Rebuilt on every merge to main. Tagged with the immutable SHA-256 digest.
 
-interface UpdateRequest {
-  release: ReleaseManifest;
-  signature: string; // HMAC-SHA256 of release JSON, shared secret
-}
+CI deploys by patching the Deployment or StatefulSet image to the new digest:
+
 ```
+kubectl set image deployment/frontend \
+  frontend=ghcr.io/.../frontend@sha256:<digest>
+kubectl rollout status deployment/frontend --timeout=5m
+# On failure: kubectl rollout undo deployment/frontend
+```
+
+The frontend container serves static files from `/app/dist/` baked into the image. It has no update endpoint and no runtime artifact fetching. See `k8s/rbac/ci-deployer.yaml` for the CI service account.
 
 ### Provisioning Script Interface
 
@@ -308,19 +330,20 @@ interface ProvisionConfig {
 
 - [ ] Cloud provider API key received and stored as environment variable in developer container; not committed to version control
 - [ ] `scripts/provision-cluster.sh` executed; cluster endpoint output and reachable via `kubectl`
-- [ ] All three container types running and healthy per `kubectl get pods`
+- [ ] All four container types running and healthy per `kubectl get pods`
 - [ ] Developer container SSH endpoint reachable; local IDE connected via SSH remote
 - [ ] Agent CLI (`claude`, `gemini`, or equivalent) running inside developer container, not on local device
-- [ ] Frontend container serving a release bundle at the designated external port
-- [ ] Database container running and accepting connections from frontend and developer containers only; not exposed externally
+- [ ] Frontend container serving a release bundle at the designated external port; RELEASE_TAG in `/health` response matches the deployed git SHA
+- [ ] Worker container running and claiming tasks from the task queue; submitting results via API
+- [ ] Database container running and accepting connections from frontend and worker containers only; not exposed externally; dev container cannot reach it (verified via network policy)
 - [ ] `tmux` session active inside developer container; SSH disconnect and reattach tested
 - [ ] Bootstrap standards script executed; `docs/standards/` populated inside developer container
 - [ ] Agent has read all files in `docs/standards/` before writing any code
 
 ### Beta Gate
 
-- [ ] Release pipeline configured: push to main triggers CI, CI builds artifact, CI publishes GitHub Release, webhook triggers frontend update
-- [ ] Web server update endpoint authenticated; HMAC signature validated on every update request
+- [ ] Release pipeline configured: push to main triggers CI, CI builds release overlay image, CI patches deployment with immutable digest, rollout completes within timeout
+- [ ] Rollback tested: deploy a bad image (readiness probe fails), confirm CI runs `kubectl rollout undo`, old pods resume serving
 - [ ] Database volume backup scheduled and tested; restore procedure documented and executed at least once
 - [ ] Firewall rules verified: only frontend port and developer container SSH port reachable externally
 - [ ] Frontend container image verified to contain no build tooling (`git`, `npm`, `bun install`, `tsc` absent)
@@ -336,7 +359,7 @@ interface ProvisionConfig {
 - [ ] Multi-node cluster deployed with frontend replicated across at least two nodes
 - [ ] Database replica configured; failover tested
 - [ ] Cluster monitoring active: container restarts, disk pressure, memory pressure all generate alerts
-- [ ] Release rollback procedure implemented and tested: bad release detected, previous release re-served without manual intervention
+- [ ] Rollback verified automatic: `progressDeadlineSeconds` exceeded triggers CI failure; `kubectl rollout undo` restores previous revision without human intervention; confirmed for both frontend and worker deployments
 - [ ] Recovery drill completed: cluster destroyed, reprovisioned, database volume restored; end-to-end time measured and within SLA
 
 ---

@@ -1,5 +1,12 @@
 name: Build — calypso/postgres
 
+# Unlike containers-frontend.yml and containers-worker.yml, this workflow does NOT
+# chain to a cluster rollout after a successful base build. PostgreSQL version upgrades
+# require deliberate coordination with schema migrations and backup verification.
+# To update the running cluster to a new postgres image, run:
+#   kubectl set image statefulset/postgres postgres=ghcr.io/dot-matrix-labs/calypso/postgres@<digest>
+# and monitor the StatefulSet rollout manually.
+
 on:
   push:
     branches: [main]

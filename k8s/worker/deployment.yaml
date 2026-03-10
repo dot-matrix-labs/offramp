@@ -1,3 +1,7 @@
+# Worker deployment template — coding agent type
+# Each worker type gets its own deployment manifest with its own AGENT_TYPE,
+# DB credentials secret, and vendor API key secret.
+# Copy this file to deployment-<type>.yaml for each additional worker type.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -28,7 +32,7 @@ spec:
           image: ghcr.io/dot-matrix-labs/calypso/worker:latest
           env:
             - name: AGENT_TYPE
-              value: "coding"  # overridden per worker-type deployment
+              value: "coding"
             - name: API_BASE_URL
               value: "http://frontend.calypso.svc.cluster.local"
             - name: AGENT_SERVICE_TOKEN
@@ -68,8 +72,16 @@ spec:
               cpu: "1000m"
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             runAsNonRoot: true
             capabilities:
               drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
       imagePullSecrets:
         - name: ghcr-credentials
+      volumes:
+        - name: tmp
+          emptyDir:
+            medium: Memory

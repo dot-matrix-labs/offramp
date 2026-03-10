@@ -21,8 +21,8 @@
 | [architecture-blueprint.md](./architecture-blueprint.md) | Stack, repo structure, data/integration guidelines, dependency policy |
 | [process-blueprint.md](./process-blueprint.md) | Scaffold → V1 lifecycle, PRD, implementation plan, next-prompt loop |
 | [testing-blueprint.md](./testing-blueprint.md) | Testing philosophy, test categories, CI/CD workflows |
-| [deployment-blueprint.md](./deployment-blueprint.md) | Bare-metal deployment, systemd, logging, telemetry |
+| [deployment-blueprint.md](./deployment-blueprint.md) | Containerized deployment, K8s rolling updates, structured logging, trace propagation |
 | [auth-blueprint.md](./auth-blueprint.md) | Authentication, authorization, session management, agent auth |
 | [data-blueprint.md](./data-blueprint.md) | Data persistence, encryption, privacy, analytics tier |
 | [ux-blueprint.md](./ux-blueprint.md) | UX posture, agent UX, admin as user, beauty gate |
-| [agent-service-blueprint.md](./agent-service-blueprint.md) | Worker container design, task queue subscription, write-through API, delegated user tokens, per-worker-type DB roles |
+| [worker-blueprint.md](./worker-blueprint.md) | Worker container design, task queue subscription, write-through API, delegated user tokens, per-worker-type DB roles |
