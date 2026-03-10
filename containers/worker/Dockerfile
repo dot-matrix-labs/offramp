@@ -4,20 +4,19 @@ LABEL org.opencontainers.image.source="https://github.com/dot-matrix-labs/calyps
 LABEL org.opencontainers.image.description="Calypso worker container — headless agent runtime"
 LABEL org.opencontainers.image.licenses="MIT"
 
-# Minimal runtime for a headless Bun worker process.
-# No build tools, no shell utilities beyond Alpine defaults.
-# The worker binary is COPYed in by CI at image build time.
+# wget is needed by the entrypoint to fetch the release bundle at startup.
 # Sentinel files (/tmp/ready, /tmp/alive) are written by the worker process
 # and checked by the Kubernetes liveness and readiness probes.
+RUN apk add --no-cache wget
 
 WORKDIR /app
 
+COPY entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh && mkdir -p /app/dist
+
 RUN addgroup -S worker && adduser -S -G worker worker \
-    && chown worker:worker /app
+    && chown -R worker:worker /app
 
 USER worker
 
-# Placeholder entrypoint — replaced by CI with the compiled worker bundle.
-# On a base image deploy this exits immediately; the pod restarts until CI
-# layers the real worker on top and deploys via kubectl set image.
-CMD ["bun", "run", "worker.ts"]
+ENTRYPOINT ["./entrypoint.sh"]
