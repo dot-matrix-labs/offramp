@@ -1,31 +1,29 @@
 FROM oven/bun:1-alpine
 
 LABEL org.opencontainers.image.source="https://github.com/dot-matrix-labs/calypso"
-LABEL org.opencontainers.image.description="Calypso frontend container — serves pre-built release bundle, no build capability"
+LABEL org.opencontainers.image.description="Calypso frontend container — fetches release bundle from GitHub on startup"
 LABEL org.opencontainers.image.licenses="MIT"
 
-# The built bundle is COPYed in by CI at image build time.
-# This container has no build tools, no package manager, no git, no shell.
-# All release lifecycle is managed by the container orchestrator (Kubernetes).
-
-ARG RELEASE_TAG=unknown
-ENV RELEASE_TAG=${RELEASE_TAG}
+# wget is needed by the entrypoint to fetch the release bundle at startup.
+RUN apk add --no-cache wget
 
 WORKDIR /app
 
+# server.ts is stable runtime code — lives in the base image.
+# dist/ is fetched from GitHub Releases at startup via entrypoint.sh.
 COPY server.ts ./server.ts
-# Placeholder bundle — serves "calypso provisioning..." until CI layers the real app.
-# CI overwrites dist/ via Dockerfile.release on every app release.
-COPY dist/ ./dist/
+COPY entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh && mkdir -p /app/dist
 
-RUN addgroup -S frontend && adduser -S -G frontend frontend
-RUN chown -R frontend:frontend /app
+RUN addgroup -S frontend && adduser -S -G frontend frontend \
+    && chown -R frontend:frontend /app
 
 USER frontend
 
 EXPOSE 8080
 
-HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
+# start-period covers the GitHub download on a cold start
+HEALTHCHECK --interval=15s --timeout=5s --start-period=60s --retries=5 \
     CMD wget -qO- http://localhost:8080/health || exit 1
 
-CMD ["bun", "run", "server.ts"]
+ENTRYPOINT ["./entrypoint.sh"]
