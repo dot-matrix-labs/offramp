@@ -108,7 +108,7 @@ The agent reads the unique log first to understand the error landscape, then con
 
 ## Plausible Architectures
 
-### Architecture A: Background Dev Container (solo app, early-stage)
+### Architecture A: Single App Container on Host (solo app, early-stage)
 
 ```
 ┌─────────────────────────────────────────────┐

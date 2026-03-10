@@ -176,7 +176,7 @@ CREATE POLICY agent_type_isolation ON task_queue
 │  Agent → API:      allowed (HTTPS)                              │
 │  Agent → DB:       SELECT on view only (role-enforced)          │
 │  Agent → DB write: structurally impossible (no write grants)    │
-│  Dev container → DB: blocked (network policy)                   │
+│  Host → Cluster DB: blocked (no cluster DB credentials on host) │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
