@@ -115,8 +115,9 @@ ${SSH} "GITHUB_USER=${GITHUB_USER} GITHUB_TOKEN=${GITHUB_TOKEN} NAMESPACE=${NAME
   bash -s" < "${SCRIPTS_DIR}/../k8s/secrets/ghcr-credentials.sh"
 
 # Dev SSH keys — upload the operator's public key
-${SSH} "NAMESPACE=${NAMESPACE} bash -s" < "${SCRIPTS_DIR}/../k8s/secrets/dev-ssh-keys.sh" \
-  < "${SSH_KEY}.pub"
+SSH_PUB_CONTENT=$(cat "${SSH_KEY}.pub")
+${SSH} "NAMESPACE=${NAMESPACE} AUTHORIZED_KEYS='${SSH_PUB_CONTENT}' bash -s" \
+  < "${K8S_DIR}/secrets/dev-ssh-keys.sh"
 
 # Postgres credentials (generated)
 POSTGRES_PASSWORD=$(openssl rand -base64 32)
@@ -206,6 +207,5 @@ echo "      Port ${DEV_SSH_PORT}"
 echo "      User agent"
 echo "      IdentityFile ${SSH_KEY}"
 echo ""
-echo "  Next: run the project bootstrap prompt inside the dev container."
-echo "  See prompts/process/new-project-bootstrap.md"
+echo "  Next: continue scaffold-task.md from Step 4 inside the dev container."
 echo "════════════════════════════════════════════════════"

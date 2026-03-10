@@ -13,45 +13,127 @@
 
 ## Step 2: Set Up Kubernetes Cluster
 
-Install a single-node Kubernetes cluster on the host and deploy the Calypso dev environment using the published base images.
+Run `scripts/provision-cluster.sh` to install k3s, apply all manifests, create secrets, and confirm health in one step.
 
-- [ ] k3s installed and `kubectl` configured.
-- [ ] **Collect the user's SSH public key** before deploying — ask the user to paste their public key (e.g. `~/.ssh/id_ed25519.pub`). Create the Kubernetes secret the dev pod depends on: `kubectl create secret generic dev-ssh-keys --from-literal=authorized_keys="<public-key>" -n calypso`
-- [ ] Apply all Calypso `k8s/` manifests. These reference the published upstream images (`ghcr.io/dot-matrix-labs/calypso/*`) and provide a running dev environment immediately, before the project's own CI pipeline exists.
-- [ ] All four containers running and healthy: `dev`, `frontend`, `worker`, `db`.
-- [ ] Verify the frontend serves HTTP 200 at `http://<host-ip>:<frontend-nodeport>/health`.
+**Required environment variables:**
+- `PROJECT` — lowercase project name (e.g. `invoice-processor`)
+- `GITHUB_USER` — GitHub username or org
+- `GITHUB_TOKEN` — GitHub PAT with `repo` + `packages:write` scopes
+- One of: `DIGITALOCEAN_TOKEN` (creates a new Droplet) or `HOST_IP` + `SSH_KEY` (existing host)
+
+```bash
+# New DigitalOcean Droplet:
+DIGITALOCEAN_TOKEN=<tok> PROJECT=<name> GITHUB_USER=<user> GITHUB_TOKEN=<pat> \
+  ./scripts/provision-cluster.sh
+
+# Existing Linux host:
+HOST_IP=<ip> SSH_KEY=~/.ssh/id_ed25519 PROJECT=<name> GITHUB_USER=<user> GITHUB_TOKEN=<pat> \
+  ./scripts/provision-cluster.sh
+```
+
+The script handles:
+- [ ] k3s installed and `kubectl` configured
+- [ ] All `k8s/` manifests applied
+- [ ] All secrets created (GHCR credentials, SSH keys, Postgres, worker)
+- [ ] All four containers running and healthy: `dev`, `frontend`, `worker`, `db`
+- [ ] Frontend responds HTTP 200 at `http://<host-ip>:<frontend-nodeport>/health`
+- [ ] `.calypso-connect` written to the current directory with SSH connection details
+
+If the script fails, diagnose from the error output and fix before continuing.
 
 ---
 
 ## Step 3: Hand Off SSH to User
 
-- [ ] Output SSH connection details: host/IP, port, username, and key path if applicable.
-- [ ] Instruct the user to connect via terminal (`ssh user@host`) or an IDE with SSH remote support (VS Code Remote-SSH, JetBrains Gateway, etc.) for file editing.
+- [ ] Show the user the SSH connection details from `.calypso-connect`.
+- [ ] Instruct the user to connect via terminal or an IDE with SSH remote support (VS Code Remote-SSH, JetBrains Gateway) for live file editing.
 - [ ] Wait for the user to confirm they are connected before continuing.
 
 ---
 
-## Step 4: Create Project Repo
+## Step 4: Establish GitHub Credentials (inside dev container)
 
-Working inside the dev container on the remote host:
+SSH into the dev container. All remaining steps run there.
 
-- [ ] Shallow-clone the Calypso repo: `git clone --depth 1 https://github.com/dot-matrix-labs/calypso.git <project-name>`
-- [ ] Create a new private repo on the user's GitHub account using `gh repo create` (the dev container is assumed to be configured with the user's `gh` credentials).
-- [ ] Set the new repo as origin and push: `git remote set-url origin <new-repo-url> && git push -u origin main`
-- [ ] Extract the kubeconfig, replacing the loopback address with the host's public IP so GitHub Actions can reach the cluster, and set it as a repo secret:
-  ```bash
-  PUBLIC_IP=$(curl -s ifconfig.me)
-  kubectl config view --raw \
-    | sed "s|https://127.0.0.1:6443|https://${PUBLIC_IP}:6443|g" \
-    | base64 -w0 \
-    | gh secret set KUBE_CONFIG -R <new-repo> --body -
-  ```
+Ask the operator for a GitHub PAT with `repo` + `packages:write` scopes if not already available, then authenticate:
+
+```bash
+echo "${GITHUB_TOKEN}" | gh auth login --with-token
+gh auth status  # expected: Logged in to github.com as <username>
+
+git config --global credential.helper store
+git config --global user.name "$(gh api user --jq .login)"
+git config --global user.email "$(gh api user --jq .email)"
+```
 
 ---
 
-## Step 5: Read All Prompts
+## Step 5: Create Project Repo
 
-Read every file in the `prompts/` directory of the cloned repo before proceeding. These define the architecture, process, security posture, UX standards, and implementation conventions for the entire project.
+Ask the operator for the project name (lowercase, hyphens only) and GitHub owner (username or org) if not already set. Then:
+
+```bash
+export PROJECT_NAME=<project-name>
+export GITHUB_OWNER=<owner>
+
+gh repo create "${GITHUB_OWNER}/${PROJECT_NAME}" --private --description "Built with Calypso" --confirm
+gh repo view "${GITHUB_OWNER}/${PROJECT_NAME}"  # verify
+```
+
+---
+
+## Step 6: Clone the Calypso Template
+
+```bash
+cd /workspace
+
+git clone --depth=1 --branch=main --single-branch \
+  https://github.com/dot-matrix-labs/calypso.git "${PROJECT_NAME}"
+
+cd "${PROJECT_NAME}"
+
+# Detach from template history and point at the new private repo
+rm -rf .git
+git init -b main
+git remote add origin "https://${GITHUB_TOKEN}@github.com/${GITHUB_OWNER}/${PROJECT_NAME}.git"
+```
+
+Copy in the connection info:
+```bash
+[[ -f "/tmp/.calypso-connect" ]] && cp /tmp/.calypso-connect .calypso-connect
+```
+
+---
+
+## Step 7: Initial Commit and Push
+
+```bash
+git add -A
+git commit -m "init: bootstrap from calypso template"
+git push -u origin main
+```
+
+---
+
+## Step 8: Set KUBE_CONFIG Secret
+
+Extract the kubeconfig with the cluster's public IP and set it as a GitHub Actions secret so CI can deploy:
+
+```bash
+PUBLIC_IP=$(curl -s ifconfig.me)
+kubectl config view --raw \
+  | sed "s|https://127.0.0.1:6443|https://${PUBLIC_IP}:6443|g" \
+  | base64 -w0 \
+  | gh secret set KUBE_CONFIG -R "${GITHUB_OWNER}/${PROJECT_NAME}" --body -
+```
+
+- [ ] `KUBE_CONFIG` secret confirmed set. `GITHUB_TOKEN` is provided automatically by GitHub Actions.
+
+---
+
+## Step 9: Read All Prompts
+
+Read every file in the `prompts/` directory before proceeding. These define architecture, process, security, UX, and implementation conventions for the entire project.
 
 ```
 prompts/blueprints/
@@ -62,7 +144,7 @@ prompts/process/
 
 ---
 
-## Step 6: Product Owner Interview
+## Step 10: Product Owner Interview
 
 Conduct the product owner interview per `prompts/process/product-owner-interview.md`. Do not skip or abbreviate it.
 
@@ -72,7 +154,7 @@ Conduct the product owner interview per `prompts/process/product-owner-interview
 
 ---
 
-## Step 7: Scaffold
+## Step 11: Scaffold
 
 Verify all foundational elements are present before moving to prototyping. Fix anything missing yourself before proceeding.
 
@@ -102,7 +184,6 @@ Verify all foundational elements are present before moving to prototyping. Fix a
 - [ ] `.env` template files present.
 - [ ] `k8s/` manifests updated to reference the project's own registry (`ghcr.io/<your-org>/<your-project>/*`). Once CI runs, it replaces the upstream base images via `kubectl set image`.
 - [ ] GitHub Actions workflows adapted from `.github/workflows/` in the Calypso repo: build images on push to `main`, push to `ghcr.io/<your-org>/<your-project>`, deploy to cluster via `kubectl set image`.
-- [ ] `KUBE_CONFIG` secret confirmed set (done in Step 4). `GITHUB_TOKEN` is provided automatically by GitHub Actions.
 - [ ] A test CI run completes successfully: image built, pushed to registry, and deployed to the cluster.
 
 ### Final Check
@@ -110,6 +191,35 @@ Verify all foundational elements are present before moving to prototyping. Fix a
 - [ ] **No emit** — `"noEmit": true` in `tsconfig.json` for all `/packages/*`.
 - [ ] **SPA routing** — Bun server checks `Bun.file.exists()` before falling back to `index.html`.
 - [ ] **Blueprint compliance** — review all blueprint documents and confirm nothing was violated or skipped.
+
+---
+
+## Step 12: Start tmux Session and Confirm IDE Connection
+
+```bash
+tmux new-session -A -s main
+```
+
+From inside tmux, confirm the workspace:
+
+```bash
+pwd        # /workspace/<project-name>
+gh repo view   # the new private repo
+```
+
+Tell the operator:
+
+> **Bootstrap complete.**
+>
+> Repository: `https://github.com/<owner>/<project-name>`
+> SSH details: see `.calypso-connect` at the project root.
+>
+> Add the SSH config block from `.calypso-connect` to your local `~/.ssh/config`,
+> then connect via Remote-SSH and open `/workspace/<project-name>`.
+>
+> I am running in the tmux session named `main`. To watch: `ssh calypso-<project-name>` then `tmux attach -t main`.
+>
+> Next: awaiting your command to begin the Prototype phase.
 
 ---
 

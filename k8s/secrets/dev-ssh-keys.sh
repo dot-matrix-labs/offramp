@@ -8,7 +8,9 @@ set -euo pipefail
 
 : "${NAMESPACE:=calypso}"
 
-if [[ -n "${1:-}" ]]; then
+if [[ -n "${AUTHORIZED_KEYS:-}" ]]; then
+  : # already set via env var
+elif [[ -n "${1:-}" ]]; then
   AUTHORIZED_KEYS="$(cat "$1")"
 else
   AUTHORIZED_KEYS="$(cat)"

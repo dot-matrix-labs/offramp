@@ -2,7 +2,7 @@
 # Calypso Blueprint
 
 > [!IMPORTANT]
-> **New project?** Follow [new-project-bootstrap.md](../process/new-project-bootstrap.md) before anything else. That document provisions the cluster, creates the GitHub repo, and seeds the scaffold.
+> **New project?** Follow [scaffold-task.md](../process/scaffold-task.md) before anything else. That document provisions the cluster, creates the GitHub repo, and seeds the scaffold.
 
 > [!IMPORTANT]
 > **Session start (existing project):** At the start of every session, run:
