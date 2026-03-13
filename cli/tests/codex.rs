@@ -112,6 +112,34 @@ fn session_normalizes_failed_and_aborted_terminal_states() {
 
     assert_eq!(aborted.status(), SessionStatus::Aborted);
     assert_eq!(aborted.terminal_outcome(), Some(TerminalOutcome::Aborted));
+
+    let mut signaled_abort =
+        CodexSession::spawn("engineer", shell_command("printf 'partial\\n'; exit 130"))
+            .expect("signaled abort session should spawn");
+
+    wait_until(Duration::from_secs(2), || {
+        signaled_abort
+            .refresh_status()
+            .expect("refresh should succeed");
+        snapshot_is_terminal(signaled_abort.status())
+    });
+
+    assert_eq!(signaled_abort.status(), SessionStatus::Aborted);
+    assert_eq!(
+        signaled_abort.terminal_outcome(),
+        Some(TerminalOutcome::Aborted)
+    );
+
+    let mut raw_failed = CodexSession::spawn("engineer", shell_command("exit 9"))
+        .expect("raw failure session should spawn");
+
+    wait_until(Duration::from_secs(2), || {
+        raw_failed.refresh_status().expect("refresh should succeed");
+        snapshot_is_terminal(raw_failed.status())
+    });
+
+    assert_eq!(raw_failed.status(), SessionStatus::Failed);
+    assert_eq!(raw_failed.terminal_outcome(), Some(TerminalOutcome::Nok));
 }
 
 #[test]
@@ -149,6 +177,14 @@ fn interactive_command_targets_codex_cli_in_a_specific_worktree() {
 }
 
 #[test]
+fn session_spawn_reports_process_launch_failures() {
+    let error = CodexSession::spawn("engineer", CodexCommand::new("/definitely/missing-binary"))
+        .expect_err("missing binaries should fail to spawn");
+
+    assert!(error.to_string().starts_with("codex runtime I/O error:"));
+}
+
+#[test]
 fn session_snapshot_persists_runtime_details() {
     let mut session = CodexSession::spawn(
         "reviewer",
@@ -169,6 +205,53 @@ fn session_snapshot_persists_runtime_details() {
     assert_eq!(persisted.status, AgentSessionStatus::WaitingForHuman);
     assert_eq!(persisted.output.len(), 2);
     assert_eq!(persisted.output[1].stream, SessionOutputStream::Stdout);
+}
+
+#[test]
+fn session_follow_up_with_newline_resumes_waiting_session() {
+    let mut session = CodexSession::spawn(
+        "reviewer",
+        shell_command(
+            "printf 'waiting for human input\\n'; read line; printf 'echo:%s\\n' \"$line\"",
+        ),
+    )
+    .expect("session should spawn");
+
+    wait_until(Duration::from_secs(2), || {
+        !session
+            .poll_events()
+            .expect("poll should succeed")
+            .is_empty()
+    });
+
+    assert_eq!(session.status(), SessionStatus::WaitingForHuman);
+
+    session
+        .send_follow_up("continue now\n")
+        .expect("follow-up should be accepted");
+
+    assert_eq!(session.status(), SessionStatus::Running);
+
+    wait_until(Duration::from_secs(2), || {
+        let events = session.poll_events().expect("poll should succeed");
+        events.iter().any(|event| event.text == "echo:continue now")
+    });
+}
+
+#[test]
+fn session_follow_up_reports_write_failures_after_process_exit() {
+    let mut session =
+        CodexSession::spawn("reviewer", shell_command("exit 0")).expect("session should spawn");
+
+    wait_until(Duration::from_secs(2), || {
+        session.refresh_status().expect("refresh should succeed");
+        snapshot_is_terminal(session.status())
+    });
+
+    let error = session
+        .send_follow_up("continue now")
+        .expect_err("writing to an exited process should fail");
+    assert!(error.to_string().starts_with("codex runtime I/O error:"));
 }
 
 fn snapshot_is_terminal(status: SessionStatus) -> bool {
