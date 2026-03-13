@@ -81,3 +81,40 @@ jobs:
           else
             echo "No end-to-end tests found."
           fi
+
+  coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            cli -> target
+
+      - name: Run coverage with 100% line threshold
+        working-directory: cli
+        run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info --fail-under-lines 100
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-coverage-lcov
+          path: cli/lcov.info
+
+      - name: Append coverage summary
+        working-directory: cli
+        shell: bash
+        run: |
+          echo "## CLI Coverage" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Enforced line coverage target: 100%" >> "$GITHUB_STEP_SUMMARY"
+          echo "- LCOV artifact: cli-coverage-lcov" >> "$GITHUB_STEP_SUMMARY"

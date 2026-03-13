@@ -987,6 +987,7 @@ Required GitHub workflow automation should include at least:
 
 - a Rust quality workflow that checks linting, formatting, and build correctness
 - a test workflow that runs unit, integration, and end-to-end tests
+- a coverage workflow that reports code coverage and enforces the repository coverage target
 - a release workflow that builds and publishes the executable artifact
 
 ### Database requirements
@@ -1037,10 +1038,11 @@ Representative gate items may include:
 - required GitHub workflows configured and firing for pull requests to `main`
 - Rust lint, format, and build workflows passing
 - unit, integration, and end-to-end test workflows passing
+- code coverage report published and coverage target met
 - architecture constraints reviewed
 - implementation complete
 - tests passing
-- coverage threshold met
+- every executable line covered by tests, unless explicitly waived by repository policy
 - migration review completed by DBA-oriented checks
 - candidate software version validated against the last known database state and required migrations
 - release notes prepared
