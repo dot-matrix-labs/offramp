@@ -1,0 +1,33 @@
+name: Rust unit tests — cli
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "cli/**"
+      - ".github/workflows/rust-unit.yml"
+  pull_request:
+    paths:
+      - "cli/**"
+      - ".github/workflows/rust-unit.yml"
+  workflow_dispatch:
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            cli -> target
+
+      - name: Run unit tests
+        working-directory: cli
+        run: cargo test --lib

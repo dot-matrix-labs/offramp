@@ -1,0 +1,39 @@
+name: Rust end-to-end tests — cli
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "cli/**"
+      - ".github/workflows/rust-e2e.yml"
+  pull_request:
+    paths:
+      - "cli/**"
+      - ".github/workflows/rust-e2e.yml"
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            cli -> target
+
+      - name: Run end-to-end tests if present
+        working-directory: cli
+        shell: bash
+        run: |
+          if find tests/e2e -type f -name '*.rs' 2>/dev/null | grep -q .; then
+            cargo test --test e2e -- --nocapture
+          else
+            echo "No end-to-end tests found."
+          fi

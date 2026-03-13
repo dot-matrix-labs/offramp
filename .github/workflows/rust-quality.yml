@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  quality:
+  format:
     runs-on: ubuntu-latest
 
     steps:
@@ -34,9 +34,41 @@ jobs:
         working-directory: cli
         run: cargo fmt --all -- --check
 
+  clippy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            cli -> target
+
       - name: Run clippy
         working-directory: cli
         run: cargo clippy --all-targets --all-features -- -D warnings
+
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            cli -> target
 
       - name: Build
         working-directory: cli
