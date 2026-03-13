@@ -1,4 +1,5 @@
 pub mod state;
+pub mod template;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BuildInfo<'a> {

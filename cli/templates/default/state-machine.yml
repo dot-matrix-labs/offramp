@@ -1,0 +1,32 @@
+initial_state: new
+states:
+  - new
+  - implementation
+  - waiting-for-human
+  - ready-for-review
+  - blocked
+gate_groups:
+  - id: specification
+    label: Specification
+    gates:
+      - id: pr-canonicalized
+        label: PR canonicalized
+        task: pr-editor
+  - id: implementation
+    label: Implementation
+    gates:
+      - id: blueprint-policy-clean
+        label: Blueprint policy clean
+        task: blueprint-review
+  - id: validation
+    label: Validation
+    gates:
+      - id: rust-quality-green
+        label: Rust quality green
+        task: rust-quality
+  - id: merge-readiness
+    label: Merge Readiness
+    gates:
+      - id: merge-drift-reviewed
+        label: Merge drift reviewed
+        task: main-compatibility
