@@ -11,6 +11,7 @@ use calypso_cli::feature_start::{
     FeatureStartEnvironment, FeatureStartError, FeatureStartRequest, HostFeatureStartEnvironment,
     derive_feature_branch_name, start_feature,
 };
+use calypso_cli::feature_start::run_feature_start;
 use calypso_cli::state::{PullRequestRef, RepositoryState};
 
 static TEMP_DIR_COUNTER: AtomicU64 = AtomicU64::new(0);
@@ -25,6 +26,7 @@ struct FakeEnvironment {
     existing_branches: BTreeSet<String>,
     existing_paths: BTreeSet<PathBuf>,
     worktree_failure: Option<String>,
+    push_failure: Option<String>,
     pr_failure: Option<String>,
     bootstrap_failure: Option<String>,
     actions: RefCell<Vec<String>>,
@@ -40,6 +42,7 @@ impl Default for FakeEnvironment {
             existing_branches: BTreeSet::new(),
             existing_paths: BTreeSet::new(),
             worktree_failure: None,
+            push_failure: None,
             pr_failure: None,
             bootstrap_failure: None,
             actions: RefCell::new(Vec::new()),
@@ -106,7 +109,13 @@ impl FeatureStartEnvironment for FakeEnvironment {
         self.actions
             .borrow_mut()
             .push(format!("push-branch:{branch}:{}", worktree_path.display()));
-        Ok(())
+        match &self.push_failure {
+            Some(message) => Err(FeatureStartError::GitCommandFailed {
+                action: "git push".to_string(),
+                details: message.clone(),
+            }),
+            None => Ok(()),
+        }
     }
 
     fn create_draft_pull_request(
@@ -480,6 +489,368 @@ fn start_feature_creates_real_git_worktree_and_seeded_state() {
             fs::remove_dir_all(repo_root).expect("repo root should be removed");
             fs::remove_dir_all(bare_remote).expect("bare remote should be removed");
             fs::remove_dir_all(worktree_base).expect("worktree base should be removed");
+        },
+    );
+}
+
+#[test]
+fn start_feature_rejects_detached_head() {
+    let environment = FakeEnvironment {
+        current_branch: String::new(),
+        ..FakeEnvironment::default()
+    };
+
+    let error = start_feature(Path::new("."), &sample_request(), &environment)
+        .expect_err("detached HEAD should fail");
+
+    assert!(matches!(error, FeatureStartError::DetachedHead));
+    assert!(environment.actions.borrow().is_empty());
+}
+
+#[test]
+fn start_feature_rejects_missing_main_branch() {
+    let environment = FakeEnvironment {
+        main_exists: false,
+        ..FakeEnvironment::default()
+    };
+
+    let error = start_feature(Path::new("."), &sample_request(), &environment)
+        .expect_err("missing main branch should fail");
+
+    assert!(matches!(error, FeatureStartError::MissingMainBranch));
+    assert!(environment.actions.borrow().is_empty());
+}
+
+#[test]
+fn start_feature_rejects_existing_branch() {
+    let mut existing_branches = BTreeSet::new();
+    existing_branches.insert("feat/cli-feature-start".to_string());
+    let environment = FakeEnvironment {
+        existing_branches,
+        ..FakeEnvironment::default()
+    };
+
+    let error = start_feature(Path::new("."), &sample_request(), &environment)
+        .expect_err("existing branch should fail");
+
+    assert!(matches!(error, FeatureStartError::BranchAlreadyExists(_)));
+    assert!(environment.actions.borrow().is_empty());
+}
+
+#[test]
+fn start_feature_rejects_existing_worktree_path() {
+    let mut existing_paths = BTreeSet::new();
+    existing_paths.insert(PathBuf::from("/worktrees/feat-cli-feature-start"));
+    let environment = FakeEnvironment {
+        existing_paths,
+        ..FakeEnvironment::default()
+    };
+
+    let error = start_feature(Path::new("."), &sample_request(), &environment)
+        .expect_err("existing worktree path should fail");
+
+    assert!(matches!(
+        error,
+        FeatureStartError::WorktreePathExists(_)
+    ));
+    assert!(environment.actions.borrow().is_empty());
+}
+
+#[test]
+fn start_feature_rolls_back_when_push_fails() {
+    let environment = FakeEnvironment {
+        push_failure: Some("permission denied".to_string()),
+        ..FakeEnvironment::default()
+    };
+
+    let error = start_feature(Path::new("."), &sample_request(), &environment)
+        .expect_err("push failure should bubble up");
+
+    assert!(matches!(error, FeatureStartError::GitCommandFailed { .. }));
+    assert_eq!(
+        environment.actions.borrow().as_slice(),
+        &[
+            "create-branch:feat/cli-feature-start".to_string(),
+            "create-worktree:feat/cli-feature-start:/worktrees/feat-cli-feature-start".to_string(),
+            "push-branch:feat/cli-feature-start:/worktrees/feat-cli-feature-start".to_string(),
+            "remove-worktree:/worktrees/feat-cli-feature-start".to_string(),
+            "remove-branch:feat/cli-feature-start".to_string(),
+        ]
+    );
+}
+
+#[test]
+fn start_feature_reports_partial_failure_when_bootstrap_state_fails() {
+    let environment = FakeEnvironment {
+        bootstrap_failure: Some("runtime error".to_string()),
+        ..FakeEnvironment::default()
+    };
+
+    let error = start_feature(Path::new("."), &sample_request(), &environment)
+        .expect_err("bootstrap failure should report recovery");
+
+    match error {
+        FeatureStartError::PartialFailure { message, recovery } => {
+            assert!(message.contains("runtime error"));
+            assert_eq!(recovery.len(), 3);
+            assert!(recovery[0].contains("pull/27"));
+            assert!(recovery[1].contains("--delete"));
+        }
+        other => panic!("expected partial failure, got {other:?}"),
+    }
+
+    assert_eq!(
+        environment.actions.borrow().as_slice(),
+        &[
+            "create-branch:feat/cli-feature-start".to_string(),
+            "create-worktree:feat/cli-feature-start:/worktrees/feat-cli-feature-start".to_string(),
+            "push-branch:feat/cli-feature-start:/worktrees/feat-cli-feature-start".to_string(),
+            "create-pr:feat/cli-feature-start:CLI Feature Start:/worktrees/feat-cli-feature-start"
+                .to_string(),
+            "bootstrap-state:/worktrees/feat-cli-feature-start".to_string(),
+            "remove-worktree:/worktrees/feat-cli-feature-start".to_string(),
+            "remove-branch:feat/cli-feature-start".to_string(),
+        ]
+    );
+}
+
+#[test]
+fn derive_feature_branch_name_rejects_all_non_alphanumeric_input() {
+    let error = derive_feature_branch_name("---").expect_err("blank slug should fail");
+    assert!(matches!(error, FeatureStartError::EmptyFeatureId));
+
+    let error = derive_feature_branch_name("   ").expect_err("blank whitespace should fail");
+    assert!(matches!(error, FeatureStartError::EmptyFeatureId));
+}
+
+#[test]
+fn feature_start_error_display_covers_all_variants() {
+    let io_error = std::io::Error::new(std::io::ErrorKind::NotFound, "not found");
+    assert!(
+        FeatureStartError::Io(io_error)
+            .to_string()
+            .contains("I/O error")
+    );
+
+    let runtime_error = calypso_cli::runtime::RuntimeError::MissingRepositoryName;
+    assert!(
+        FeatureStartError::Runtime(runtime_error)
+            .to_string()
+            .contains("runtime error")
+    );
+
+    assert_eq!(
+        FeatureStartError::EmptyFeatureId.to_string(),
+        "feature identifier must not be empty"
+    );
+
+    assert!(
+        FeatureStartError::DetachedHead
+            .to_string()
+            .contains("detached HEAD")
+    );
+
+    assert!(
+        FeatureStartError::DirtyWorkingTree
+            .to_string()
+            .contains("clean working tree")
+    );
+
+    assert!(
+        FeatureStartError::MissingMainBranch
+            .to_string()
+            .contains("`main` branch")
+    );
+
+    assert!(
+        FeatureStartError::InvalidBaseBranch {
+            expected: "main".to_string(),
+            actual: "feat/other".to_string(),
+        }
+        .to_string()
+        .contains("feat/other")
+    );
+
+    assert!(
+        FeatureStartError::BranchAlreadyExists("feat/foo".to_string())
+            .to_string()
+            .contains("feat/foo")
+    );
+
+    assert!(
+        FeatureStartError::WorktreePathExists(PathBuf::from("/worktrees/foo"))
+            .to_string()
+            .contains("/worktrees/foo")
+    );
+
+    assert!(
+        FeatureStartError::GitCommandFailed {
+            action: "git branch".to_string(),
+            details: "fatal: ref exists".to_string(),
+        }
+        .to_string()
+        .contains("git branch")
+    );
+
+    assert!(
+        FeatureStartError::GithubCommandFailed {
+            action: "gh pr create".to_string(),
+            details: "api down".to_string(),
+        }
+        .to_string()
+        .contains("gh pr create")
+    );
+
+    let partial_no_recovery = FeatureStartError::PartialFailure {
+        message: "something failed".to_string(),
+        recovery: vec![],
+    };
+    assert!(partial_no_recovery.to_string().contains("something failed"));
+
+    let partial_with_recovery = FeatureStartError::PartialFailure {
+        message: "push failed".to_string(),
+        recovery: vec!["delete the branch".to_string()],
+    };
+    let display = partial_with_recovery.to_string();
+    assert!(display.contains("push failed"));
+    assert!(display.contains("delete the branch"));
+}
+
+#[test]
+fn host_environment_rolls_back_branch_and_worktree_when_gh_pr_create_fails() {
+    with_fake_path_commands(
+        &[
+            (
+                "calypso-feature-start-gh-fail",
+                "gh",
+                "#!/bin/sh\nprintf 'gh api unavailable\\n' >&2\nexit 1\n",
+            ),
+            (
+                "calypso-feature-start-git-passthrough",
+                "git",
+                "#!/bin/sh\nif [ \"$1\" = \"push\" ]; then\n  exit 0\nfi\nexec /usr/bin/git \"$@\"\n",
+            ),
+        ],
+        || {
+            let (repo_root, bare_remote) = init_repo_with_remote();
+            let worktree_base = unique_temp_dir("calypso-feature-start-worktrees");
+            let request = FeatureStartRequest {
+                feature_id: "GH Fail Test".to_string(),
+                worktree_base: worktree_base.clone(),
+                title: None,
+                body: None,
+                allow_dirty: false,
+                allow_non_main: false,
+            };
+
+            let error = start_feature(&repo_root, &request, &HostFeatureStartEnvironment)
+                .expect_err("gh failure should propagate as partial failure");
+
+            assert!(matches!(error, FeatureStartError::PartialFailure { .. }));
+
+            let worktree_path = worktree_base.join("feat-gh-fail-test");
+            assert!(
+                !worktree_path.exists(),
+                "worktree should be removed on rollback"
+            );
+
+            let branch_check = Command::new("git")
+                .args(["show-ref", "--verify", "--quiet", "refs/heads/feat/gh-fail-test"])
+                .current_dir(&repo_root)
+                .output()
+                .expect("git show-ref should run");
+            assert!(
+                !branch_check.status.success(),
+                "branch should be removed on rollback"
+            );
+
+            fs::remove_dir_all(repo_root).expect("repo root should be removed");
+            fs::remove_dir_all(bare_remote).expect("bare remote should be removed");
+            if worktree_base.exists() {
+                fs::remove_dir_all(worktree_base).expect("worktree base should be removed");
+            }
+        },
+    );
+}
+
+#[test]
+fn run_feature_start_delegates_to_host_environment() {
+    with_fake_path_commands(
+        &[
+            (
+                "calypso-run-feature-start-gh",
+                "gh",
+                "#!/bin/sh\nif [ \"$1\" = \"pr\" ] && [ \"$2\" = \"create\" ]; then\n  printf 'https://github.com/dot-matrix-labs/calypso/pull/1\\n'\n  exit 0\nfi\nif [ \"$1\" = \"pr\" ] && [ \"$2\" = \"view\" ]; then\n  printf '{\"number\":1,\"url\":\"https://github.com/dot-matrix-labs/calypso/pull/1\"}'\n  exit 0\nfi\nprintf 'unexpected: %s\\n' \"$*\" >&2\nexit 1\n",
+            ),
+            (
+                "calypso-run-feature-start-git",
+                "git",
+                "#!/bin/sh\nif [ \"$1\" = \"push\" ]; then\n  exit 0\nfi\nexec /usr/bin/git \"$@\"\n",
+            ),
+        ],
+        || {
+            let (repo_root, bare_remote) = init_repo_with_remote();
+            let worktree_base = unique_temp_dir("calypso-run-feature-start-worktrees");
+            fs::create_dir_all(&worktree_base).expect("worktree base should exist");
+            let request = FeatureStartRequest {
+                feature_id: "Run Feature Start".to_string(),
+                worktree_base: worktree_base.clone(),
+                title: None,
+                body: None,
+                allow_dirty: false,
+                allow_non_main: false,
+            };
+
+            let result = calypso_cli::feature_start::run_feature_start(&repo_root, &request)
+                .expect("run_feature_start should succeed");
+
+            assert_eq!(result.branch, "feat/run-feature-start");
+            assert!(result.worktree_path.exists());
+            assert!(result.state_path.exists());
+
+            fs::remove_dir_all(repo_root).expect("repo root should be removed");
+            fs::remove_dir_all(bare_remote).expect("bare remote should be removed");
+            fs::remove_dir_all(worktree_base).expect("worktree base should be removed");
+        },
+    );
+}
+
+#[test]
+fn host_environment_creates_worktree_parent_directory_when_absent() {
+    with_fake_path_commands(
+        &[
+            (
+                "calypso-feature-start-mkdir-gh",
+                "gh",
+                "#!/bin/sh\nif [ \"$1\" = \"pr\" ] && [ \"$2\" = \"create\" ]; then\n  printf 'https://github.com/dot-matrix-labs/calypso/pull/5\\n'\n  exit 0\nfi\nif [ \"$1\" = \"pr\" ] && [ \"$2\" = \"view\" ]; then\n  printf '{\"number\":5,\"url\":\"https://github.com/dot-matrix-labs/calypso/pull/5\"}'\n  exit 0\nfi\nprintf 'unexpected: %s\\n' \"$*\" >&2\nexit 1\n",
+            ),
+            (
+                "calypso-feature-start-mkdir-git",
+                "git",
+                "#!/bin/sh\nif [ \"$1\" = \"push\" ]; then\n  exit 0\nfi\nexec /usr/bin/git \"$@\"\n",
+            ),
+        ],
+        || {
+            let (repo_root, bare_remote) = init_repo_with_remote();
+            let base = unique_temp_dir("calypso-feature-start-mkdir");
+            let worktree_base = base.join("nested").join("path");
+            let request = FeatureStartRequest {
+                feature_id: "Mkdir Test".to_string(),
+                worktree_base: worktree_base.clone(),
+                title: None,
+                body: None,
+                allow_dirty: false,
+                allow_non_main: false,
+            };
+
+            let result = start_feature(&repo_root, &request, &HostFeatureStartEnvironment)
+                .expect("feature start should create missing parent directories");
+
+            assert!(result.worktree_path.exists());
+
+            fs::remove_dir_all(repo_root).expect("repo root should be removed");
+            fs::remove_dir_all(bare_remote).expect("bare remote should be removed");
+            fs::remove_dir_all(base).expect("base dir should be removed");
         },
     );
 }
