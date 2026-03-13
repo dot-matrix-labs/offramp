@@ -4,8 +4,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use calypso_cli::state::{
     AgentSession, AgentSessionStatus, AgentTerminalOutcome, BuiltinEvidence, FeatureState, Gate,
-    GateEvaluationError, GateGroup, GateInitializationError, GateStatus, PullRequestRef,
-    RepositoryState, SessionOutput, SessionOutputStream, StateError, WorkflowState,
+    GateEvaluationError, GateGroup, GateGroupRollup, GateGroupStatus, GateInitializationError,
+    GateStatus, PullRequestRef, RepositoryState, SessionOutput, SessionOutputStream, StateError,
+    TransitionError, TransitionFacts, WorkflowState,
 };
 use calypso_cli::template::{TemplateSet, load_embedded_template_set};
 
@@ -66,6 +67,12 @@ fn temp_state_path() -> PathBuf {
         .expect("system time should be after unix epoch")
         .as_nanos();
     std::env::temp_dir().join(format!("calypso-state-{unique}.json"))
+}
+
+fn sample_feature(workflow_state: WorkflowState) -> FeatureState {
+    let mut feature = sample_state().current_feature;
+    feature.workflow_state = workflow_state;
+    feature
 }
 
 #[test]
@@ -503,4 +510,181 @@ fn feature_state_reports_blocking_gate_ids_after_evaluation() {
             "merge-drift-reviewed".to_string(),
         ]
     );
+}
+
+#[test]
+fn feature_state_reports_gate_group_rollups_for_mixed_statuses() {
+    let feature = FeatureState {
+        gate_groups: vec![
+            GateGroup {
+                id: "specification".to_string(),
+                label: "Specification".to_string(),
+                gates: vec![Gate {
+                    id: "pr-canonicalized".to_string(),
+                    label: "PR canonicalized".to_string(),
+                    task: "pr-editor".to_string(),
+                    status: GateStatus::Passing,
+                }],
+            },
+            GateGroup {
+                id: "validation".to_string(),
+                label: "Validation".to_string(),
+                gates: vec![
+                    Gate {
+                        id: "rust-quality-green".to_string(),
+                        label: "Rust quality green".to_string(),
+                        task: "rust-quality".to_string(),
+                        status: GateStatus::Passing,
+                    },
+                    Gate {
+                        id: "qa-signoff".to_string(),
+                        label: "QA signoff".to_string(),
+                        task: "qa-review".to_string(),
+                        status: GateStatus::Manual,
+                    },
+                ],
+            },
+            GateGroup {
+                id: "merge-readiness".to_string(),
+                label: "Merge Readiness".to_string(),
+                gates: vec![
+                    Gate {
+                        id: "merge-drift-reviewed".to_string(),
+                        label: "Merge drift reviewed".to_string(),
+                        task: "main-compatible".to_string(),
+                        status: GateStatus::Failing,
+                    },
+                    Gate {
+                        id: "pr-green".to_string(),
+                        label: "PR green".to_string(),
+                        task: "pr-green".to_string(),
+                        status: GateStatus::Pending,
+                    },
+                ],
+            },
+        ],
+        ..sample_feature(WorkflowState::Implementation)
+    };
+
+    assert_eq!(
+        feature.gate_group_rollups(),
+        vec![
+            GateGroupRollup {
+                id: "specification".to_string(),
+                label: "Specification".to_string(),
+                status: GateGroupStatus::Passing,
+                blocking_gate_ids: vec![],
+            },
+            GateGroupRollup {
+                id: "validation".to_string(),
+                label: "Validation".to_string(),
+                status: GateGroupStatus::Manual,
+                blocking_gate_ids: vec!["qa-signoff".to_string()],
+            },
+            GateGroupRollup {
+                id: "merge-readiness".to_string(),
+                label: "Merge Readiness".to_string(),
+                status: GateGroupStatus::Blocked,
+                blocking_gate_ids: vec!["merge-drift-reviewed".to_string(), "pr-green".to_string(),],
+            },
+        ]
+    );
+}
+
+#[test]
+fn feature_state_reports_available_transitions_for_each_workflow_state() {
+    assert_eq!(
+        sample_feature(WorkflowState::New).available_transitions(&TransitionFacts {
+            feature_binding_complete: true,
+            ..TransitionFacts::default()
+        }),
+        vec![WorkflowState::Implementation]
+    );
+
+    assert_eq!(
+        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
+            waiting_for_human_input: true,
+            ..TransitionFacts::default()
+        }),
+        vec![WorkflowState::WaitingForHuman]
+    );
+
+    assert_eq!(
+        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
+            ready_for_review: true,
+            ..TransitionFacts::default()
+        }),
+        vec![WorkflowState::ReadyForReview]
+    );
+
+    assert_eq!(
+        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
+            blocking_issue_present: true,
+            ..TransitionFacts::default()
+        }),
+        vec![WorkflowState::Blocked]
+    );
+
+    assert_eq!(
+        sample_feature(WorkflowState::WaitingForHuman).available_transitions(&TransitionFacts {
+            human_response_ready: true,
+            ..TransitionFacts::default()
+        }),
+        vec![WorkflowState::Implementation]
+    );
+
+    assert_eq!(
+        sample_feature(WorkflowState::ReadyForReview).available_transitions(&TransitionFacts {
+            review_rework_required: true,
+            ..TransitionFacts::default()
+        }),
+        vec![WorkflowState::Implementation]
+    );
+
+    assert_eq!(
+        sample_feature(WorkflowState::Blocked).available_transitions(&TransitionFacts {
+            blocker_resolved: true,
+            ..TransitionFacts::default()
+        }),
+        vec![WorkflowState::Implementation]
+    );
+}
+
+#[test]
+fn feature_state_rejects_transitions_without_required_facts() {
+    let mut feature = sample_feature(WorkflowState::Implementation);
+
+    let error = feature
+        .transition_to(WorkflowState::ReadyForReview, &TransitionFacts::default())
+        .expect_err("missing readiness facts should reject the transition");
+
+    assert_eq!(
+        error,
+        TransitionError::Rejected {
+            from: WorkflowState::Implementation,
+            to: WorkflowState::ReadyForReview,
+            reason: "feature is not ready for review".to_string(),
+        }
+    );
+    assert_eq!(
+        error.to_string(),
+        "cannot transition from 'implementation' to 'ready-for-review': feature is not ready for review"
+    );
+}
+
+#[test]
+fn feature_state_transitions_when_required_facts_are_present() {
+    let mut feature = sample_feature(WorkflowState::WaitingForHuman);
+
+    feature
+        .transition_to(
+            WorkflowState::Implementation,
+            &TransitionFacts {
+                human_response_ready: true,
+                ..TransitionFacts::default()
+            },
+        )
+        .expect("human response should resume implementation");
+
+    assert_eq!(feature.workflow_state, WorkflowState::Implementation);
 }
