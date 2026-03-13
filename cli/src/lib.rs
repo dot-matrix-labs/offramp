@@ -1,4 +1,5 @@
 pub mod app;
+pub mod codex;
 pub mod doctor;
 pub mod github;
 pub mod runtime;

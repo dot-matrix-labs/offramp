@@ -3,9 +3,9 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use calypso_cli::state::{
-    AgentSession, AgentSessionStatus, BuiltinEvidence, FeatureState, Gate, GateEvaluationError,
-    GateGroup, GateInitializationError, GateStatus, PullRequestRef, RepositoryState, StateError,
-    WorkflowState,
+    AgentSession, AgentSessionStatus, AgentTerminalOutcome, BuiltinEvidence, FeatureState, Gate,
+    GateEvaluationError, GateGroup, GateInitializationError, GateStatus, PullRequestRef,
+    RepositoryState, SessionOutput, SessionOutputStream, StateError, WorkflowState,
 };
 use calypso_cli::template::{TemplateSet, load_embedded_template_set};
 
@@ -47,7 +47,13 @@ fn sample_state() -> RepositoryState {
             active_sessions: vec![AgentSession {
                 role: "engineer".to_string(),
                 session_id: "session_01".to_string(),
+                provider_session_id: Some("codex_01".to_string()),
                 status: AgentSessionStatus::Running,
+                output: vec![SessionOutput {
+                    stream: SessionOutputStream::Stdout,
+                    text: "streamed chunk".to_string(),
+                }],
+                terminal_outcome: None,
             }],
         },
     }
@@ -148,6 +154,26 @@ fn state_enums_serialize_with_expected_kebab_case_variants() {
         serde_json::to_string(&AgentSessionStatus::Completed)
             .expect("session status should serialize"),
         "\"completed\""
+    );
+    assert_eq!(
+        serde_json::to_string(&AgentSessionStatus::Failed)
+            .expect("session status should serialize"),
+        "\"failed\""
+    );
+    assert_eq!(
+        serde_json::to_string(&AgentSessionStatus::Aborted)
+            .expect("session status should serialize"),
+        "\"aborted\""
+    );
+    assert_eq!(
+        serde_json::to_string(&SessionOutputStream::Stderr)
+            .expect("session output stream should serialize"),
+        "\"stderr\""
+    );
+    assert_eq!(
+        serde_json::to_string(&AgentTerminalOutcome::Nok)
+            .expect("session terminal outcome should serialize"),
+        "\"nok\""
     );
 }
 

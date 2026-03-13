@@ -186,7 +186,10 @@ pub enum GateStatus {
 pub struct AgentSession {
     pub role: String,
     pub session_id: String,
+    pub provider_session_id: Option<String>,
     pub status: AgentSessionStatus,
+    pub output: Vec<SessionOutput>,
+    pub terminal_outcome: Option<AgentTerminalOutcome>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -195,6 +198,29 @@ pub enum AgentSessionStatus {
     Running,
     WaitingForHuman,
     Completed,
+    Failed,
+    Aborted,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SessionOutput {
+    pub stream: SessionOutputStream,
+    pub text: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum SessionOutputStream {
+    Stdout,
+    Stderr,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum AgentTerminalOutcome {
+    Ok,
+    Nok,
+    Aborted,
 }
 
 #[derive(Debug)]
