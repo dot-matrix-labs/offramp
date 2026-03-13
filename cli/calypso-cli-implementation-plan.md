@@ -234,9 +234,9 @@ Completed scaffold notes:
 - [ ] Define basic scheduling metadata for safe agent concurrency.
 - [ ] Add tests for state transitions and gate grouping logic.
 
-Immediate next step:
+Next overall step outside PR #19:
 
-- Write failing tests for the first JSON-backed orchestration state types and persistence boundaries before implementing them.
+- Validate the expected local GitHub remote context for the repository before moving deeper into gate-evaluation runtime work.
 
 ## Phase 1.5: YAML methodology template
 
