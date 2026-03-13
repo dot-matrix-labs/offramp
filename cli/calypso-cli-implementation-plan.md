@@ -312,6 +312,12 @@ Completed Codex adapter notes:
 
 ## Phase 6: TUI
 
+Current progress notes:
+
+- A testable operator-surface view module now renders feature context, grouped gates, blocking gates, active sessions, and follow-up input state from persisted workflow data.
+- `calypso-cli status --state <path> --headless` renders the current surface snapshot without coupling tests to terminal control.
+- Interactive terminal event-loop wiring and follow-up submission routing remain incomplete.
+
 - [ ] Build a terminal interface for agent supervision.
 - [ ] Show the current feature unit and active sessions, including session IDs and streamed output.
 - [ ] Show grouped gates for the current feature branch.
