@@ -5,7 +5,9 @@ use calypso_cli::app::{
     parse_pull_request_ref, render_feature_status, resolve_current_pull_request_with_program,
     run_command, run_doctor,
 };
-use calypso_cli::state::{FeatureState, Gate, GateGroup, GateStatus, PullRequestRef, WorkflowState};
+use calypso_cli::state::{
+    FeatureState, Gate, GateGroup, GateStatus, PullRequestRef, WorkflowState,
+};
 
 fn feature_with_gate_statuses(statuses: &[GateStatus]) -> FeatureState {
     FeatureState {
@@ -136,8 +138,7 @@ fn resolve_current_pull_request_parses_successful_output() {
             .expect("fake gh metadata should exist")
             .permissions();
         permissions.set_mode(0o755);
-        std::fs::set_permissions(&gh_path, permissions)
-            .expect("fake gh should be executable");
+        std::fs::set_permissions(&gh_path, permissions).expect("fake gh should be executable");
     }
 
     let pull_request = resolve_current_pull_request_with_program(

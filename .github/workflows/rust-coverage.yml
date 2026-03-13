@@ -42,6 +42,14 @@ jobs:
           from pathlib import Path
 
           summary = json.loads(Path("coverage-summary.json").read_text())
+          for file_summary in summary["data"][0]["files"]:
+              lines = file_summary["summary"]["lines"]
+              if float(lines["percent"]) < 100.0:
+                  print(
+                      f"{file_summary['filename']}: "
+                      f"{lines['covered']}/{lines['count']} lines "
+                      f"({float(lines['percent']):.2f}%)"
+                  )
           lines = summary["data"][0]["totals"]["lines"]
           percent = float(lines["percent"])
           print(f"Total line coverage: {percent:.2f}%")
