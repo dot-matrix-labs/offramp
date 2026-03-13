@@ -91,10 +91,14 @@ impl OperatorSurface {
                     role: session.role.clone(),
                     session_id: session.session_id.clone(),
                     status: session_status_label(session.status.clone()).to_string(),
-                    output: if session.recent_output.is_empty() {
+                    output: if session.output.is_empty() {
                         vec!["No streamed output yet.".to_string()]
                     } else {
-                        session.recent_output.clone()
+                        session
+                            .output
+                            .iter()
+                            .map(|event| event.text.clone())
+                            .collect()
                     },
                 })
                 .collect(),
@@ -367,5 +371,7 @@ fn session_status_label(status: AgentSessionStatus) -> &'static str {
         AgentSessionStatus::Running => "running",
         AgentSessionStatus::WaitingForHuman => "waiting-for-human",
         AgentSessionStatus::Completed => "completed",
+        AgentSessionStatus::Failed => "failed",
+        AgentSessionStatus::Aborted => "aborted",
     }
 }

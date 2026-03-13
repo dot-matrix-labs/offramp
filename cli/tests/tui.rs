@@ -2,7 +2,7 @@ use crossterm::event::{KeyCode, KeyEvent};
 
 use calypso_cli::state::{
     AgentSession, AgentSessionStatus, FeatureState, Gate, GateGroup, GateStatus, PullRequestRef,
-    WorkflowState,
+    SessionOutput, SessionOutputStream, WorkflowState,
 };
 use calypso_cli::tui::{InputBuffer, OperatorSurface, SurfaceEvent, queue_follow_up};
 
@@ -41,12 +41,20 @@ fn sample_feature() -> FeatureState {
         active_sessions: vec![AgentSession {
             role: "engineer".to_string(),
             session_id: "session_01".to_string(),
+            provider_session_id: Some("codex_01".to_string()),
             status: AgentSessionStatus::Running,
-            recent_output: vec![
-                "Inspecting branch state".to_string(),
-                "Waiting on operator guidance".to_string(),
+            output: vec![
+                SessionOutput {
+                    stream: SessionOutputStream::Stdout,
+                    text: "Inspecting branch state".to_string(),
+                },
+                SessionOutput {
+                    stream: SessionOutputStream::Stderr,
+                    text: "Waiting on operator guidance".to_string(),
+                },
             ],
             pending_follow_ups: Vec::new(),
+            terminal_outcome: None,
         }],
     }
 }
@@ -162,7 +170,7 @@ fn operator_surface_renders_empty_and_alternate_status_states() {
     feature.gate_groups[0].gates[0].status = GateStatus::Manual;
     feature.gate_groups[1].gates[0].status = GateStatus::Pending;
     feature.active_sessions[0].status = AgentSessionStatus::Completed;
-    feature.active_sessions[0].recent_output.clear();
+    feature.active_sessions[0].output.clear();
 
     let rendered = OperatorSurface::from_feature_state(&feature).render();
 
@@ -181,4 +189,20 @@ fn operator_surface_renders_empty_and_alternate_status_states() {
     feature.workflow_state = WorkflowState::Blocked;
     let rendered = OperatorSurface::from_feature_state(&feature).render();
     assert!(rendered.contains("Workflow: blocked"));
+
+    feature.active_sessions = vec![AgentSession {
+        role: "reviewer".to_string(),
+        session_id: "session_02".to_string(),
+        provider_session_id: None,
+        status: AgentSessionStatus::Failed,
+        output: Vec::new(),
+        pending_follow_ups: Vec::new(),
+        terminal_outcome: None,
+    }];
+    let rendered = OperatorSurface::from_feature_state(&feature).render();
+    assert!(rendered.contains("reviewer (session_02) [failed]"));
+
+    feature.active_sessions[0].status = AgentSessionStatus::Aborted;
+    let rendered = OperatorSurface::from_feature_state(&feature).render();
+    assert!(rendered.contains("reviewer (session_02) [aborted]"));
 }
