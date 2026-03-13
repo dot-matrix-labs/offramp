@@ -277,8 +277,8 @@ Immediate next step:
 
 - [x] Implement a narrow `doctor` command for prototype prerequisites.
 - [x] Check repository context, `gh` install/auth state, and Codex CLI availability.
-- [ ] Check that required GitHub workflow files are present in the repository.
-- [ ] Emit actionable fixes for missing or invalid local setup.
+- [x] Check that required GitHub workflow files are present in the repository.
+- [x] Emit actionable fixes for missing or invalid local setup.
 
 ## Phase 4.75: Hook and checklist integration
 
@@ -318,7 +318,7 @@ Immediate next step:
 - [ ] The tool can launch Codex CLI, stream output, and display the provider session ID when available.
 - [ ] The user can enter follow-up content from the TUI.
 - [x] The tool can inspect the GitHub status relevant to the current branch or PR.
-- [ ] The `doctor` command can report whether repository context, `gh`, Codex CLI, and required workflow files are ready for the prototype workflow.
+- [x] The `doctor` command can report whether repository context, `gh`, Codex CLI, and required workflow files are ready for the prototype workflow.
 - [ ] The tool can clearly show whether the feature branch is blocked, waiting for human input, or ready for review.
 - [x] `-v` or `--version` prints semantic version, 6-character Git hash, build time, and available Git tag information.
 - [x] `-h` or `--help` exposes version information visibly.
@@ -331,9 +331,10 @@ Immediate next step:
 
 ## Current slice notes
 
-- `doctor` now runs against the host environment and reports `gh`, Codex, auth, and GitHub remote evidence.
+- `doctor` now runs against the host environment and reports `gh`, Codex, auth, GitHub remote, and required workflow-file evidence.
+- `doctor` now prints actionable remediation text for failing dependency, auth, remote, and workflow checks.
 - `status` now resolves the current repo/branch, queries the active PR through `gh` when available, merges doctor/GitHub evidence, and renders grouped gate state.
-- Remaining gaps in this area are doctor workflow-file checks and more actionable remediation output.
+- No remaining gaps are currently known in the doctor/GitHub runtime slice.
 
 ## Recommended build order
 

@@ -11,6 +11,7 @@ struct FakeEnvironment {
     commands: BTreeSet<String>,
     gh_authenticated: bool,
     github_remote_roots: BTreeSet<PathBuf>,
+    missing_workflow_files: BTreeMap<PathBuf, Vec<String>>,
 }
 
 impl FakeEnvironment {
@@ -28,6 +29,14 @@ impl FakeEnvironment {
         self.github_remote_roots.insert(root.to_path_buf());
         self
     }
+
+    fn with_missing_workflow_files(mut self, root: &Path, files: &[&str]) -> Self {
+        self.missing_workflow_files.insert(
+            root.to_path_buf(),
+            files.iter().map(|file| file.to_string()).collect(),
+        );
+        self
+    }
 }
 
 impl DoctorEnvironment for FakeEnvironment {
@@ -41,6 +50,13 @@ impl DoctorEnvironment for FakeEnvironment {
 
     fn has_github_remote(&self, repo_root: &Path) -> bool {
         self.github_remote_roots.contains(repo_root)
+    }
+
+    fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+        self.missing_workflow_files
+            .get(repo_root)
+            .cloned()
+            .unwrap_or_default()
     }
 }
 
@@ -79,6 +95,10 @@ fn doctor_report_collects_expected_check_results() {
         statuses[&DoctorCheckId::GithubRemoteConfigured],
         DoctorStatus::Passing
     );
+    assert_eq!(
+        statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+        DoctorStatus::Passing
+    );
 }
 
 #[test]
@@ -98,6 +118,10 @@ fn doctor_report_marks_missing_dependencies_and_remote_checks_as_failing() {
     assert_eq!(
         statuses[&DoctorCheckId::GithubRemoteConfigured],
         DoctorStatus::Failing
+    );
+    assert_eq!(
+        statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+        DoctorStatus::Passing
     );
 }
 
@@ -130,6 +154,43 @@ fn doctor_report_converts_check_results_into_builtin_evidence() {
         evidence.result_for("builtin.doctor.github_remote_configured"),
         Some(true)
     );
+    assert_eq!(
+        evidence.result_for("builtin.doctor.required_workflows_present"),
+        Some(true)
+    );
+}
+
+#[test]
+fn doctor_report_marks_missing_required_workflows_as_failing() {
+    let repo_root = Path::new("/tmp/calypso");
+    let report = collect_doctor_report(
+        &FakeEnvironment::default()
+            .with_missing_workflow_files(repo_root, &["rust-quality.yml", "rust-unit.yml"]),
+        repo_root,
+    );
+    let statuses = status_map(&report);
+
+    assert_eq!(
+        statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+        DoctorStatus::Failing
+    );
+}
+
+#[test]
+fn doctor_report_render_includes_actionable_fix_for_missing_workflows() {
+    let repo_root = Path::new("/tmp/calypso");
+    let report = collect_doctor_report(
+        &FakeEnvironment::default()
+            .with_missing_workflow_files(repo_root, &["rust-quality.yml", "release-cli.yml"]),
+        repo_root,
+    );
+
+    let rendered = calypso_cli::doctor::render_doctor_report(&report);
+
+    assert!(rendered.contains("required-workflows-present"));
+    assert!(rendered.contains(
+        "Add the missing workflow files under .github/workflows: release-cli.yml, rust-quality.yml"
+    ));
 }
 
 #[test]

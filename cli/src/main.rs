@@ -1,9 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use calypso_cli::doctor::{
-    DoctorCheckId, DoctorReport, HostDoctorEnvironment, collect_doctor_report,
-};
+use calypso_cli::doctor::{HostDoctorEnvironment, collect_doctor_report, render_doctor_report};
 use calypso_cli::github::{HostGithubEnvironment, collect_github_report};
 use calypso_cli::state::{BuiltinEvidence, FeatureState, GateStatus, PullRequestRef};
 use calypso_cli::template::load_embedded_template_set;
@@ -96,27 +94,6 @@ fn run_status(cwd: &Path) -> Result<String, String> {
         pull_request.as_ref(),
         &feature,
     ))
-}
-
-fn render_doctor_report(report: &DoctorReport) -> String {
-    let mut lines = vec!["Doctor checks".to_string()];
-
-    for check in &report.checks {
-        let status = if matches!(check.status, calypso_cli::doctor::DoctorStatus::Passing) {
-            "PASS"
-        } else {
-            "FAIL"
-        };
-        let name = match check.id {
-            DoctorCheckId::GhInstalled => "gh-installed",
-            DoctorCheckId::CodexInstalled => "codex-installed",
-            DoctorCheckId::GhAuthenticated => "gh-authenticated",
-            DoctorCheckId::GithubRemoteConfigured => "github-remote-configured",
-        };
-        lines.push(format!("- [{status}] {name}"));
-    }
-
-    lines.join("\n")
 }
 
 fn render_feature_status(

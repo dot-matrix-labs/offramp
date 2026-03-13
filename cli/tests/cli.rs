@@ -47,6 +47,7 @@ fn doctor_command_prints_local_prerequisite_checks() {
     assert!(stdout.contains("gh-installed"));
     assert!(stdout.contains("codex-installed"));
     assert!(stdout.contains("github-remote-configured"));
+    assert!(stdout.contains("required-workflows-present"));
 }
 
 #[test]
