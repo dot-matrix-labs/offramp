@@ -288,11 +288,17 @@ Immediate next step:
 
 ## Phase 5: Codex CLI adapter
 
-- [ ] Launch Codex CLI as a subprocess.
-- [ ] Capture streamed output.
-- [ ] Track session identifiers when available.
-- [ ] Support follow-up user input into the active session.
-- [ ] Normalize terminal outcomes into Calypso agent status.
+- [x] Launch Codex CLI as a subprocess.
+- [x] Capture streamed output.
+- [x] Track session identifiers when available.
+- [x] Support follow-up user input into the active session.
+- [x] Normalize terminal outcomes into Calypso agent status.
+
+Completed Codex adapter notes:
+
+- `cli/src/codex.rs` now owns subprocess launch, stdout/stderr streaming, provider session-id extraction, follow-up stdin routing, and terminal-status normalization.
+- `cli/src/state.rs` persists provider session IDs, captured output, and normalized terminal outcomes on `AgentSession`.
+- Runtime coverage includes command construction for real Codex CLI execution, output buffering, waiting-for-human detection, persisted snapshot mapping, and failed or aborted subprocess handling.
 
 ## Phase 6: TUI
 
