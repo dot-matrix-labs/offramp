@@ -224,3 +224,45 @@ fn failing_fix(check: &DoctorCheck) -> Option<String> {
         )),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn unique_temp_dir(label: &str) -> std::path::PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time should be after unix epoch")
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("calypso-doctor-{label}-{nanos}"));
+        std::fs::create_dir_all(path.join(".github/workflows"))
+            .expect("workflow dir should be created");
+        path
+    }
+
+    #[test]
+    fn host_environment_reports_missing_required_workflow_files() {
+        let repo_root = unique_temp_dir("missing-workflows");
+        std::fs::write(
+            repo_root.join(".github/workflows/rust-quality.yml"),
+            "name: quality\n",
+        )
+        .expect("workflow file should be written");
+
+        let missing = HostDoctorEnvironment.missing_workflow_files(&repo_root);
+
+        assert_eq!(
+            missing,
+            vec![
+                "release-cli.yml".to_string(),
+                "rust-coverage.yml".to_string(),
+                "rust-e2e.yml".to_string(),
+                "rust-integration.yml".to_string(),
+                "rust-unit.yml".to_string(),
+            ]
+        );
+
+        std::fs::remove_dir_all(repo_root).expect("temp dir should be removed");
+    }
+}

@@ -144,20 +144,65 @@ pub fn parse_pull_request_view_json(json: &str) -> Result<PullRequestStatus, ser
 }
 
 fn fetch_pull_request_status(pull_request: &PullRequestRef) -> Option<PullRequestStatus> {
-    let output = Command::new("gh")
-        .args([
-            "pr",
-            "view",
-            &pull_request.number.to_string(),
-            "--json",
-            "state,mergedAt,statusCheckRollup",
-        ])
-        .output()
-        .ok()?;
+    let mut command = Command::new("gh");
+    command.args([
+        "pr",
+        "view",
+        &pull_request.number.to_string(),
+        "--json",
+        "state,mergedAt,statusCheckRollup",
+    ]);
+
+    fetch_pull_request_status_with_command(&mut command)
+}
+
+fn fetch_pull_request_status_with_command(command: &mut Command) -> Option<PullRequestStatus> {
+    let output = command.output().ok()?;
 
     if !output.status.success() {
         return None;
     }
 
     parse_pull_request_view_json(&String::from_utf8_lossy(&output.stdout)).ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fetch_pull_request_status_returns_none_for_failed_gh_command() {
+        let mut command = Command::new("/bin/sh");
+        command.args(["-c", "exit 1"]);
+
+        assert_eq!(fetch_pull_request_status_with_command(&mut command), None);
+    }
+
+    #[test]
+    fn fetch_pull_request_status_returns_none_when_command_cannot_spawn() {
+        let mut command = Command::new("/definitely/missing-binary");
+
+        assert_eq!(fetch_pull_request_status_with_command(&mut command), None);
+    }
+
+    #[test]
+    fn gh_pr_view_parser_rejects_invalid_json() {
+        assert!(parse_pull_request_view_json("not-json").is_err());
+    }
+
+    #[test]
+    fn fetch_pull_request_status_parses_successful_command_output() {
+        let mut command = Command::new("/bin/sh");
+        command.args([
+            "-c",
+            "printf '{\"state\":\"MERGED\",\"mergedAt\":\"2026-03-13T00:00:00Z\",\"statusCheckRollup\":[{\"status\":\"COMPLETED\",\"conclusion\":\"SUCCESS\"}]}'",
+        ]);
+
+        let status =
+            fetch_pull_request_status_with_command(&mut command).expect("status should parse");
+
+        assert!(status.exists);
+        assert!(status.merged);
+        assert!(status.checks_green);
+    }
 }

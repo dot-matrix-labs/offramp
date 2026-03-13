@@ -1,3 +1,4 @@
+pub mod app;
 pub mod doctor;
 pub mod github;
 pub mod state;
