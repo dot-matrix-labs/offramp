@@ -72,6 +72,8 @@ fn render_feature_status_reports_missing_pr_and_no_blocking_gates() {
     let rendered = render_feature_status(Path::new("/tmp/feature"), "feature", None, &feature);
 
     assert!(rendered.contains("Pull request: missing"));
+    assert!(rendered.contains("PR checklist"));
+    assert!(rendered.contains("- [x] Gate 0"));
     assert!(rendered.contains("Blocking gates: none"));
 }
 

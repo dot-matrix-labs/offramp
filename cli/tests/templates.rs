@@ -122,7 +122,15 @@ fn embedded_default_template_set_loads_and_validates() {
 
     assert!(!template.state_machine.states.is_empty());
     assert!(!template.state_machine.gate_groups.is_empty());
+    assert!(!template.state_machine.policy_gates.is_empty());
     assert!(!template.agents.tasks.is_empty());
+    assert!(
+        template
+            .state_machine
+            .gate_groups
+            .iter()
+            .any(|group| group.id == "policy")
+    );
 }
 
 #[test]
@@ -244,6 +252,93 @@ tasks:
 
     assert_eq!(template.agents.tasks[0].kind, AgentTaskKind::Human);
     assert_eq!(template.agents.tasks[1].kind, AgentTaskKind::Hook);
+}
+
+#[test]
+fn template_validation_rejects_policy_gate_with_unknown_gate_reference() {
+    let state_machine = format!(
+        "{}\npolicy_gates:\n  - gate_id: missing-gate\n    evaluator: builtin.policy.next_prompt_present\n    kind: hook\n    paths:\n      - docs/plans/next-prompt.md\n",
+        VALID_STATE_MACHINE
+    );
+    let agents = format!(
+        "{}  - name: next-prompt-present\n    kind: builtin\n    builtin: builtin.policy.next_prompt_present\n",
+        VALID_AGENTS
+    );
+
+    let error = TemplateSet::from_yaml_strings(&state_machine, &agents, VALID_PROMPTS)
+        .expect_err("unknown policy gate should fail validation");
+
+    assert!(matches!(error, TemplateError::Validation(_)));
+    assert!(error.to_string().contains("unknown gate"));
+}
+
+#[test]
+fn template_validation_rejects_workflow_policy_gate_marked_tag_push_exempt() {
+    let state_machine = r#"
+initial_state: new
+states:
+  - new
+gate_groups:
+  - id: policy
+    label: Policy
+    gates:
+      - id: required-workflows-present
+        label: Required workflows present
+        task: required-workflows-present
+policy_gates:
+  - gate_id: required-workflows-present
+    evaluator: builtin.policy.required_workflows_present
+    kind: workflow
+    skip_on_tag_push: true
+    paths:
+      - .github/workflows/rust-quality.yml
+"#;
+    let agents = r#"
+tasks:
+  - name: required-workflows-present
+    kind: builtin
+    builtin: builtin.policy.required_workflows_present
+"#;
+
+    let error = TemplateSet::from_yaml_strings(state_machine, agents, "prompts: {}\n")
+        .expect_err("tag-push-exempt workflow rule should fail validation");
+
+    assert!(matches!(error, TemplateError::Validation(_)));
+    assert!(error.to_string().contains("tag-push exempt"));
+}
+
+#[test]
+fn template_validation_rejects_stale_plan_rule_without_watched_paths() {
+    let state_machine = r#"
+initial_state: new
+states:
+  - new
+gate_groups:
+  - id: policy
+    label: Policy
+    gates:
+      - id: implementation-plan-fresh
+        label: Implementation plan fresh
+        task: implementation-plan-fresh
+policy_gates:
+  - gate_id: implementation-plan-fresh
+    evaluator: builtin.policy.implementation_plan_fresh
+    kind: hook
+    paths:
+      - docs/plans/implementation-plan.md
+"#;
+    let agents = r#"
+tasks:
+  - name: implementation-plan-fresh
+    kind: builtin
+    builtin: builtin.policy.implementation_plan_fresh
+"#;
+
+    let error = TemplateSet::from_yaml_strings(state_machine, agents, "prompts: {}\n")
+        .expect_err("stale-plan rule without watched paths should fail validation");
+
+    assert!(matches!(error, TemplateError::Validation(_)));
+    assert!(error.to_string().contains("watched path"));
 }
 
 #[test]
