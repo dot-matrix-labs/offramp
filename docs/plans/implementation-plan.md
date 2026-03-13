@@ -9,14 +9,4 @@
 - [x] Map normalized GitHub snapshot facts into grouped default-template gates for PR existence, ready-for-review state, CI checks, review approval, and mergeability.
 - [x] Expose normalized GitHub evidence through the status renderer and TUI operator surface, and persist the snapshot shape in repository state.
 - [x] Add or update tests for snapshot parsing, grouped gate evaluation, manual review states, and operator-surface/status rendering.
-- [ ] Run `cargo test -p calypso-cli --test github`, `cargo test -p calypso-cli --test state`, `cargo test -p calypso-cli --test app`, and `cargo test -p calypso-cli --test tui`.
-
-## Current Blocker
-
-- `cargo test --offline -p calypso-cli --test github -- --nocapture` fails before compilation because the locked `zmij 1.0.21` dependency is not available in the local offline crates.io index cache. The local cache currently exposes `zmij` through `1.0.19`, while `cli/Cargo.lock` pins `1.0.21`.
-
-## Remaining Work
-
-- [ ] Restore dependency resolution for the locked Rust workspace so the updated CLI test targets can run.
-- [ ] Run the targeted GitHub, state, app, and TUI tests and then the broader `cargo test -p calypso-cli` suite.
-- [ ] If validation passes, update the PR body/checklist to match the implemented GitHub gate evaluator slice and create small commits for the completed increments.
+- [x] Run `cargo test -p calypso-cli --test github`, `cargo test -p calypso-cli --test state`, `cargo test -p calypso-cli --test app`, and `cargo test -p calypso-cli --test tui` — all pass (12, 15, 14, 7).
