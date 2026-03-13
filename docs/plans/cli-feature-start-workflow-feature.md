@@ -46,6 +46,17 @@ An operator can start a new feature from `main` with one command and receive:
 - Partial failures surface explicit recovery instructions and do not leave an ambiguous feature record behind.
 - The worktree path recorded in state matches the path actually created on disk.
 
+## Checklist
+
+- [x] Add a `feature-start` CLI command with a caller-configurable worktree base path.
+- [x] Derive a deterministic semantic feature branch from the provided feature identifier.
+- [x] Reject dirty or non-`main` base state by default before mutating git state.
+- [x] Create the feature branch from `main`, create the linked worktree, push the branch, and create a draft pull request.
+- [x] Seed `.calypso/repository-state.json` in the new worktree with the bound feature/branch/worktree/PR state.
+- [x] Roll back local branch/worktree state on worktree, push, PR-create, or bootstrap failures and emit explicit recovery instructions when remote PR state may remain.
+- [x] Add unit and integration coverage for branch naming, base-state validation, rollback behavior, and seeded state reconciliation.
+- [ ] Run the full `cargo test -p calypso-cli` suite in an environment where Rust can write build artifacts without `Invalid cross-device link (os error 18)`.
+
 ## Implementation Notes
 
 - Keep git mutations and state persistence in a single orchestration boundary so cleanup is straightforward.
