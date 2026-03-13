@@ -1,4 +1,5 @@
 pub mod doctor;
+pub mod github;
 pub mod state;
 pub mod template;
 
