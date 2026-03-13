@@ -1,0 +1,14 @@
+**Status**
+
+I inspected PR #26 via `gh`: the body is still description-only, there is no checklist in the PR body, no open review decision, and no recorded status checks. The feature PRD is [docs/plans/cli-doctor-context-feature.md](/tmp/calypso-worktrees/feat-cli-doctor-context/docs/plans/cli-doctor-context-feature.md). The local worktree plan is stale and points at a different PR in [docs/plans/implementation-plan.md](/tmp/calypso-worktrees/feat-cli-doctor-context/docs/plans/implementation-plan.md).
+
+I implemented one missing PRD item test-first: `doctor` now includes an explicit feature/worktree binding check and renders the failure detail plus remediation. The code changes are in [cli/src/doctor.rs](/tmp/calypso-worktrees/feat-cli-doctor-context/cli/src/doctor.rs) and [cli/tests/doctor.rs](/tmp/calypso-worktrees/feat-cli-doctor-context/cli/tests/doctor.rs).
+
+**Blocked**
+
+I could not complete the required validation loop or commit this increment because local Rust dependency resolution is broken in this sandbox:
+`cargo test doctor` failed first on `sccache`, which I bypassed with `RUSTC_WRAPPER=`.
+After that, cargo could not resolve locked crates offline because the local crates index/cache is stale relative to `Cargo.lock` (`zmij 1.0.21`, then `libc 0.2.183`, and likely more). Network access is disabled, so I cannot refresh the index.
+`rustfmt` succeeded and `git diff --check` is clean. The branch is not behind `origin/main` (`HEAD...origin/main = 1 0`), so there is no evident merge conflict with main.
+
+Exit conditions are not met: relevant tests were not runnable, no commit was created, the PR checklist is still absent, and the local implementation plan is still out of date.

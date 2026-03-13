@@ -2,14 +2,8 @@ name: Rust coverage — cli
 
 on:
   push:
-    branches: [main]
-    paths:
-      - "cli/**"
-      - ".github/workflows/rust-coverage.yml"
+    branches: [main, "feat/**"]
   pull_request:
-    paths:
-      - "cli/**"
-      - ".github/workflows/rust-coverage.yml"
   workflow_dispatch:
 
 jobs:

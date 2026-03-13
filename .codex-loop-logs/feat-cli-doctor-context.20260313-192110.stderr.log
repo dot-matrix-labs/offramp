@@ -1,0 +1,4051 @@
+OpenAI Codex v0.114.0 (research preview)
+--------
+workdir: /tmp/calypso-worktrees/feat-cli-doctor-context
+model: gpt-5.4
+provider: openai
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR, /home/lucas/.codex/memories]
+reasoning effort: none
+reasoning summaries: none
+session id: 019ce8a5-461e-7ae1-aa42-1ae3edb72150
+--------
+user
+You are the sole agent assigned to this Calypso feature worktree. This worktree maps to exactly one pull request. Your job is to keep advancing the PR until it is complete, then exit. Do not merge the PR. Do not stop early unless the PR is already closed or merged.
+
+Execute this exact loop in order on every pass:
+
+Step 1: Inspect the pull request.
+- Read the current PR description.
+- Read the current PR checklist.
+- Identify the remaining unchecked items, open review issues, known CI failures, and any stated blockers.
+
+Step 2: Read the planning documents.
+- Find and read the relevant PRD file for this feature.
+- Read the local implementation plan for this worktree.
+- Build a concrete list of remaining tasks from the PR description, PRD, implementation plan, and any failing CI or tests.
+
+Step 3: Resolve validation failures first.
+- If there are known CI failures, failing tests, lint errors, type errors, build errors, or merge conflicts with main, work on those before starting new feature development.
+- Stay on validation and merge-conflict resolution until those problems are gone.
+
+Step 4: If validation is green, continue feature development with TDD.
+- Pick exactly one small incomplete feature or checklist item.
+- Write or update a failing test for that item first.
+- Run the relevant test to confirm it fails.
+- Implement the minimum code needed to make that test pass.
+- Refactor only if needed to keep the code clear and maintainable.
+- Run the relevant tests again after the change.
+
+Step 5: Commit small increments.
+- When a small coherent unit of work is complete and tests for that unit pass, create a small commit.
+- Prefer multiple small commits over large commits.
+- Do not batch unrelated changes into one commit.
+
+Step 6: Update project tracking only after validation passes.
+- When the current increment is implemented and the relevant tests pass, update the PR checklist.
+- Update the local implementation plan to reflect exactly what is now complete and what remains.
+- Keep both documents synchronized with the actual code and test status.
+
+Step 7: Re-evaluate completion.
+- Check whether all planned features are implemented.
+- Check whether all required tests have been written.
+- Check whether all relevant tests now pass.
+- Check whether the PR checklist is fully complete.
+- Check whether the local implementation plan is fully updated.
+- Check whether the branch is free of merge conflicts with main.
+
+If any completion condition is not satisfied, repeat the loop from Step 1.
+
+Exit only when all of the following are true:
+- every planned feature is implemented
+- all required tests exist
+- all relevant tests pass
+- there are no known CI or validation failures
+- the PR checklist is fully updated and complete
+- the local implementation plan is fully updated
+- the branch has no merge conflicts with main
+
+Final rule:
+- Do not merge the PR.
+- If the PR is already merged or closed, exit without making changes.
+- Otherwise continue until all exit conditions are satisfied, then exit.
+mcp startup: no servers
+codex
+I’m starting the PR loop by locating the PR description, checklist, implementation plan, and any feature planning docs in this worktree, then I’ll check validation state before making changes.
+exec
+/bin/bash -lc 'git status --short --branch' in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+## feat/cli-doctor-context...origin/feat/cli-doctor-context
+exec
+/bin/bash -lc "pwd && rg --files -g 'AGENTS.md' -g '*plan*' -g '*PRD*' -g '*prd*' -g '.github/**' -g 'docs/**' -g '*pull*request*' -g '*checklist*'" in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+/tmp/calypso-worktrees/feat-cli-doctor-context
+docs/plans/cli-doctor-context-feature.md
+docs/plans/next-prompt.md
+docs/plans/implementation-plan.md
+cli/AGENTS.md
+cli/calypso-cli-implementation-plan.md
+exec
+/bin/bash -lc "rg -n \"checklist|PRD|implementation plan|doctor|ci|blocked|blocker|review\" . --glob '"'!node_modules'"' --glob '"'!.git'"'" in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+./FAQ.md:4:The Calypso Method exists because software rarely fails due to code quality—it fails because of unclear requirements, chaotic architecture, and hype-driven choices. Human engineers need a disciplined, repeatable process that survives tool churn, framework fads, and AI-assisted coding. Calypso enforces architecture-first design, staged product maturity, and stack consistency, ensuring that every feature is deliberately scoped, every dependency justified, and every AI agent constrained. It allows humans to focus on real problems and decisions while leveraging AI for repetitive work. The result: maintainable, predictable systems that scale from prototype to production without collapsing under complexity or hype.
+./FAQ.md:17:Instead of relying on human conveniences like hot-reloading `vite dev` servers that cause hybrid environment drift, we enforce strict environment parity by deploying exclusively to containers (even for local dev previews). While a strict build-and-deploy cycle in the background for local development might be annoying for human developers, AI agents do not care. A single `Dockerfile` and declarative Kubernetes manifests vastly reduce the amount of toolchain maintenance needed for multiple environments and create sane, exact reproductions across dev, test, and production.
+./FAQ.md:23:Bun is chosen for its significantly faster start times, built-in TypeScript execution (no `ts-node` or compilation steps required for server code), and built-in testing (`bun test`). It drastically reduces the number of toolchain dependencies needed to get a project running.
+./FAQ.md:31:Heavy state libraries encourage putting everything into global state, leading to tight coupling and complex rendering cycles. For 90% of web web applications, React hooks (`useState`, `useContext`) combined with simple prop-drilling or a data-fetching library (like React Query or SWR) are more than sufficient and much easier for AI agents to reason about without hallucinating massive boilerplate.
+./FAQ.md:35:Every `npm` dependency is a liability—it's code you don't control, bringing its own transitive dependencies, potential security flaws, and breaking changes. For trivial utilities (like date formatting or tiny UI components), having an AI agent generate a clean, tree-shaken, tested implementation directly in your codebase takes seconds and removes a permanent supply-chain risk. We explicitly reserve "Buy" (`npm install`) for complex, high-liability features like payment processing (Stripe) or dense specifications (PDF generation).
+./FAQ.md:38:ORM's abstract away SQL performance and add massive generated footprint, for humans. AI engineering agents don't mind this, and can generate performant, type-safe queries directly in your codebase. Less dependencies to manage, and no assumptions of workflows or deployment strategies.
+./index.html:28:      letter-spacing: -0.02em;
+./index.html:105:      <a href="docs/prd.html" class="cta">Read the PRD →</a>
+./docs/plans/cli-doctor-context-feature.md:5:Extend `calypso-cli doctor` so it validates the full local prototype context: required executables, GitHub auth state, remote configuration, feature binding assumptions, and provider readiness for Codex-backed workflows.
+./docs/plans/cli-doctor-context-feature.md:9:The implementation plan makes `doctor` the first-run dependency and repository-context validator, but the current prototype does not yet provide a concise, actionable readiness report for the exact assumptions the product requires. Without that, operators discover missing `gh` auth, invalid remotes, or unavailable provider binaries only after entering feature workflows.
+./docs/plans/cli-doctor-context-feature.md:13:An operator can run `calypso-cli doctor` and get a short pass/fail report that tells them whether this repository is ready for GitHub-backed, Codex-supervised feature work and exactly what to fix if it is not.
+./docs/plans/cli-doctor-context-feature.md:21:- Emit concise remediation messages for every failing check.
+./docs/plans/cli-doctor-context-feature.md:26:- No Kubernetes, secrets, or deployment doctor coverage in this slice.
+./docs/plans/cli-doctor-context-feature.md:31:1. `doctor` must return a stable result model with individual checks, statuses, and remediation text.
+./docs/plans/cli-doctor-context-feature.md:38:- Missing `gh` or missing `codex` produces a failing doctor result with a single clear remediation message per tool.
+./docs/plans/cli-doctor-context-feature.md:39:- An invalid or non-GitHub remote configuration is reported explicitly.
+./docs/plans/cli-doctor-context-feature.md:41:- Existing CLI and doctor tests continue to pass, with new coverage for mixed pass/fail result sets.
+./docs/plans/cli-doctor-context-feature.md:45:- Keep the doctor result model separate from terminal formatting so both TUI and plain CLI surfaces can reuse it.
+./docs/plans/cli-doctor-context-feature.md:55:- doctor summary rendering for pass, partial fail, and total fail cases
+./docs/plans/cli-doctor-context-feature.md:60:- verify repository discovery plus doctor aggregation on a temporary git repository
+codex
+I found the feature-specific plan docs in this worktree. Next I’m reading the PR-facing artifacts and the doctor feature plan, then I’ll run the relevant validation to see if there’s already a failing test or lint/type issue to fix first.
+exec
+/bin/bash -lc "sed -n '1,220p' cli/spec.md" in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+# Calypso CLI Product Specification
+
+## 1. Overview
+
+Calypso CLI is a Rust developer tool for orchestrating AI agents under a strict software-development protocol with deterministic guardrails.
+
+Calypso is not itself the coding agent. It is the process authority that manages how external agents participate in development work, what stage they are allowed to act in, and how work advances through gated approvals.
+
+The core product value is protocol enforcement:
+
+- multi-stage local workflow gates
+- GitHub-based review and approval gates
+- explicit state transitions for features, releases, and deployments
+- explicit visibility into database state and recovery artifacts
+- supervised agent execution with narrow roles and structured outcomes
+- repository bootstrap into the Calypso methodology through generated project scaffolding
+- local repository environment setup and dependency verification
+
+Calypso also integrates with supporting systems and convenience capabilities, including:
+
+exec
+/bin/bash -lc "sed -n '1,220p' docs/plans/cli-doctor-context-feature.md" in /tmp/calypso-worktrees/feat-cli-doctor-contextexec
+/bin/bash -lc "sed -n '1,220p' cli/calypso-cli-implementation-plan.md" in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+# CLI Doctor Context Feature
+
+## Summary
+
+Extend `calypso-cli doctor` so it validates the full local prototype context: required executables, GitHub auth state, remote configuration, feature binding assumptions, and provider readiness for Codex-backed workflows.
+
+## Problem
+
+The implementation plan makes `doctor` the first-run dependency and repository-context validator, but the current prototype does not yet provide a concise, actionable readiness report for the exact assumptions the product requires. Without that, operators discover missing `gh` auth, invalid remotes, or unavailable provider binaries only after entering feature workflows.
+
+## User Outcome
+
+An operator can run `calypso-cli doctor` and get a short pass/fail report that tells them whether this repository is ready for GitHub-backed, Codex-supervised feature work and exactly what to fix if it is not.
+
+## Scope
+
+- Check required binaries for the prototype, at minimum `gh` and `codex`.
+- Validate the repository remote shape expected by GitHub-backed flows.
+- Confirm `gh` authentication and repository access are usable.
+- Confirm the current branch/worktree context can be mapped into a Calypso feature unit.
+ succeeded in 0ms:
+# Calypso CLI Implementation Plan
+
+## Goal
+
+Build a motivating prototype of `calypso-cli` in Rust that proves the core product loop:
+
+- enforce the Calypso state machine locally
+- supervise agent execution through Codex CLI
+- inspect the GitHub status relevant to the current feature branch
+- present agents, sessions, and grouped content gates in a terminal UI
+
+This prototype is intentionally narrow. It does not attempt to implement the full product specification.
+
+The prototype should assume the canonical Calypso information architecture:
+
+- one orchestrator per repository
+- one feature equals one branch, one worktree, and one pull request
+- agent work is scheduled by the orchestrator against those feature units
+
+## Prototype assumptions
+exec
+/bin/bash -lc "sed -n '1,220p' cli/AGENTS.md" in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+# CLI Agent Instructions
+
+## Development mode
+
+- Always use TDD development.
+- Write the test first.
+- Then write the minimal stub needed for the test to compile or run.
+- Then implement the behavior.
+- Push changes and wait for CI jobs to run before treating the work as complete.
+codex
+I have the feature PRD and the local CLI implementation plan. I’m now pulling the actual PR body if `gh` can provide it from this environment, and in parallel I’m reading the current doctor code/tests plus running the focused validation suite to establish the first failing target.
+exec
+/bin/bash -lc 'rg -n "doctor" cli/src cli/tests cli/Cargo.toml' in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+cli/tests/doctor.rs:4:use calypso_cli::doctor::{
+cli/tests/doctor.rs:5:    DoctorCheckId, DoctorEnvironment, DoctorStatus, collect_doctor_report,
+cli/tests/doctor.rs:63:fn status_map(report: &calypso_cli::doctor::DoctorReport) -> BTreeMap<DoctorCheckId, DoctorStatus> {
+cli/tests/doctor.rs:72:fn doctor_report_collects_expected_check_results() {
+cli/tests/doctor.rs:74:    let report = collect_doctor_report(
+cli/tests/doctor.rs:105:fn doctor_report_marks_missing_dependencies_and_remote_checks_as_failing() {
+cli/tests/doctor.rs:106:    let report = collect_doctor_report(&FakeEnvironment::default(), Path::new("/tmp/calypso"));
+cli/tests/doctor.rs:129:fn doctor_report_converts_check_results_into_builtin_evidence() {
+cli/tests/doctor.rs:131:    let report = collect_doctor_report(
+cli/tests/doctor.rs:142:        evidence.result_for("builtin.doctor.gh_installed"),
+cli/tests/doctor.rs:146:        evidence.result_for("builtin.doctor.codex_installed"),
+cli/tests/doctor.rs:150:        evidence.result_for("builtin.doctor.gh_authenticated"),
+cli/tests/doctor.rs:154:        evidence.result_for("builtin.doctor.github_remote_configured"),
+cli/tests/doctor.rs:158:        evidence.result_for("builtin.doctor.required_workflows_present"),
+cli/tests/doctor.rs:164:fn doctor_report_marks_missing_required_workflows_as_failing() {
+cli/tests/doctor.rs:166:    let report = collect_doctor_report(
+cli/tests/doctor.rs:180:fn doctor_report_render_includes_actionable_fix_for_missing_workflows() {
+cli/tests/doctor.rs:182:    let report = collect_doctor_report(
+cli/tests/doctor.rs:188:    let rendered = calypso_cli::doctor::render_doctor_report(&report);
+cli/tests/cli.rs:89:fn doctor_command_prints_local_prerequisite_checks() {
+exec
+/bin/bash -lc 'gh pr view --json number,title,body,mergeStateStatus,reviewDecision,headRefName,baseRefName,statusCheckRollup,isDraft' in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 798ms:
+{"baseRefName":"main","body":"## Summary\n- add a feature proposal for repository and provider readiness checks in `docs/plans/cli-doctor-context-feature.md`\n- define required doctor checks for `gh`, `codex`, remote shape, and feature binding assumptions\n- document concise remediation and result-model expectations\n\n## Test plan\n- unit coverage for binary lookup, remote validation, and doctor summary rendering\n- integration coverage for authenticated and unauthenticated `gh` paths in temporary repos","headRefName":"feat/cli-doctor-context","isDraft":true,"mergeStateStatus":"BLOCKED","number":26,"reviewDecision":"","statusCheckRollup":[],"title":"feat: specify cli doctor context"}
+codex
+The live PR body is still description-only: no checklist, no review comments, no recorded CI checks. The branch is draft and GitHub reports `BLOCKED`, so I’m treating local validation and completion tracking as the source of truth for the next increment.
+exec
+/bin/bash -lc "sed -n '1,260p' cli/tests/doctor.rs" in /tmp/calypso-worktrees/feat-cli-doctor-contextexec
+/bin/bash -lc "sed -n '1,280p' cli/src/doctor.rs" in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+use std::collections::{BTreeMap, BTreeSet};
+use std::path::{Path, PathBuf};
+
+use calypso_cli::doctor::{
+    DoctorCheckId, DoctorEnvironment, DoctorStatus, collect_doctor_report,
+    git_remote_output_has_github_remote,
+};
+
+#[derive(Default)]
+struct FakeEnvironment {
+    commands: BTreeSet<String>,
+    gh_authenticated: bool,
+    github_remote_roots: BTreeSet<PathBuf>,
+    missing_workflow_files: BTreeMap<PathBuf, Vec<String>>,
+}
+
+impl FakeEnvironment {
+    fn with_command(mut self, command: &str) -> Self {
+        self.commands.insert(command.to_string());
+        self
+ succeeded in 0ms:
+use std::path::Path;
+use std::process::Command;
+
+use crate::state::BuiltinEvidence;
+
+const REQUIRED_WORKFLOW_FILES: [&str; 6] = [
+    "rust-quality.yml",
+    "rust-unit.yml",
+    "rust-integration.yml",
+    "rust-e2e.yml",
+    "rust-coverage.yml",
+    "release-cli.yml",
+];
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum DoctorCheckId {
+    GhInstalled,
+    CodexInstalled,
+    GhAuthenticated,
+    GithubRemoteConfigured,
+exec
+/bin/bash -lc "sed -n '1,180p' docs/plans/implementation-plan.md" in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+# Worktree Implementation Plan
+
+## PR: `feat: build codex session runtime`
+
+- [x] Read the PR description, current branch state, and the Phase 5 Codex adapter requirements in [cli/calypso-cli-implementation-plan.md](/Users/lucas/code/ts/calypso-worktrees/cli-codex-session-runtime/cli/calypso-cli-implementation-plan.md).
+- [x] Extend persisted runtime state to capture provider session IDs, streamed output, and normalized terminal outcomes.
+- [x] Implement a Codex runtime that launches subprocesses, streams stdout and stderr, accepts follow-up input, and normalizes terminal states.
+- [x] Add a first-class interactive Codex command constructor for launching against a specific worktree.
+- [x] Cover the runtime with tests for streaming, provider session-id extraction, follow-up input routing, waiting-for-human detection, failed or aborted processes, persisted snapshots, and command construction.
+- [x] Validate the slice with `cargo fmt --check` and `cargo test -p calypso-cli`.
+
+## Remaining Work
+
+- [x] None. This PR slice is complete and ready for review.
+codex
+The current worktree plan is stale and refers to a different PR entirely, so that’s a real tracking gap I’ll need to correct after I finish a validated increment. In the code, the doctor slice is partially implemented already; the biggest functional mismatch against the feature PRD is that there’s still no explicit feature/worktree binding check.
+exec
+/bin/bash -lc "sed -n '1,260p' cli/tests/app.rs" in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+use std::path::Path;
+
+use calypso_cli::app::{
+    gate_status_label, missing_pull_request_evidence, missing_pull_request_ref,
+    parse_pull_request_ref, render_feature_status, resolve_current_branch,
+    resolve_current_pull_request_with_program, resolve_repo_root, run_command, run_doctor,
+};
+use calypso_cli::state::{
+    FeatureState, Gate, GateGroup, GateStatus, PullRequestRef, WorkflowState,
+};
+
+fn feature_with_gate_statuses(statuses: &[GateStatus]) -> FeatureState {
+    FeatureState {
+        feature_id: "feature".to_string(),
+        branch: "feature".to_string(),
+        worktree_path: "/tmp/feature".to_string(),
+        pull_request: PullRequestRef {
+            number: 7,
+            url: "https://github.com/dot-matrix-labs/calypso/pull/7".to_string(),
+        },
+exec
+/bin/bash -lc "sed -n '1,240p' cli/src/app.rs" in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+use std::path::{Path, PathBuf};
+use std::process::Command;
+
+use serde::Deserialize;
+
+use crate::doctor::{HostDoctorEnvironment, collect_doctor_report, render_doctor_report};
+use crate::github::{HostGithubEnvironment, collect_github_report};
+use crate::state::{BuiltinEvidence, FeatureState, GateStatus, PullRequestRef};
+use crate::template::load_embedded_template_set;
+
+pub fn run_doctor(cwd: &Path) -> String {
+    let repo_root = resolve_repo_root(cwd).unwrap_or_else(|| cwd.to_path_buf());
+    let report = collect_doctor_report(&HostDoctorEnvironment, &repo_root);
+
+    render_doctor_report(&report)
+}
+
+pub fn run_status(cwd: &Path) -> Result<String, String> {
+    let repo_root =
+        resolve_repo_root(cwd).ok_or_else(|| "not inside a git repository".to_string())?;
+exec
+/bin/bash -lc 'rg -n "pull request|feature unit|worktree|resolve_current_pull_request|repo_root|branch" cli/src cli/tests' in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+cli/tests/doctor.rs:51:    fn has_github_remote(&self, repo_root: &Path) -> bool {
+cli/tests/doctor.rs:52:        self.github_remote_roots.contains(repo_root)
+cli/tests/doctor.rs:55:    fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+cli/tests/doctor.rs:57:            .get(repo_root)
+cli/tests/doctor.rs:73:    let repo_root = Path::new("/tmp/calypso");
+cli/tests/doctor.rs:79:            .with_github_remote_root(repo_root),
+cli/tests/doctor.rs:80:        repo_root,
+cli/tests/doctor.rs:130:    let repo_root = Path::new("/tmp/calypso");
+cli/tests/doctor.rs:135:            .with_github_remote_root(repo_root),
+cli/tests/doctor.rs:136:        repo_root,
+cli/tests/doctor.rs:165:    let repo_root = Path::new("/tmp/calypso");
+cli/tests/doctor.rs:168:            .with_missing_workflow_files(repo_root, &["rust-quality.yml", "rust-unit.yml"]),
+cli/tests/doctor.rs:169:        repo_root,
+cli/tests/doctor.rs:181:    let repo_root = Path::new("/tmp/calypso");
+cli/tests/doctor.rs:184:            .with_missing_workflow_files(repo_root, &["rust-quality.yml", "release-cli.yml"]),
+cli/tests/doctor.rs:185:        repo_root,
+cli/tests/state.rs:18:            branch: "feat/123-token-refresh".to_string(),
+cli/tests/state.rs:19:            worktree_path: "/worktrees/feat-123-token-refresh".to_string(),
+cli/tests/state.rs:200:        "/worktrees/feat-123-token-refresh",
+cli/tests/state.rs:253:        "/worktrees/feat-123-token-refresh",
+exec
+/bin/bash -lc 'RUSTC_WRAPPER= cargo test doctor' in /tmp/calypso-worktrees/feat-cli-doctor-context/clicodex
+`cargo` is trying to reach crates.io in this sandbox, so I’m switching to offline validation and sticking to the dependencies already locked in the workspace. I’ve also confirmed there’s existing repository-context code I can reuse for the missing feature-binding doctor check rather than duplicating git/PR discovery logic.
+exec
+/bin/bash -lc "sed -n '1,260p' cli/src/runtime.rs" in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+use std::fmt;
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+
+use serde::Deserialize;
+
+use crate::state::{
+    FeatureState, GateInitializationError, PullRequestRef, RepositoryState, StateError,
+};
+use crate::template::{TemplateError, TemplateSet, resolve_template_set_for_path};
+
+const STATE_DIRECTORY: &str = ".calypso";
+const STATE_FILE_NAME: &str = "repository-state.json";
+const STATE_VERSION: u32 = 1;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FeatureBinding {
+    pub feature_id: String,
+    pub branch: String,
+exec
+/bin/bash -lc "sed -n '180,260p' cli/tests/runtime.rs" in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+
+        assert!(matches!(error, RuntimeError::PullRequestNotFound(_)));
+        assert!(error.to_string().contains("feat/runtime-context"));
+    });
+}
+
+#[test]
+fn repository_context_discovers_git_root_branch_and_feature_binding() {
+    let repo_root = init_repo("feat/runtime-context");
+    let nested_dir = repo_root.join("src");
+    fs::create_dir_all(&nested_dir).expect("nested dir should be created");
+    let canonical_repo_root = repo_root
+        .canonicalize()
+        .expect("temp repo root should canonicalize");
+
+    let context = discover_repository_context(
+        &nested_dir,
+        &FakePullRequestResolver {
+            pull_request: sample_pull_request(),
+        },
+exec
+/bin/bash -lc 'RUSTC_WRAPPER= cargo test doctor --offline' in /tmp/calypso-worktrees/feat-cli-doctor-context/cli exited 101 in 5ms:
+error: failed to select a version for the requirement `zmij = "^1.0"` (locked to 1.0.21)
+candidate versions found which didn't match: 1.0.19, 1.0.17, 1.0.16, ...
+location searched: crates.io index
+required by package `serde_json v1.0.149`
+    ... which satisfies dependency `serde_json = "^1.0"` (locked to 1.0.149) of package `calypso-cli v0.1.0 (/tmp/calypso-worktrees/feat-cli-doctor-context/cli)`
+As a reminder, you're using offline mode (--offline) which can sometimes cause surprising resolution failures, if this error is too confusing you may wish to retry without `--offline`.
+ exited 101 in 11.39s:
+    Updating crates.io index
+warning: spurious network error (3 tries remaining): [6] Could not resolve hostname (Could not resolve host: index.crates.io)
+warning: spurious network error (2 tries remaining): [6] Could not resolve hostname (Could not resolve host: index.crates.io)
+warning: spurious network error (1 try remaining): [6] Could not resolve hostname (Could not resolve host: index.crates.io)
+error: failed to get `libc` as a dependency of package `crossterm v0.26.1`
+    ... which satisfies dependency `crossterm = "^0.26.1"` (locked to 0.26.1) of package `calypso-cli v0.1.0 (/tmp/calypso-worktrees/feat-cli-doctor-context/cli)`
+
+Caused by:
+  download of config.json failed
+
+Caused by:
+  failed to download from `https://index.crates.io/config.json`
+
+Caused by:
+  [6] Could not resolve hostname (Could not resolve host: index.crates.io)
+codex
+The Rust test runner is blocked by this environment’s dependency index state, not by the feature code itself: offline resolution fails because the cached crates.io index doesn’t have the lockfile’s `zmij 1.0.21` entry, and network access is disabled. I’m still proceeding with test-first edits against the existing doctor/runtime APIs, then I’ll report validation as blocked by the sandboxed dependency resolver unless I can find a local workaround.
+exec
+/bin/bash -lc "sed -n '1,220p' cli/src/lib.rs" in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+pub mod app;
+pub mod codex;
+pub mod doctor;
+pub mod github;
+pub mod runtime;
+pub mod state;
+pub mod template;
+pub mod tui;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BuildInfo<'a> {
+    pub version: &'a str,
+    pub git_hash: &'a str,
+    pub build_time: &'a str,
+    pub git_tags: &'a str,
+}
+
+pub fn render_version(info: BuildInfo<'_>) -> String {
+    format!(
+        "calypso-cli {}\nGit hash: {}\nBuild time: {}\nGit tags: {}",
+exec
+/bin/bash -lc 'ls -la /home/lucas/.cargo/registry/index /home/lucas/.cargo/registry/cache /home/lucas/.cargo/registry/src' in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+/home/lucas/.cargo/registry/cache:
+total 148
+drwxrwxr-x 3 lucas lucas   4096 Jan  8 23:29 .
+drwxrwxr-x 5 lucas lucas   4096 Jan  8 23:29 ..
+drwxrwxr-x 2 lucas lucas 139264 Feb  6 20:41 index.crates.io-1949cf8c6b5b557f
+
+/home/lucas/.cargo/registry/index:
+total 12
+drwxrwxr-x 3 lucas lucas 4096 Jan  8 23:27 .
+drwxrwxr-x 5 lucas lucas 4096 Jan  8 23:29 ..
+drwxrwxr-x 3 lucas lucas 4096 Jan  8 23:27 index.crates.io-1949cf8c6b5b557f
+
+/home/lucas/.cargo/registry/src:
+total 124
+drwxrwxr-x    3 lucas lucas   4096 Jan  8 23:29 .
+drwxrwxr-x    5 lucas lucas   4096 Jan  8 23:29 ..
+drwxrwxr-x 2805 lucas lucas 114688 Feb  6 20:41 index.crates.io-1949cf8c6b5b557f
+exec
+/bin/bash -lc "sed -n '1,220p' cli/Cargo.toml" in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+[package]
+name = "calypso-cli"
+version = "0.1.0"
+edition = "2024"
+build = "build.rs"
+
+[dependencies]
+crossterm = "0.26.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+
+[lib]
+name = "calypso_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "calypso-cli"
+path = "src/main.rs"
+
+exec
+/bin/bash -lc 'rg -n "zmij|serde_json" cli/Cargo.lock' in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+23: "serde_json",
+228:name = "serde_json"
+237: "zmij",
+423:name = "zmij"
+exec
+/bin/bash -lc "rg -n '\"vers\":\"1.0.21\"|\"name\":\"zmij\"' /home/lucas/.cargo/registry/index/index.crates.io-1949cf8c6b5b557f -g 'zmij' -g '*mi/j*'" in /tmp/calypso-worktrees/feat-cli-doctor-context exited 1 in 0ms:
+
+exec
+/bin/bash -lc "find /home/lucas/.cargo/registry/index/index.crates.io-1949cf8c6b5b557f -path '*zmij*' -o -path '*/zm/ij' | head" in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+/home/lucas/.cargo/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/zm/ij
+/home/lucas/.cargo/registry/index/index.crates.io-1949cf8c6b5b557f/.cache/zm/ij/zmij
+exec
+/bin/bash -lc "ls /home/lucas/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f | rg '"'^zmij-'"'" in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+zmij-1.0.12.crate
+zmij-1.0.13.crate
+zmij-1.0.14.crate
+zmij-1.0.15.crate
+zmij-1.0.16.crate
+zmij-1.0.17.crate
+zmij-1.0.19.crate
+codex
+I found the concrete resolver issue: the local cargo cache has `zmij` only up to `1.0.19`, while this lockfile pins `serde_json 1.0.149` which wants `zmij 1.0.21`. I’m checking whether the workspace already has a compatible cached `serde_json` version; if so, I can restore testability locally without touching the feature scope itself.
+exec
+/bin/bash -lc "ls /home/lucas/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f | rg '"'^serde_json-'"' | tail -n 20" in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+serde_json-1.0.114.crate
+serde_json-1.0.128.crate
+serde_json-1.0.132.crate
+serde_json-1.0.133.crate
+serde_json-1.0.146.crate
+serde_json-1.0.149.crate
+serde_json-1.0.64.crate
+exec
+/bin/bash -lc "sed -n '220,260p' cli/Cargo.lock" in /tmp/calypso-worktrees/feat-cli-doctor-contextexec
+/bin/bash -lc "python - <<'PY'
+import os, tarfile, glob
+for path in sorted(glob.glob('/home/lucas/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/serde_json-*.crate'))[-10:]:
+    print(os.path.basename(path))
+PY" in /tmp/calypso-worktrees/feat-cli-doctor-context exited 127 in 0ms:
+/bin/bash: line 1: python: command not found
+ succeeded in 0ms:
+checksum = "d540f220d3187173da220f885ab66608367b6574e925011a9353e4badda91d79"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "serde_json"
+version = "1.0.149"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "83fc039473c5595ace860d8c4fafa220ff474b3fc6bfdb4293327f1a37e94d86"
+dependencies = [
+ "itoa",
+ "memchr",
+ "serde",
+ "serde_core",
+ "zmij",
+]
+
+exec
+/bin/bash -lc "tar -xOf /home/lucas/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/serde_json-1.0.146.crate serde_json-1.0.146/Cargo.toml | sed -n '1,220p'" in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+# THIS FILE IS AUTOMATICALLY GENERATED BY CARGO
+#
+# When uploading crates to the registry Cargo will automatically
+# "normalize" Cargo.toml files for maximal compatibility
+# with all versions of Cargo and also rewrite `path` dependencies
+# to registry (e.g., crates.io) dependencies.
+#
+# If you are reading this file be aware that the original Cargo.toml
+# will likely look very different (and much more reasonable).
+# See Cargo.toml.orig for the original contents.
+
+[package]
+edition = "2021"
+rust-version = "1.68"
+name = "serde_json"
+version = "1.0.146"
+authors = [
+    "Erick Tryzelaar <erick.tryzelaar@gmail.com>",
+    "David Tolnay <dtolnay@gmail.com>",
+]
+exec
+/bin/bash -lc "tar -xOf /home/lucas/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/serde_json-1.0.149.crate serde_json-1.0.149/Cargo.toml | sed -n '1,220p'" in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+# THIS FILE IS AUTOMATICALLY GENERATED BY CARGO
+#
+# When uploading crates to the registry Cargo will automatically
+# "normalize" Cargo.toml files for maximal compatibility
+# with all versions of Cargo and also rewrite `path` dependencies
+# to registry (e.g., crates.io) dependencies.
+#
+# If you are reading this file be aware that the original Cargo.toml
+# will likely look very different (and much more reasonable).
+# See Cargo.toml.orig for the original contents.
+
+[package]
+edition = "2021"
+rust-version = "1.68"
+name = "serde_json"
+version = "1.0.149"
+authors = [
+    "Erick Tryzelaar <erick.tryzelaar@gmail.com>",
+    "David Tolnay <dtolnay@gmail.com>",
+]
+exec
+/bin/bash -lc "rg -n 'name = \"zmij\"|version = \"1.0.19\"|version = \"1.0.21\"' cli/Cargo.lock" in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+423:name = "zmij"
+424:version = "1.0.21"
+codex
+I’ve isolated one concrete incomplete checklist item for this increment: the missing feature/worktree binding doctor check. I’m adding tests for that behavior first in the doctor test suite, then I’ll implement the minimal doctor-model changes to make those tests pass.
+file update
+M /tmp/calypso-worktrees/feat-cli-doctor-context/cli/tests/doctor.rs
+@@ -13,2 +13,4 @@
+     github_remote_roots: BTreeSet<PathBuf>,
++    feature_binding_roots: BTreeSet<PathBuf>,
++    feature_binding_errors: BTreeMap<PathBuf, String>,
+     missing_workflow_files: BTreeMap<PathBuf, Vec<String>>,
+@@ -32,2 +34,13 @@
+ 
++    fn with_feature_binding_root(mut self, root: &Path) -> Self {
++        self.feature_binding_roots.insert(root.to_path_buf());
++        self
++    }
++
++    fn with_feature_binding_error(mut self, root: &Path, detail: &str) -> Self {
++        self.feature_binding_errors
++            .insert(root.to_path_buf(), detail.to_string());
++        self
++    }
++
+     fn with_missing_workflow_files(mut self, root: &Path, files: &[&str]) -> Self {
+@@ -54,2 +67,14 @@
+ 
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String> {
++        if self.feature_binding_roots.contains(repo_root) {
++            return Ok(());
++        }
++
++        Err(self
++            .feature_binding_errors
++            .get(repo_root)
++            .cloned()
++            .unwrap_or_else(|| "branch is not mapped to an open pull request".to_string()))
++    }
++
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+@@ -79,2 +104,3 @@
+             .with_github_remote_root(repo_root),
++            .with_feature_binding_root(repo_root),
+         repo_root,
+@@ -98,2 +124,6 @@
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Passing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+@@ -122,2 +152,6 @@
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+@@ -134,3 +168,4 @@
+             .with_gh_authenticated(true)
+-            .with_github_remote_root(repo_root),
++            .with_github_remote_root(repo_root)
++            .with_feature_binding_root(repo_root),
+         repo_root,
+@@ -157,2 +192,6 @@
+     assert_eq!(
++        evidence.result_for("builtin.doctor.feature_binding_resolved"),
++        Some(true)
++    );
++    assert_eq!(
+         evidence.result_for("builtin.doctor.required_workflows_present"),
+@@ -163,2 +202,20 @@
+ #[test]
++fn doctor_report_marks_missing_feature_binding_as_failing() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++    let statuses = status_map(&report);
++
++    assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++}
++
++#[test]
+ fn doctor_report_marks_missing_required_workflows_as_failing() {
+@@ -196,2 +253,22 @@
+ #[test]
++fn doctor_report_render_includes_actionable_fix_for_missing_feature_binding() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++
++    let rendered = calypso_cli::doctor::render_doctor_report(&report);
++
++    assert!(rendered.contains("feature-binding-resolved"));
++    assert!(rendered.contains(
++        "Ensure this worktree is on a feature branch with an open GitHub pull request."
++    ));
++    assert!(rendered.contains("current branch is not mapped to an open pull request"));
++}
++
++#[test]
+ fn git_remote_parser_detects_github_https_and_ssh_remotes() {
+apply_patch(auto_approved=true) exited 0 in 13ms:
+Success. Updated the following files:
+M /tmp/calypso-worktrees/feat-cli-doctor-context/cli/tests/doctor.rs
+file update:
+diff --git a/cli/tests/doctor.rs b/cli/tests/doctor.rs
+index 8041ddaf0abe3ab2fbfbc4c9380bb23c541e47f7..25e13ea7d2c6424571a5e9a87a5331b4f8c69201
+--- a/cli/tests/doctor.rs
++++ b/cli/tests/doctor.rs
+@@ -11,6 +11,8 @@
+     commands: BTreeSet<String>,
+     gh_authenticated: bool,
+     github_remote_roots: BTreeSet<PathBuf>,
++    feature_binding_roots: BTreeSet<PathBuf>,
++    feature_binding_errors: BTreeMap<PathBuf, String>,
+     missing_workflow_files: BTreeMap<PathBuf, Vec<String>>,
+ }
+ 
+@@ -30,6 +32,17 @@
+         self
+     }
+ 
++    fn with_feature_binding_root(mut self, root: &Path) -> Self {
++        self.feature_binding_roots.insert(root.to_path_buf());
++        self
++    }
++
++    fn with_feature_binding_error(mut self, root: &Path, detail: &str) -> Self {
++        self.feature_binding_errors
++            .insert(root.to_path_buf(), detail.to_string());
++        self
++    }
++
+     fn with_missing_workflow_files(mut self, root: &Path, files: &[&str]) -> Self {
+         self.missing_workflow_files.insert(
+             root.to_path_buf(),
+@@ -52,6 +65,18 @@
+         self.github_remote_roots.contains(repo_root)
+     }
+ 
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String> {
++        if self.feature_binding_roots.contains(repo_root) {
++            return Ok(());
++        }
++
++        Err(self
++            .feature_binding_errors
++            .get(repo_root)
++            .cloned()
++            .unwrap_or_else(|| "branch is not mapped to an open pull request".to_string()))
++    }
++
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+         self.missing_workflow_files
+             .get(repo_root)
+@@ -77,6 +102,7 @@
+             .with_command("codex")
+             .with_gh_authenticated(true)
+             .with_github_remote_root(repo_root),
++            .with_feature_binding_root(repo_root),
+         repo_root,
+     );
+ 
+@@ -96,6 +122,10 @@
+         DoctorStatus::Passing
+     );
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Passing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+         DoctorStatus::Passing
+     );
+@@ -120,6 +150,10 @@
+         DoctorStatus::Failing
+     );
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+         DoctorStatus::Passing
+     );
+@@ -132,7 +166,8 @@
+         &FakeEnvironment::default()
+             .with_command("gh")
+             .with_gh_authenticated(true)
+-            .with_github_remote_root(repo_root),
++            .with_github_remote_root(repo_root)
++            .with_feature_binding_root(repo_root),
+         repo_root,
+     );
+ 
+@@ -155,12 +190,34 @@
+         Some(true)
+     );
+     assert_eq!(
++        evidence.result_for("builtin.doctor.feature_binding_resolved"),
++        Some(true)
++    );
++    assert_eq!(
+         evidence.result_for("builtin.doctor.required_workflows_present"),
+         Some(true)
+     );
+ }
+ 
+ #[test]
++fn doctor_report_marks_missing_feature_binding_as_failing() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++    let statuses = status_map(&report);
++
++    assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++}
++
++#[test]
+ fn doctor_report_marks_missing_required_workflows_as_failing() {
+     let repo_root = Path::new("/tmp/calypso");
+     let report = collect_doctor_report(
+@@ -194,6 +251,26 @@
+ }
+ 
+ #[test]
++fn doctor_report_render_includes_actionable_fix_for_missing_feature_binding() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++
++    let rendered = calypso_cli::doctor::render_doctor_report(&report);
++
++    assert!(rendered.contains("feature-binding-resolved"));
++    assert!(rendered.contains(
++        "Ensure this worktree is on a feature branch with an open GitHub pull request."
++    ));
++    assert!(rendered.contains("current branch is not mapped to an open pull request"));
++}
++
++#[test]
+ fn git_remote_parser_detects_github_https_and_ssh_remotes() {
+     assert!(git_remote_output_has_github_remote(
+         "origin\thttps://github.com/acme/calypso.git (fetch)\n"
+
+file update:
+diff --git a/cli/tests/doctor.rs b/cli/tests/doctor.rs
+index 8041ddaf0abe3ab2fbfbc4c9380bb23c541e47f7..25e13ea7d2c6424571a5e9a87a5331b4f8c69201
+--- a/cli/tests/doctor.rs
++++ b/cli/tests/doctor.rs
+@@ -11,6 +11,8 @@
+     commands: BTreeSet<String>,
+     gh_authenticated: bool,
+     github_remote_roots: BTreeSet<PathBuf>,
++    feature_binding_roots: BTreeSet<PathBuf>,
++    feature_binding_errors: BTreeMap<PathBuf, String>,
+     missing_workflow_files: BTreeMap<PathBuf, Vec<String>>,
+ }
+ 
+@@ -30,6 +32,17 @@
+         self
+     }
+ 
++    fn with_feature_binding_root(mut self, root: &Path) -> Self {
++        self.feature_binding_roots.insert(root.to_path_buf());
++        self
++    }
++
++    fn with_feature_binding_error(mut self, root: &Path, detail: &str) -> Self {
++        self.feature_binding_errors
++            .insert(root.to_path_buf(), detail.to_string());
++        self
++    }
++
+     fn with_missing_workflow_files(mut self, root: &Path, files: &[&str]) -> Self {
+         self.missing_workflow_files.insert(
+             root.to_path_buf(),
+@@ -52,6 +65,18 @@
+         self.github_remote_roots.contains(repo_root)
+     }
+ 
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String> {
++        if self.feature_binding_roots.contains(repo_root) {
++            return Ok(());
++        }
++
++        Err(self
++            .feature_binding_errors
++            .get(repo_root)
++            .cloned()
++            .unwrap_or_else(|| "branch is not mapped to an open pull request".to_string()))
++    }
++
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+         self.missing_workflow_files
+             .get(repo_root)
+@@ -77,6 +102,7 @@
+             .with_command("codex")
+             .with_gh_authenticated(true)
+             .with_github_remote_root(repo_root),
++            .with_feature_binding_root(repo_root),
+         repo_root,
+     );
+ 
+@@ -96,6 +122,10 @@
+         DoctorStatus::Passing
+     );
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Passing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+         DoctorStatus::Passing
+     );
+@@ -120,6 +150,10 @@
+         DoctorStatus::Failing
+     );
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+         DoctorStatus::Passing
+     );
+@@ -132,7 +166,8 @@
+         &FakeEnvironment::default()
+             .with_command("gh")
+             .with_gh_authenticated(true)
+-            .with_github_remote_root(repo_root),
++            .with_github_remote_root(repo_root)
++            .with_feature_binding_root(repo_root),
+         repo_root,
+     );
+ 
+@@ -155,12 +190,34 @@
+         Some(true)
+     );
+     assert_eq!(
++        evidence.result_for("builtin.doctor.feature_binding_resolved"),
++        Some(true)
++    );
++    assert_eq!(
+         evidence.result_for("builtin.doctor.required_workflows_present"),
+         Some(true)
+     );
+ }
+ 
+ #[test]
++fn doctor_report_marks_missing_feature_binding_as_failing() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++    let statuses = status_map(&report);
++
++    assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++}
++
++#[test]
+ fn doctor_report_marks_missing_required_workflows_as_failing() {
+     let repo_root = Path::new("/tmp/calypso");
+     let report = collect_doctor_report(
+@@ -194,6 +251,26 @@
+ }
+ 
+ #[test]
++fn doctor_report_render_includes_actionable_fix_for_missing_feature_binding() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++
++    let rendered = calypso_cli::doctor::render_doctor_report(&report);
++
++    assert!(rendered.contains("feature-binding-resolved"));
++    assert!(rendered.contains(
++        "Ensure this worktree is on a feature branch with an open GitHub pull request."
++    ));
++    assert!(rendered.contains("current branch is not mapped to an open pull request"));
++}
++
++#[test]
+ fn git_remote_parser_detects_github_https_and_ssh_remotes() {
+     assert!(git_remote_output_has_github_remote(
+         "origin\thttps://github.com/acme/calypso.git (fetch)\n"
+
+codex
+The tests are in place. I’m now wiring the doctor result model to carry a feature-binding check and surface failure details in the rendered output so the new assertions are actually satisfiable.
+file update
+M /tmp/calypso-worktrees/feat-cli-doctor-context/cli/src/doctor.rs
+@@ -3,2 +3,3 @@
+ 
++use crate::runtime::discover_current_repository_context;
+ use crate::state::BuiltinEvidence;
+@@ -20,2 +21,3 @@
+     GithubRemoteConfigured,
++    FeatureBindingResolved,
+     RequiredWorkflowFilesPresent,
+@@ -30,2 +32,3 @@
+             DoctorCheckId::GithubRemoteConfigured => "builtin.doctor.github_remote_configured",
++            DoctorCheckId::FeatureBindingResolved => "builtin.doctor.feature_binding_resolved",
+             DoctorCheckId::RequiredWorkflowFilesPresent => {
+@@ -42,2 +45,3 @@
+             DoctorCheckId::GithubRemoteConfigured => "github-remote-configured",
++            DoctorCheckId::FeatureBindingResolved => "feature-binding-resolved",
+             DoctorCheckId::RequiredWorkflowFilesPresent => "required-workflows-present",
+@@ -82,2 +86,3 @@
+     fn has_github_remote(&self, repo_root: &Path) -> bool;
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String>;
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String>;
+@@ -115,2 +120,8 @@
+ 
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String> {
++        discover_current_repository_context(repo_root)
++            .map(|_| ())
++            .map_err(|error| error.to_string())
++    }
++
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+@@ -131,2 +142,3 @@
+ ) -> DoctorReport {
++    let feature_binding_status = environment.feature_binding_status(repo_root);
+     let mut missing_workflow_files = environment.missing_workflow_files(repo_root);
+@@ -157,2 +169,7 @@
+             DoctorCheck {
++                id: DoctorCheckId::FeatureBindingResolved,
++                status: status_from_bool(feature_binding_status.is_ok()),
++                detail: feature_binding_status.err(),
++            },
++            DoctorCheck {
+                 id: DoctorCheckId::RequiredWorkflowFilesPresent,
+@@ -193,2 +210,6 @@
+ 
++        if let Some(detail) = &check.detail {
++            lines.push(format!("  detail: {detail}"));
++        }
++
+         if let Some(fix) = failing_fix(check) {
+@@ -220,2 +241,6 @@
+         ),
++        DoctorCheckId::FeatureBindingResolved => Some(
++            "Ensure this worktree is on a feature branch with an open GitHub pull request."
++                .to_string(),
++        ),
+         DoctorCheckId::RequiredWorkflowFilesPresent => Some(format!(
+apply_patch(auto_approved=true) exited 0 in 17ms:
+Success. Updated the following files:
+M /tmp/calypso-worktrees/feat-cli-doctor-context/cli/src/doctor.rs
+file update:
+diff --git a/cli/src/doctor.rs b/cli/src/doctor.rs
+index 73f1f50249bf7facbcce287961c2551705e57301..8072c99962553055daa9be912a44baed208f5311
+--- a/cli/src/doctor.rs
++++ b/cli/src/doctor.rs
+@@ -1,6 +1,7 @@
+ use std::path::Path;
+ use std::process::Command;
+ 
++use crate::runtime::discover_current_repository_context;
+ use crate::state::BuiltinEvidence;
+ 
+ const REQUIRED_WORKFLOW_FILES: [&str; 6] = [
+@@ -18,6 +19,7 @@
+     CodexInstalled,
+     GhAuthenticated,
+     GithubRemoteConfigured,
++    FeatureBindingResolved,
+     RequiredWorkflowFilesPresent,
+ }
+ 
+@@ -28,6 +30,7 @@
+             DoctorCheckId::CodexInstalled => "builtin.doctor.codex_installed",
+             DoctorCheckId::GhAuthenticated => "builtin.doctor.gh_authenticated",
+             DoctorCheckId::GithubRemoteConfigured => "builtin.doctor.github_remote_configured",
++            DoctorCheckId::FeatureBindingResolved => "builtin.doctor.feature_binding_resolved",
+             DoctorCheckId::RequiredWorkflowFilesPresent => {
+                 "builtin.doctor.required_workflows_present"
+             }
+@@ -40,6 +43,7 @@
+             DoctorCheckId::CodexInstalled => "codex-installed",
+             DoctorCheckId::GhAuthenticated => "gh-authenticated",
+             DoctorCheckId::GithubRemoteConfigured => "github-remote-configured",
++            DoctorCheckId::FeatureBindingResolved => "feature-binding-resolved",
+             DoctorCheckId::RequiredWorkflowFilesPresent => "required-workflows-present",
+         }
+     }
+@@ -80,6 +84,7 @@
+     fn command_exists(&self, command: &str) -> bool;
+     fn gh_authenticated(&self) -> bool;
+     fn has_github_remote(&self, repo_root: &Path) -> bool;
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String>;
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String>;
+ }
+ 
+@@ -113,6 +118,12 @@
+             })
+     }
+ 
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String> {
++        discover_current_repository_context(repo_root)
++            .map(|_| ())
++            .map_err(|error| error.to_string())
++    }
++
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+         let workflows_root = repo_root.join(".github/workflows");
+         let mut missing = REQUIRED_WORKFLOW_FILES
+@@ -129,6 +140,7 @@
+     environment: &impl DoctorEnvironment,
+     repo_root: &Path,
+ ) -> DoctorReport {
++    let feature_binding_status = environment.feature_binding_status(repo_root);
+     let mut missing_workflow_files = environment.missing_workflow_files(repo_root);
+     missing_workflow_files.sort();
+ 
+@@ -155,6 +167,11 @@
+                 detail: None,
+             },
+             DoctorCheck {
++                id: DoctorCheckId::FeatureBindingResolved,
++                status: status_from_bool(feature_binding_status.is_ok()),
++                detail: feature_binding_status.err(),
++            },
++            DoctorCheck {
+                 id: DoctorCheckId::RequiredWorkflowFilesPresent,
+                 status: status_from_bool(missing_workflow_files.is_empty()),
+                 detail: (!missing_workflow_files.is_empty())
+@@ -191,6 +208,10 @@
+         };
+         lines.push(format!("- [{status}] {}", check.id.label()));
+ 
++        if let Some(detail) = &check.detail {
++            lines.push(format!("  detail: {detail}"));
++        }
++
+         if let Some(fix) = failing_fix(check) {
+             lines.push(format!("  fix: {fix}"));
+         }
+@@ -218,6 +239,10 @@
+             "Add a GitHub remote such as `git remote add origin git@github.com:<owner>/<repo>.git`."
+                 .to_string(),
+         ),
++        DoctorCheckId::FeatureBindingResolved => Some(
++            "Ensure this worktree is on a feature branch with an open GitHub pull request."
++                .to_string(),
++        ),
+         DoctorCheckId::RequiredWorkflowFilesPresent => Some(format!(
+             "Add the missing workflow files under .github/workflows: {}",
+             check.detail.as_deref().unwrap_or("unknown")
+diff --git a/cli/tests/doctor.rs b/cli/tests/doctor.rs
+index 8041ddaf0abe3ab2fbfbc4c9380bb23c541e47f7..25e13ea7d2c6424571a5e9a87a5331b4f8c69201
+--- a/cli/tests/doctor.rs
++++ b/cli/tests/doctor.rs
+@@ -11,6 +11,8 @@
+     commands: BTreeSet<String>,
+     gh_authenticated: bool,
+     github_remote_roots: BTreeSet<PathBuf>,
++    feature_binding_roots: BTreeSet<PathBuf>,
++    feature_binding_errors: BTreeMap<PathBuf, String>,
+     missing_workflow_files: BTreeMap<PathBuf, Vec<String>>,
+ }
+ 
+@@ -30,6 +32,17 @@
+         self
+     }
+ 
++    fn with_feature_binding_root(mut self, root: &Path) -> Self {
++        self.feature_binding_roots.insert(root.to_path_buf());
++        self
++    }
++
++    fn with_feature_binding_error(mut self, root: &Path, detail: &str) -> Self {
++        self.feature_binding_errors
++            .insert(root.to_path_buf(), detail.to_string());
++        self
++    }
++
+     fn with_missing_workflow_files(mut self, root: &Path, files: &[&str]) -> Self {
+         self.missing_workflow_files.insert(
+             root.to_path_buf(),
+@@ -52,6 +65,18 @@
+         self.github_remote_roots.contains(repo_root)
+     }
+ 
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String> {
++        if self.feature_binding_roots.contains(repo_root) {
++            return Ok(());
++        }
++
++        Err(self
++            .feature_binding_errors
++            .get(repo_root)
++            .cloned()
++            .unwrap_or_else(|| "branch is not mapped to an open pull request".to_string()))
++    }
++
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+         self.missing_workflow_files
+             .get(repo_root)
+@@ -77,6 +102,7 @@
+             .with_command("codex")
+             .with_gh_authenticated(true)
+             .with_github_remote_root(repo_root),
++            .with_feature_binding_root(repo_root),
+         repo_root,
+     );
+ 
+@@ -96,6 +122,10 @@
+         DoctorStatus::Passing
+     );
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Passing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+         DoctorStatus::Passing
+     );
+@@ -120,6 +150,10 @@
+         DoctorStatus::Failing
+     );
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+         DoctorStatus::Passing
+     );
+@@ -132,7 +166,8 @@
+         &FakeEnvironment::default()
+             .with_command("gh")
+             .with_gh_authenticated(true)
+-            .with_github_remote_root(repo_root),
++            .with_github_remote_root(repo_root)
++            .with_feature_binding_root(repo_root),
+         repo_root,
+     );
+ 
+@@ -155,12 +190,34 @@
+         Some(true)
+     );
+     assert_eq!(
++        evidence.result_for("builtin.doctor.feature_binding_resolved"),
++        Some(true)
++    );
++    assert_eq!(
+         evidence.result_for("builtin.doctor.required_workflows_present"),
+         Some(true)
+     );
+ }
+ 
+ #[test]
++fn doctor_report_marks_missing_feature_binding_as_failing() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++    let statuses = status_map(&report);
++
++    assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++}
++
++#[test]
+ fn doctor_report_marks_missing_required_workflows_as_failing() {
+     let repo_root = Path::new("/tmp/calypso");
+     let report = collect_doctor_report(
+@@ -194,6 +251,26 @@
+ }
+ 
+ #[test]
++fn doctor_report_render_includes_actionable_fix_for_missing_feature_binding() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++
++    let rendered = calypso_cli::doctor::render_doctor_report(&report);
++
++    assert!(rendered.contains("feature-binding-resolved"));
++    assert!(rendered.contains(
++        "Ensure this worktree is on a feature branch with an open GitHub pull request."
++    ));
++    assert!(rendered.contains("current branch is not mapped to an open pull request"));
++}
++
++#[test]
+ fn git_remote_parser_detects_github_https_and_ssh_remotes() {
+     assert!(git_remote_output_has_github_remote(
+         "origin\thttps://github.com/acme/calypso.git (fetch)\n"
+
+file update:
+diff --git a/cli/src/doctor.rs b/cli/src/doctor.rs
+index 73f1f50249bf7facbcce287961c2551705e57301..8072c99962553055daa9be912a44baed208f5311
+--- a/cli/src/doctor.rs
++++ b/cli/src/doctor.rs
+@@ -1,6 +1,7 @@
+ use std::path::Path;
+ use std::process::Command;
+ 
++use crate::runtime::discover_current_repository_context;
+ use crate::state::BuiltinEvidence;
+ 
+ const REQUIRED_WORKFLOW_FILES: [&str; 6] = [
+@@ -18,6 +19,7 @@
+     CodexInstalled,
+     GhAuthenticated,
+     GithubRemoteConfigured,
++    FeatureBindingResolved,
+     RequiredWorkflowFilesPresent,
+ }
+ 
+@@ -28,6 +30,7 @@
+             DoctorCheckId::CodexInstalled => "builtin.doctor.codex_installed",
+             DoctorCheckId::GhAuthenticated => "builtin.doctor.gh_authenticated",
+             DoctorCheckId::GithubRemoteConfigured => "builtin.doctor.github_remote_configured",
++            DoctorCheckId::FeatureBindingResolved => "builtin.doctor.feature_binding_resolved",
+             DoctorCheckId::RequiredWorkflowFilesPresent => {
+                 "builtin.doctor.required_workflows_present"
+             }
+@@ -40,6 +43,7 @@
+             DoctorCheckId::CodexInstalled => "codex-installed",
+             DoctorCheckId::GhAuthenticated => "gh-authenticated",
+             DoctorCheckId::GithubRemoteConfigured => "github-remote-configured",
++            DoctorCheckId::FeatureBindingResolved => "feature-binding-resolved",
+             DoctorCheckId::RequiredWorkflowFilesPresent => "required-workflows-present",
+         }
+     }
+@@ -80,6 +84,7 @@
+     fn command_exists(&self, command: &str) -> bool;
+     fn gh_authenticated(&self) -> bool;
+     fn has_github_remote(&self, repo_root: &Path) -> bool;
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String>;
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String>;
+ }
+ 
+@@ -113,6 +118,12 @@
+             })
+     }
+ 
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String> {
++        discover_current_repository_context(repo_root)
++            .map(|_| ())
++            .map_err(|error| error.to_string())
++    }
++
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+         let workflows_root = repo_root.join(".github/workflows");
+         let mut missing = REQUIRED_WORKFLOW_FILES
+@@ -129,6 +140,7 @@
+     environment: &impl DoctorEnvironment,
+     repo_root: &Path,
+ ) -> DoctorReport {
++    let feature_binding_status = environment.feature_binding_status(repo_root);
+     let mut missing_workflow_files = environment.missing_workflow_files(repo_root);
+     missing_workflow_files.sort();
+ 
+@@ -155,6 +167,11 @@
+                 detail: None,
+             },
+             DoctorCheck {
++                id: DoctorCheckId::FeatureBindingResolved,
++                status: status_from_bool(feature_binding_status.is_ok()),
++                detail: feature_binding_status.err(),
++            },
++            DoctorCheck {
+                 id: DoctorCheckId::RequiredWorkflowFilesPresent,
+                 status: status_from_bool(missing_workflow_files.is_empty()),
+                 detail: (!missing_workflow_files.is_empty())
+@@ -191,6 +208,10 @@
+         };
+         lines.push(format!("- [{status}] {}", check.id.label()));
+ 
++        if let Some(detail) = &check.detail {
++            lines.push(format!("  detail: {detail}"));
++        }
++
+         if let Some(fix) = failing_fix(check) {
+             lines.push(format!("  fix: {fix}"));
+         }
+@@ -218,6 +239,10 @@
+             "Add a GitHub remote such as `git remote add origin git@github.com:<owner>/<repo>.git`."
+                 .to_string(),
+         ),
++        DoctorCheckId::FeatureBindingResolved => Some(
++            "Ensure this worktree is on a feature branch with an open GitHub pull request."
++                .to_string(),
++        ),
+         DoctorCheckId::RequiredWorkflowFilesPresent => Some(format!(
+             "Add the missing workflow files under .github/workflows: {}",
+             check.detail.as_deref().unwrap_or("unknown")
+diff --git a/cli/tests/doctor.rs b/cli/tests/doctor.rs
+index 8041ddaf0abe3ab2fbfbc4c9380bb23c541e47f7..25e13ea7d2c6424571a5e9a87a5331b4f8c69201
+--- a/cli/tests/doctor.rs
++++ b/cli/tests/doctor.rs
+@@ -11,6 +11,8 @@
+     commands: BTreeSet<String>,
+     gh_authenticated: bool,
+     github_remote_roots: BTreeSet<PathBuf>,
++    feature_binding_roots: BTreeSet<PathBuf>,
++    feature_binding_errors: BTreeMap<PathBuf, String>,
+     missing_workflow_files: BTreeMap<PathBuf, Vec<String>>,
+ }
+ 
+@@ -30,6 +32,17 @@
+         self
+     }
+ 
++    fn with_feature_binding_root(mut self, root: &Path) -> Self {
++        self.feature_binding_roots.insert(root.to_path_buf());
++        self
++    }
++
++    fn with_feature_binding_error(mut self, root: &Path, detail: &str) -> Self {
++        self.feature_binding_errors
++            .insert(root.to_path_buf(), detail.to_string());
++        self
++    }
++
+     fn with_missing_workflow_files(mut self, root: &Path, files: &[&str]) -> Self {
+         self.missing_workflow_files.insert(
+             root.to_path_buf(),
+@@ -52,6 +65,18 @@
+         self.github_remote_roots.contains(repo_root)
+     }
+ 
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String> {
++        if self.feature_binding_roots.contains(repo_root) {
++            return Ok(());
++        }
++
++        Err(self
++            .feature_binding_errors
++            .get(repo_root)
++            .cloned()
++            .unwrap_or_else(|| "branch is not mapped to an open pull request".to_string()))
++    }
++
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+         self.missing_workflow_files
+             .get(repo_root)
+@@ -77,6 +102,7 @@
+             .with_command("codex")
+             .with_gh_authenticated(true)
+             .with_github_remote_root(repo_root),
++            .with_feature_binding_root(repo_root),
+         repo_root,
+     );
+ 
+@@ -96,6 +122,10 @@
+         DoctorStatus::Passing
+     );
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Passing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+         DoctorStatus::Passing
+     );
+@@ -120,6 +150,10 @@
+         DoctorStatus::Failing
+     );
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+         DoctorStatus::Passing
+     );
+@@ -132,7 +166,8 @@
+         &FakeEnvironment::default()
+             .with_command("gh")
+             .with_gh_authenticated(true)
+-            .with_github_remote_root(repo_root),
++            .with_github_remote_root(repo_root)
++            .with_feature_binding_root(repo_root),
+         repo_root,
+     );
+ 
+@@ -155,12 +190,34 @@
+         Some(true)
+     );
+     assert_eq!(
++        evidence.result_for("builtin.doctor.feature_binding_resolved"),
++        Some(true)
++    );
++    assert_eq!(
+         evidence.result_for("builtin.doctor.required_workflows_present"),
+         Some(true)
+     );
+ }
+ 
+ #[test]
++fn doctor_report_marks_missing_feature_binding_as_failing() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++    let statuses = status_map(&report);
++
++    assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++}
++
++#[test]
+ fn doctor_report_marks_missing_required_workflows_as_failing() {
+     let repo_root = Path::new("/tmp/calypso");
+     let report = collect_doctor_report(
+@@ -194,6 +251,26 @@
+ }
+ 
+ #[test]
++fn doctor_report_render_includes_actionable_fix_for_missing_feature_binding() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++
++    let rendered = calypso_cli::doctor::render_doctor_report(&report);
++
++    assert!(rendered.contains("feature-binding-resolved"));
++    assert!(rendered.contains(
++        "Ensure this worktree is on a feature branch with an open GitHub pull request."
++    ));
++    assert!(rendered.contains("current branch is not mapped to an open pull request"));
++}
++
++#[test]
+ fn git_remote_parser_detects_github_https_and_ssh_remotes() {
+     assert!(git_remote_output_has_github_remote(
+         "origin\thttps://github.com/acme/calypso.git (fetch)\n"
+
+exec
+/bin/bash -lc 'rg -n "feature_binding_resolved|FeatureBindingResolved|feature-binding-resolved|builtin.doctor.feature_binding_resolved" cli/src cli/tests' in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+cli/tests/doctor.rs:125:        statuses[&DoctorCheckId::FeatureBindingResolved],
+cli/tests/doctor.rs:153:        statuses[&DoctorCheckId::FeatureBindingResolved],
+cli/tests/doctor.rs:193:        evidence.result_for("builtin.doctor.feature_binding_resolved"),
+cli/tests/doctor.rs:215:        statuses[&DoctorCheckId::FeatureBindingResolved],
+cli/tests/doctor.rs:266:    assert!(rendered.contains("feature-binding-resolved"));
+cli/src/doctor.rs:22:    FeatureBindingResolved,
+cli/src/doctor.rs:33:            DoctorCheckId::FeatureBindingResolved => "builtin.doctor.feature_binding_resolved",
+cli/src/doctor.rs:46:            DoctorCheckId::FeatureBindingResolved => "feature-binding-resolved",
+cli/src/doctor.rs:170:                id: DoctorCheckId::FeatureBindingResolved,
+cli/src/doctor.rs:242:        DoctorCheckId::FeatureBindingResolved => Some(
+exec
+/bin/bash -lc 'rustfmt cli/src/doctor.rs cli/tests/doctor.rs' in /tmp/calypso-worktrees/feat-cli-doctor-context exited 1 in 0ms:
+error: expected expression, found `.`
+   --> /tmp/calypso-worktrees/feat-cli-doctor-context/cli/tests/doctor.rs:105:13
+    |
+105 |             .with_feature_binding_root(repo_root),
+    |             ^ expected expression
+
+file update:
+diff --git a/cli/src/doctor.rs b/cli/src/doctor.rs
+index 73f1f50249bf7facbcce287961c2551705e57301..8072c99962553055daa9be912a44baed208f5311
+--- a/cli/src/doctor.rs
++++ b/cli/src/doctor.rs
+@@ -1,6 +1,7 @@
+ use std::path::Path;
+ use std::process::Command;
+ 
++use crate::runtime::discover_current_repository_context;
+ use crate::state::BuiltinEvidence;
+ 
+ const REQUIRED_WORKFLOW_FILES: [&str; 6] = [
+@@ -18,6 +19,7 @@
+     CodexInstalled,
+     GhAuthenticated,
+     GithubRemoteConfigured,
++    FeatureBindingResolved,
+     RequiredWorkflowFilesPresent,
+ }
+ 
+@@ -28,6 +30,7 @@
+             DoctorCheckId::CodexInstalled => "builtin.doctor.codex_installed",
+             DoctorCheckId::GhAuthenticated => "builtin.doctor.gh_authenticated",
+             DoctorCheckId::GithubRemoteConfigured => "builtin.doctor.github_remote_configured",
++            DoctorCheckId::FeatureBindingResolved => "builtin.doctor.feature_binding_resolved",
+             DoctorCheckId::RequiredWorkflowFilesPresent => {
+                 "builtin.doctor.required_workflows_present"
+             }
+@@ -40,6 +43,7 @@
+             DoctorCheckId::CodexInstalled => "codex-installed",
+             DoctorCheckId::GhAuthenticated => "gh-authenticated",
+             DoctorCheckId::GithubRemoteConfigured => "github-remote-configured",
++            DoctorCheckId::FeatureBindingResolved => "feature-binding-resolved",
+             DoctorCheckId::RequiredWorkflowFilesPresent => "required-workflows-present",
+         }
+     }
+@@ -80,6 +84,7 @@
+     fn command_exists(&self, command: &str) -> bool;
+     fn gh_authenticated(&self) -> bool;
+     fn has_github_remote(&self, repo_root: &Path) -> bool;
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String>;
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String>;
+ }
+ 
+@@ -113,6 +118,12 @@
+             })
+     }
+ 
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String> {
++        discover_current_repository_context(repo_root)
++            .map(|_| ())
++            .map_err(|error| error.to_string())
++    }
++
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+         let workflows_root = repo_root.join(".github/workflows");
+         let mut missing = REQUIRED_WORKFLOW_FILES
+@@ -129,6 +140,7 @@
+     environment: &impl DoctorEnvironment,
+     repo_root: &Path,
+ ) -> DoctorReport {
++    let feature_binding_status = environment.feature_binding_status(repo_root);
+     let mut missing_workflow_files = environment.missing_workflow_files(repo_root);
+     missing_workflow_files.sort();
+ 
+@@ -155,6 +167,11 @@
+                 detail: None,
+             },
+             DoctorCheck {
++                id: DoctorCheckId::FeatureBindingResolved,
++                status: status_from_bool(feature_binding_status.is_ok()),
++                detail: feature_binding_status.err(),
++            },
++            DoctorCheck {
+                 id: DoctorCheckId::RequiredWorkflowFilesPresent,
+                 status: status_from_bool(missing_workflow_files.is_empty()),
+                 detail: (!missing_workflow_files.is_empty())
+@@ -191,6 +208,10 @@
+         };
+         lines.push(format!("- [{status}] {}", check.id.label()));
+ 
++        if let Some(detail) = &check.detail {
++            lines.push(format!("  detail: {detail}"));
++        }
++
+         if let Some(fix) = failing_fix(check) {
+             lines.push(format!("  fix: {fix}"));
+         }
+@@ -218,6 +239,10 @@
+             "Add a GitHub remote such as `git remote add origin git@github.com:<owner>/<repo>.git`."
+                 .to_string(),
+         ),
++        DoctorCheckId::FeatureBindingResolved => Some(
++            "Ensure this worktree is on a feature branch with an open GitHub pull request."
++                .to_string(),
++        ),
+         DoctorCheckId::RequiredWorkflowFilesPresent => Some(format!(
+             "Add the missing workflow files under .github/workflows: {}",
+             check.detail.as_deref().unwrap_or("unknown")
+diff --git a/cli/tests/doctor.rs b/cli/tests/doctor.rs
+index 8041ddaf0abe3ab2fbfbc4c9380bb23c541e47f7..25e13ea7d2c6424571a5e9a87a5331b4f8c69201
+--- a/cli/tests/doctor.rs
++++ b/cli/tests/doctor.rs
+@@ -11,6 +11,8 @@
+     commands: BTreeSet<String>,
+     gh_authenticated: bool,
+     github_remote_roots: BTreeSet<PathBuf>,
++    feature_binding_roots: BTreeSet<PathBuf>,
++    feature_binding_errors: BTreeMap<PathBuf, String>,
+     missing_workflow_files: BTreeMap<PathBuf, Vec<String>>,
+ }
+ 
+@@ -30,6 +32,17 @@
+         self
+     }
+ 
++    fn with_feature_binding_root(mut self, root: &Path) -> Self {
++        self.feature_binding_roots.insert(root.to_path_buf());
++        self
++    }
++
++    fn with_feature_binding_error(mut self, root: &Path, detail: &str) -> Self {
++        self.feature_binding_errors
++            .insert(root.to_path_buf(), detail.to_string());
++        self
++    }
++
+     fn with_missing_workflow_files(mut self, root: &Path, files: &[&str]) -> Self {
+         self.missing_workflow_files.insert(
+             root.to_path_buf(),
+@@ -52,6 +65,18 @@
+         self.github_remote_roots.contains(repo_root)
+     }
+ 
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String> {
++        if self.feature_binding_roots.contains(repo_root) {
++            return Ok(());
++        }
++
++        Err(self
++            .feature_binding_errors
++            .get(repo_root)
++            .cloned()
++            .unwrap_or_else(|| "branch is not mapped to an open pull request".to_string()))
++    }
++
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+         self.missing_workflow_files
+             .get(repo_root)
+@@ -77,6 +102,7 @@
+             .with_command("codex")
+             .with_gh_authenticated(true)
+             .with_github_remote_root(repo_root),
++            .with_feature_binding_root(repo_root),
+         repo_root,
+     );
+ 
+@@ -96,6 +122,10 @@
+         DoctorStatus::Passing
+     );
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Passing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+         DoctorStatus::Passing
+     );
+@@ -120,6 +150,10 @@
+         DoctorStatus::Failing
+     );
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+         DoctorStatus::Passing
+     );
+@@ -132,7 +166,8 @@
+         &FakeEnvironment::default()
+             .with_command("gh")
+             .with_gh_authenticated(true)
+-            .with_github_remote_root(repo_root),
++            .with_github_remote_root(repo_root)
++            .with_feature_binding_root(repo_root),
+         repo_root,
+     );
+ 
+@@ -155,12 +190,34 @@
+         Some(true)
+     );
+     assert_eq!(
++        evidence.result_for("builtin.doctor.feature_binding_resolved"),
++        Some(true)
++    );
++    assert_eq!(
+         evidence.result_for("builtin.doctor.required_workflows_present"),
+         Some(true)
+     );
+ }
+ 
+ #[test]
++fn doctor_report_marks_missing_feature_binding_as_failing() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++    let statuses = status_map(&report);
++
++    assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++}
++
++#[test]
+ fn doctor_report_marks_missing_required_workflows_as_failing() {
+     let repo_root = Path::new("/tmp/calypso");
+     let report = collect_doctor_report(
+@@ -194,6 +251,26 @@
+ }
+ 
+ #[test]
++fn doctor_report_render_includes_actionable_fix_for_missing_feature_binding() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++
++    let rendered = calypso_cli::doctor::render_doctor_report(&report);
++
++    assert!(rendered.contains("feature-binding-resolved"));
++    assert!(rendered.contains(
++        "Ensure this worktree is on a feature branch with an open GitHub pull request."
++    ));
++    assert!(rendered.contains("current branch is not mapped to an open pull request"));
++}
++
++#[test]
+ fn git_remote_parser_detects_github_https_and_ssh_remotes() {
+     assert!(git_remote_output_has_github_remote(
+         "origin\thttps://github.com/acme/calypso.git (fetch)\n"
+
+codex
+`rustfmt` caught a real syntax error in the new test setup, so I’m fixing that before I do another formatting and validation pass.
+exec
+/bin/bash -lc "sed -n '84,112p' cli/tests/doctor.rs" in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+            .unwrap_or_default()
+    }
+}
+
+fn status_map(report: &calypso_cli::doctor::DoctorReport) -> BTreeMap<DoctorCheckId, DoctorStatus> {
+    report
+        .checks
+        .iter()
+        .map(|check| (check.id, check.status))
+        .collect()
+}
+
+#[test]
+fn doctor_report_collects_expected_check_results() {
+    let repo_root = Path::new("/tmp/calypso");
+    let report = collect_doctor_report(
+        &FakeEnvironment::default()
+            .with_command("gh")
+            .with_command("codex")
+            .with_gh_authenticated(true)
+file update:
+diff --git a/cli/src/doctor.rs b/cli/src/doctor.rs
+index 73f1f50249bf7facbcce287961c2551705e57301..8072c99962553055daa9be912a44baed208f5311
+--- a/cli/src/doctor.rs
++++ b/cli/src/doctor.rs
+@@ -1,6 +1,7 @@
+ use std::path::Path;
+ use std::process::Command;
+ 
++use crate::runtime::discover_current_repository_context;
+ use crate::state::BuiltinEvidence;
+ 
+ const REQUIRED_WORKFLOW_FILES: [&str; 6] = [
+@@ -18,6 +19,7 @@
+     CodexInstalled,
+     GhAuthenticated,
+     GithubRemoteConfigured,
++    FeatureBindingResolved,
+     RequiredWorkflowFilesPresent,
+ }
+ 
+@@ -28,6 +30,7 @@
+             DoctorCheckId::CodexInstalled => "builtin.doctor.codex_installed",
+             DoctorCheckId::GhAuthenticated => "builtin.doctor.gh_authenticated",
+             DoctorCheckId::GithubRemoteConfigured => "builtin.doctor.github_remote_configured",
++            DoctorCheckId::FeatureBindingResolved => "builtin.doctor.feature_binding_resolved",
+             DoctorCheckId::RequiredWorkflowFilesPresent => {
+                 "builtin.doctor.required_workflows_present"
+             }
+@@ -40,6 +43,7 @@
+             DoctorCheckId::CodexInstalled => "codex-installed",
+             DoctorCheckId::GhAuthenticated => "gh-authenticated",
+             DoctorCheckId::GithubRemoteConfigured => "github-remote-configured",
++            DoctorCheckId::FeatureBindingResolved => "feature-binding-resolved",
+             DoctorCheckId::RequiredWorkflowFilesPresent => "required-workflows-present",
+         }
+     }
+@@ -80,6 +84,7 @@
+     fn command_exists(&self, command: &str) -> bool;
+     fn gh_authenticated(&self) -> bool;
+     fn has_github_remote(&self, repo_root: &Path) -> bool;
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String>;
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String>;
+ }
+ 
+@@ -113,6 +118,12 @@
+             })
+     }
+ 
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String> {
++        discover_current_repository_context(repo_root)
++            .map(|_| ())
++            .map_err(|error| error.to_string())
++    }
++
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+         let workflows_root = repo_root.join(".github/workflows");
+         let mut missing = REQUIRED_WORKFLOW_FILES
+@@ -129,6 +140,7 @@
+     environment: &impl DoctorEnvironment,
+     repo_root: &Path,
+ ) -> DoctorReport {
++    let feature_binding_status = environment.feature_binding_status(repo_root);
+     let mut missing_workflow_files = environment.missing_workflow_files(repo_root);
+     missing_workflow_files.sort();
+ 
+@@ -155,6 +167,11 @@
+                 detail: None,
+             },
+             DoctorCheck {
++                id: DoctorCheckId::FeatureBindingResolved,
++                status: status_from_bool(feature_binding_status.is_ok()),
++                detail: feature_binding_status.err(),
++            },
++            DoctorCheck {
+                 id: DoctorCheckId::RequiredWorkflowFilesPresent,
+                 status: status_from_bool(missing_workflow_files.is_empty()),
+                 detail: (!missing_workflow_files.is_empty())
+@@ -191,6 +208,10 @@
+         };
+         lines.push(format!("- [{status}] {}", check.id.label()));
+ 
++        if let Some(detail) = &check.detail {
++            lines.push(format!("  detail: {detail}"));
++        }
++
+         if let Some(fix) = failing_fix(check) {
+             lines.push(format!("  fix: {fix}"));
+         }
+@@ -218,6 +239,10 @@
+             "Add a GitHub remote such as `git remote add origin git@github.com:<owner>/<repo>.git`."
+                 .to_string(),
+         ),
++        DoctorCheckId::FeatureBindingResolved => Some(
++            "Ensure this worktree is on a feature branch with an open GitHub pull request."
++                .to_string(),
++        ),
+         DoctorCheckId::RequiredWorkflowFilesPresent => Some(format!(
+             "Add the missing workflow files under .github/workflows: {}",
+             check.detail.as_deref().unwrap_or("unknown")
+diff --git a/cli/tests/doctor.rs b/cli/tests/doctor.rs
+index 8041ddaf0abe3ab2fbfbc4c9380bb23c541e47f7..25e13ea7d2c6424571a5e9a87a5331b4f8c69201
+--- a/cli/tests/doctor.rs
++++ b/cli/tests/doctor.rs
+@@ -11,6 +11,8 @@
+     commands: BTreeSet<String>,
+     gh_authenticated: bool,
+     github_remote_roots: BTreeSet<PathBuf>,
++    feature_binding_roots: BTreeSet<PathBuf>,
++    feature_binding_errors: BTreeMap<PathBuf, String>,
+     missing_workflow_files: BTreeMap<PathBuf, Vec<String>>,
+ }
+ 
+@@ -30,6 +32,17 @@
+         self
+     }
+ 
++    fn with_feature_binding_root(mut self, root: &Path) -> Self {
++        self.feature_binding_roots.insert(root.to_path_buf());
++        self
++    }
++
++    fn with_feature_binding_error(mut self, root: &Path, detail: &str) -> Self {
++        self.feature_binding_errors
++            .insert(root.to_path_buf(), detail.to_string());
++        self
++    }
++
+     fn with_missing_workflow_files(mut self, root: &Path, files: &[&str]) -> Self {
+         self.missing_workflow_files.insert(
+             root.to_path_buf(),
+@@ -52,6 +65,18 @@
+         self.github_remote_roots.contains(repo_root)
+     }
+ 
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String> {
++        if self.feature_binding_roots.contains(repo_root) {
++            return Ok(());
++        }
++
++        Err(self
++            .feature_binding_errors
++            .get(repo_root)
++            .cloned()
++            .unwrap_or_else(|| "branch is not mapped to an open pull request".to_string()))
++    }
++
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+         self.missing_workflow_files
+             .get(repo_root)
+@@ -77,6 +102,7 @@
+             .with_command("codex")
+             .with_gh_authenticated(true)
+             .with_github_remote_root(repo_root),
++            .with_feature_binding_root(repo_root),
+         repo_root,
+     );
+ 
+@@ -96,6 +122,10 @@
+         DoctorStatus::Passing
+     );
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Passing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+         DoctorStatus::Passing
+     );
+@@ -120,6 +150,10 @@
+         DoctorStatus::Failing
+     );
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+         DoctorStatus::Passing
+     );
+@@ -132,7 +166,8 @@
+         &FakeEnvironment::default()
+             .with_command("gh")
+             .with_gh_authenticated(true)
+-            .with_github_remote_root(repo_root),
++            .with_github_remote_root(repo_root)
++            .with_feature_binding_root(repo_root),
+         repo_root,
+     );
+ 
+@@ -155,12 +190,34 @@
+         Some(true)
+     );
+     assert_eq!(
++        evidence.result_for("builtin.doctor.feature_binding_resolved"),
++        Some(true)
++    );
++    assert_eq!(
+         evidence.result_for("builtin.doctor.required_workflows_present"),
+         Some(true)
+     );
+ }
+ 
+ #[test]
++fn doctor_report_marks_missing_feature_binding_as_failing() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++    let statuses = status_map(&report);
++
++    assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++}
++
++#[test]
+ fn doctor_report_marks_missing_required_workflows_as_failing() {
+     let repo_root = Path::new("/tmp/calypso");
+     let report = collect_doctor_report(
+@@ -194,6 +251,26 @@
+ }
+ 
+ #[test]
++fn doctor_report_render_includes_actionable_fix_for_missing_feature_binding() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++
++    let rendered = calypso_cli::doctor::render_doctor_report(&report);
++
++    assert!(rendered.contains("feature-binding-resolved"));
++    assert!(rendered.contains(
++        "Ensure this worktree is on a feature branch with an open GitHub pull request."
++    ));
++    assert!(rendered.contains("current branch is not mapped to an open pull request"));
++}
++
++#[test]
+ fn git_remote_parser_detects_github_https_and_ssh_remotes() {
+     assert!(git_remote_output_has_github_remote(
+         "origin\thttps://github.com/acme/calypso.git (fetch)\n"
+
+file update
+M /tmp/calypso-worktrees/feat-cli-doctor-context/cli/tests/doctor.rs
+@@ -103,3 +103,3 @@
+             .with_gh_authenticated(true)
+-            .with_github_remote_root(repo_root),
++            .with_github_remote_root(repo_root)
+             .with_feature_binding_root(repo_root),
+apply_patch(auto_approved=true) exited 0 in 17ms:
+Success. Updated the following files:
+M /tmp/calypso-worktrees/feat-cli-doctor-context/cli/tests/doctor.rs
+file update:
+diff --git a/cli/src/doctor.rs b/cli/src/doctor.rs
+index 73f1f50249bf7facbcce287961c2551705e57301..8072c99962553055daa9be912a44baed208f5311
+--- a/cli/src/doctor.rs
++++ b/cli/src/doctor.rs
+@@ -1,6 +1,7 @@
+ use std::path::Path;
+ use std::process::Command;
+ 
++use crate::runtime::discover_current_repository_context;
+ use crate::state::BuiltinEvidence;
+ 
+ const REQUIRED_WORKFLOW_FILES: [&str; 6] = [
+@@ -18,6 +19,7 @@
+     CodexInstalled,
+     GhAuthenticated,
+     GithubRemoteConfigured,
++    FeatureBindingResolved,
+     RequiredWorkflowFilesPresent,
+ }
+ 
+@@ -28,6 +30,7 @@
+             DoctorCheckId::CodexInstalled => "builtin.doctor.codex_installed",
+             DoctorCheckId::GhAuthenticated => "builtin.doctor.gh_authenticated",
+             DoctorCheckId::GithubRemoteConfigured => "builtin.doctor.github_remote_configured",
++            DoctorCheckId::FeatureBindingResolved => "builtin.doctor.feature_binding_resolved",
+             DoctorCheckId::RequiredWorkflowFilesPresent => {
+                 "builtin.doctor.required_workflows_present"
+             }
+@@ -40,6 +43,7 @@
+             DoctorCheckId::CodexInstalled => "codex-installed",
+             DoctorCheckId::GhAuthenticated => "gh-authenticated",
+             DoctorCheckId::GithubRemoteConfigured => "github-remote-configured",
++            DoctorCheckId::FeatureBindingResolved => "feature-binding-resolved",
+             DoctorCheckId::RequiredWorkflowFilesPresent => "required-workflows-present",
+         }
+     }
+@@ -80,6 +84,7 @@
+     fn command_exists(&self, command: &str) -> bool;
+     fn gh_authenticated(&self) -> bool;
+     fn has_github_remote(&self, repo_root: &Path) -> bool;
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String>;
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String>;
+ }
+ 
+@@ -113,6 +118,12 @@
+             })
+     }
+ 
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String> {
++        discover_current_repository_context(repo_root)
++            .map(|_| ())
++            .map_err(|error| error.to_string())
++    }
++
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+         let workflows_root = repo_root.join(".github/workflows");
+         let mut missing = REQUIRED_WORKFLOW_FILES
+@@ -129,6 +140,7 @@
+     environment: &impl DoctorEnvironment,
+     repo_root: &Path,
+ ) -> DoctorReport {
++    let feature_binding_status = environment.feature_binding_status(repo_root);
+     let mut missing_workflow_files = environment.missing_workflow_files(repo_root);
+     missing_workflow_files.sort();
+ 
+@@ -155,6 +167,11 @@
+                 detail: None,
+             },
+             DoctorCheck {
++                id: DoctorCheckId::FeatureBindingResolved,
++                status: status_from_bool(feature_binding_status.is_ok()),
++                detail: feature_binding_status.err(),
++            },
++            DoctorCheck {
+                 id: DoctorCheckId::RequiredWorkflowFilesPresent,
+                 status: status_from_bool(missing_workflow_files.is_empty()),
+                 detail: (!missing_workflow_files.is_empty())
+@@ -191,6 +208,10 @@
+         };
+         lines.push(format!("- [{status}] {}", check.id.label()));
+ 
++        if let Some(detail) = &check.detail {
++            lines.push(format!("  detail: {detail}"));
++        }
++
+         if let Some(fix) = failing_fix(check) {
+             lines.push(format!("  fix: {fix}"));
+         }
+@@ -218,6 +239,10 @@
+             "Add a GitHub remote such as `git remote add origin git@github.com:<owner>/<repo>.git`."
+                 .to_string(),
+         ),
++        DoctorCheckId::FeatureBindingResolved => Some(
++            "Ensure this worktree is on a feature branch with an open GitHub pull request."
++                .to_string(),
++        ),
+         DoctorCheckId::RequiredWorkflowFilesPresent => Some(format!(
+             "Add the missing workflow files under .github/workflows: {}",
+             check.detail.as_deref().unwrap_or("unknown")
+diff --git a/cli/tests/doctor.rs b/cli/tests/doctor.rs
+index 8041ddaf0abe3ab2fbfbc4c9380bb23c541e47f7..af3b408e02fd1691ace279b4342bbe113d7fabe7
+--- a/cli/tests/doctor.rs
++++ b/cli/tests/doctor.rs
+@@ -11,6 +11,8 @@
+     commands: BTreeSet<String>,
+     gh_authenticated: bool,
+     github_remote_roots: BTreeSet<PathBuf>,
++    feature_binding_roots: BTreeSet<PathBuf>,
++    feature_binding_errors: BTreeMap<PathBuf, String>,
+     missing_workflow_files: BTreeMap<PathBuf, Vec<String>>,
+ }
+ 
+@@ -30,6 +32,17 @@
+         self
+     }
+ 
++    fn with_feature_binding_root(mut self, root: &Path) -> Self {
++        self.feature_binding_roots.insert(root.to_path_buf());
++        self
++    }
++
++    fn with_feature_binding_error(mut self, root: &Path, detail: &str) -> Self {
++        self.feature_binding_errors
++            .insert(root.to_path_buf(), detail.to_string());
++        self
++    }
++
+     fn with_missing_workflow_files(mut self, root: &Path, files: &[&str]) -> Self {
+         self.missing_workflow_files.insert(
+             root.to_path_buf(),
+@@ -52,6 +65,18 @@
+         self.github_remote_roots.contains(repo_root)
+     }
+ 
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String> {
++        if self.feature_binding_roots.contains(repo_root) {
++            return Ok(());
++        }
++
++        Err(self
++            .feature_binding_errors
++            .get(repo_root)
++            .cloned()
++            .unwrap_or_else(|| "branch is not mapped to an open pull request".to_string()))
++    }
++
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+         self.missing_workflow_files
+             .get(repo_root)
+@@ -76,7 +101,8 @@
+             .with_command("gh")
+             .with_command("codex")
+             .with_gh_authenticated(true)
+-            .with_github_remote_root(repo_root),
++            .with_github_remote_root(repo_root)
++            .with_feature_binding_root(repo_root),
+         repo_root,
+     );
+ 
+@@ -96,6 +122,10 @@
+         DoctorStatus::Passing
+     );
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Passing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+         DoctorStatus::Passing
+     );
+@@ -120,6 +150,10 @@
+         DoctorStatus::Failing
+     );
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+         DoctorStatus::Passing
+     );
+@@ -132,7 +166,8 @@
+         &FakeEnvironment::default()
+             .with_command("gh")
+             .with_gh_authenticated(true)
+-            .with_github_remote_root(repo_root),
++            .with_github_remote_root(repo_root)
++            .with_feature_binding_root(repo_root),
+         repo_root,
+     );
+ 
+@@ -155,12 +190,34 @@
+         Some(true)
+     );
+     assert_eq!(
++        evidence.result_for("builtin.doctor.feature_binding_resolved"),
++        Some(true)
++    );
++    assert_eq!(
+         evidence.result_for("builtin.doctor.required_workflows_present"),
+         Some(true)
+     );
+ }
+ 
+ #[test]
++fn doctor_report_marks_missing_feature_binding_as_failing() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++    let statuses = status_map(&report);
++
++    assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++}
++
++#[test]
+ fn doctor_report_marks_missing_required_workflows_as_failing() {
+     let repo_root = Path::new("/tmp/calypso");
+     let report = collect_doctor_report(
+@@ -194,6 +251,26 @@
+ }
+ 
+ #[test]
++fn doctor_report_render_includes_actionable_fix_for_missing_feature_binding() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++
++    let rendered = calypso_cli::doctor::render_doctor_report(&report);
++
++    assert!(rendered.contains("feature-binding-resolved"));
++    assert!(rendered.contains(
++        "Ensure this worktree is on a feature branch with an open GitHub pull request."
++    ));
++    assert!(rendered.contains("current branch is not mapped to an open pull request"));
++}
++
++#[test]
+ fn git_remote_parser_detects_github_https_and_ssh_remotes() {
+     assert!(git_remote_output_has_github_remote(
+         "origin\thttps://github.com/acme/calypso.git (fetch)\n"
+
+file update:
+diff --git a/cli/src/doctor.rs b/cli/src/doctor.rs
+index 73f1f50249bf7facbcce287961c2551705e57301..8072c99962553055daa9be912a44baed208f5311
+--- a/cli/src/doctor.rs
++++ b/cli/src/doctor.rs
+@@ -1,6 +1,7 @@
+ use std::path::Path;
+ use std::process::Command;
+ 
++use crate::runtime::discover_current_repository_context;
+ use crate::state::BuiltinEvidence;
+ 
+ const REQUIRED_WORKFLOW_FILES: [&str; 6] = [
+@@ -18,6 +19,7 @@
+     CodexInstalled,
+     GhAuthenticated,
+     GithubRemoteConfigured,
++    FeatureBindingResolved,
+     RequiredWorkflowFilesPresent,
+ }
+ 
+@@ -28,6 +30,7 @@
+             DoctorCheckId::CodexInstalled => "builtin.doctor.codex_installed",
+             DoctorCheckId::GhAuthenticated => "builtin.doctor.gh_authenticated",
+             DoctorCheckId::GithubRemoteConfigured => "builtin.doctor.github_remote_configured",
++            DoctorCheckId::FeatureBindingResolved => "builtin.doctor.feature_binding_resolved",
+             DoctorCheckId::RequiredWorkflowFilesPresent => {
+                 "builtin.doctor.required_workflows_present"
+             }
+@@ -40,6 +43,7 @@
+             DoctorCheckId::CodexInstalled => "codex-installed",
+             DoctorCheckId::GhAuthenticated => "gh-authenticated",
+             DoctorCheckId::GithubRemoteConfigured => "github-remote-configured",
++            DoctorCheckId::FeatureBindingResolved => "feature-binding-resolved",
+             DoctorCheckId::RequiredWorkflowFilesPresent => "required-workflows-present",
+         }
+     }
+@@ -80,6 +84,7 @@
+     fn command_exists(&self, command: &str) -> bool;
+     fn gh_authenticated(&self) -> bool;
+     fn has_github_remote(&self, repo_root: &Path) -> bool;
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String>;
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String>;
+ }
+ 
+@@ -113,6 +118,12 @@
+             })
+     }
+ 
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String> {
++        discover_current_repository_context(repo_root)
++            .map(|_| ())
++            .map_err(|error| error.to_string())
++    }
++
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+         let workflows_root = repo_root.join(".github/workflows");
+         let mut missing = REQUIRED_WORKFLOW_FILES
+@@ -129,6 +140,7 @@
+     environment: &impl DoctorEnvironment,
+     repo_root: &Path,
+ ) -> DoctorReport {
++    let feature_binding_status = environment.feature_binding_status(repo_root);
+     let mut missing_workflow_files = environment.missing_workflow_files(repo_root);
+     missing_workflow_files.sort();
+ 
+@@ -155,6 +167,11 @@
+                 detail: None,
+             },
+             DoctorCheck {
++                id: DoctorCheckId::FeatureBindingResolved,
++                status: status_from_bool(feature_binding_status.is_ok()),
++                detail: feature_binding_status.err(),
++            },
++            DoctorCheck {
+                 id: DoctorCheckId::RequiredWorkflowFilesPresent,
+                 status: status_from_bool(missing_workflow_files.is_empty()),
+                 detail: (!missing_workflow_files.is_empty())
+@@ -191,6 +208,10 @@
+         };
+         lines.push(format!("- [{status}] {}", check.id.label()));
+ 
++        if let Some(detail) = &check.detail {
++            lines.push(format!("  detail: {detail}"));
++        }
++
+         if let Some(fix) = failing_fix(check) {
+             lines.push(format!("  fix: {fix}"));
+         }
+@@ -218,6 +239,10 @@
+             "Add a GitHub remote such as `git remote add origin git@github.com:<owner>/<repo>.git`."
+                 .to_string(),
+         ),
++        DoctorCheckId::FeatureBindingResolved => Some(
++            "Ensure this worktree is on a feature branch with an open GitHub pull request."
++                .to_string(),
++        ),
+         DoctorCheckId::RequiredWorkflowFilesPresent => Some(format!(
+             "Add the missing workflow files under .github/workflows: {}",
+             check.detail.as_deref().unwrap_or("unknown")
+diff --git a/cli/tests/doctor.rs b/cli/tests/doctor.rs
+index 8041ddaf0abe3ab2fbfbc4c9380bb23c541e47f7..af3b408e02fd1691ace279b4342bbe113d7fabe7
+--- a/cli/tests/doctor.rs
++++ b/cli/tests/doctor.rs
+@@ -11,6 +11,8 @@
+     commands: BTreeSet<String>,
+     gh_authenticated: bool,
+     github_remote_roots: BTreeSet<PathBuf>,
++    feature_binding_roots: BTreeSet<PathBuf>,
++    feature_binding_errors: BTreeMap<PathBuf, String>,
+     missing_workflow_files: BTreeMap<PathBuf, Vec<String>>,
+ }
+ 
+@@ -30,6 +32,17 @@
+         self
+     }
+ 
++    fn with_feature_binding_root(mut self, root: &Path) -> Self {
++        self.feature_binding_roots.insert(root.to_path_buf());
++        self
++    }
++
++    fn with_feature_binding_error(mut self, root: &Path, detail: &str) -> Self {
++        self.feature_binding_errors
++            .insert(root.to_path_buf(), detail.to_string());
++        self
++    }
++
+     fn with_missing_workflow_files(mut self, root: &Path, files: &[&str]) -> Self {
+         self.missing_workflow_files.insert(
+             root.to_path_buf(),
+@@ -52,6 +65,18 @@
+         self.github_remote_roots.contains(repo_root)
+     }
+ 
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String> {
++        if self.feature_binding_roots.contains(repo_root) {
++            return Ok(());
++        }
++
++        Err(self
++            .feature_binding_errors
++            .get(repo_root)
++            .cloned()
++            .unwrap_or_else(|| "branch is not mapped to an open pull request".to_string()))
++    }
++
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+         self.missing_workflow_files
+             .get(repo_root)
+@@ -76,7 +101,8 @@
+             .with_command("gh")
+             .with_command("codex")
+             .with_gh_authenticated(true)
+-            .with_github_remote_root(repo_root),
++            .with_github_remote_root(repo_root)
++            .with_feature_binding_root(repo_root),
+         repo_root,
+     );
+ 
+@@ -96,6 +122,10 @@
+         DoctorStatus::Passing
+     );
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Passing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+         DoctorStatus::Passing
+     );
+@@ -120,6 +150,10 @@
+         DoctorStatus::Failing
+     );
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+         DoctorStatus::Passing
+     );
+@@ -132,7 +166,8 @@
+         &FakeEnvironment::default()
+             .with_command("gh")
+             .with_gh_authenticated(true)
+-            .with_github_remote_root(repo_root),
++            .with_github_remote_root(repo_root)
++            .with_feature_binding_root(repo_root),
+         repo_root,
+     );
+ 
+@@ -155,12 +190,34 @@
+         Some(true)
+     );
+     assert_eq!(
++        evidence.result_for("builtin.doctor.feature_binding_resolved"),
++        Some(true)
++    );
++    assert_eq!(
+         evidence.result_for("builtin.doctor.required_workflows_present"),
+         Some(true)
+     );
+ }
+ 
+ #[test]
++fn doctor_report_marks_missing_feature_binding_as_failing() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++    let statuses = status_map(&report);
++
++    assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++}
++
++#[test]
+ fn doctor_report_marks_missing_required_workflows_as_failing() {
+     let repo_root = Path::new("/tmp/calypso");
+     let report = collect_doctor_report(
+@@ -194,6 +251,26 @@
+ }
+ 
+ #[test]
++fn doctor_report_render_includes_actionable_fix_for_missing_feature_binding() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++
++    let rendered = calypso_cli::doctor::render_doctor_report(&report);
++
++    assert!(rendered.contains("feature-binding-resolved"));
++    assert!(rendered.contains(
++        "Ensure this worktree is on a feature branch with an open GitHub pull request."
++    ));
++    assert!(rendered.contains("current branch is not mapped to an open pull request"));
++}
++
++#[test]
+ fn git_remote_parser_detects_github_https_and_ssh_remotes() {
+     assert!(git_remote_output_has_github_remote(
+         "origin\thttps://github.com/acme/calypso.git (fetch)\n"
+
+exec
+/bin/bash -lc 'git diff -- cli/src/doctor.rs cli/tests/doctor.rs' in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+diff --git a/cli/src/doctor.rs b/cli/src/doctor.rs
+index 73f1f50..8072c99 100644
+--- a/cli/src/doctor.rs
++++ b/cli/src/doctor.rs
+@@ -1,6 +1,7 @@
+ use std::path::Path;
+ use std::process::Command;
+ 
++use crate::runtime::discover_current_repository_context;
+ use crate::state::BuiltinEvidence;
+ 
+ const REQUIRED_WORKFLOW_FILES: [&str; 6] = [
+@@ -18,6 +19,7 @@ pub enum DoctorCheckId {
+     CodexInstalled,
+     GhAuthenticated,
+     GithubRemoteConfigured,
++    FeatureBindingResolved,
+     RequiredWorkflowFilesPresent,
+ }
+ 
+exec
+/bin/bash -lc 'rustfmt cli/src/doctor.rs cli/tests/doctor.rs' in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+
+file update:
+diff --git a/cli/src/doctor.rs b/cli/src/doctor.rs
+index 73f1f50249bf7facbcce287961c2551705e57301..8072c99962553055daa9be912a44baed208f5311
+--- a/cli/src/doctor.rs
++++ b/cli/src/doctor.rs
+@@ -1,6 +1,7 @@
+ use std::path::Path;
+ use std::process::Command;
+ 
++use crate::runtime::discover_current_repository_context;
+ use crate::state::BuiltinEvidence;
+ 
+ const REQUIRED_WORKFLOW_FILES: [&str; 6] = [
+@@ -18,6 +19,7 @@
+     CodexInstalled,
+     GhAuthenticated,
+     GithubRemoteConfigured,
++    FeatureBindingResolved,
+     RequiredWorkflowFilesPresent,
+ }
+ 
+@@ -28,6 +30,7 @@
+             DoctorCheckId::CodexInstalled => "builtin.doctor.codex_installed",
+             DoctorCheckId::GhAuthenticated => "builtin.doctor.gh_authenticated",
+             DoctorCheckId::GithubRemoteConfigured => "builtin.doctor.github_remote_configured",
++            DoctorCheckId::FeatureBindingResolved => "builtin.doctor.feature_binding_resolved",
+             DoctorCheckId::RequiredWorkflowFilesPresent => {
+                 "builtin.doctor.required_workflows_present"
+             }
+@@ -40,6 +43,7 @@
+             DoctorCheckId::CodexInstalled => "codex-installed",
+             DoctorCheckId::GhAuthenticated => "gh-authenticated",
+             DoctorCheckId::GithubRemoteConfigured => "github-remote-configured",
++            DoctorCheckId::FeatureBindingResolved => "feature-binding-resolved",
+             DoctorCheckId::RequiredWorkflowFilesPresent => "required-workflows-present",
+         }
+     }
+@@ -80,6 +84,7 @@
+     fn command_exists(&self, command: &str) -> bool;
+     fn gh_authenticated(&self) -> bool;
+     fn has_github_remote(&self, repo_root: &Path) -> bool;
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String>;
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String>;
+ }
+ 
+@@ -113,6 +118,12 @@
+             })
+     }
+ 
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String> {
++        discover_current_repository_context(repo_root)
++            .map(|_| ())
++            .map_err(|error| error.to_string())
++    }
++
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+         let workflows_root = repo_root.join(".github/workflows");
+         let mut missing = REQUIRED_WORKFLOW_FILES
+@@ -129,6 +140,7 @@
+     environment: &impl DoctorEnvironment,
+     repo_root: &Path,
+ ) -> DoctorReport {
++    let feature_binding_status = environment.feature_binding_status(repo_root);
+     let mut missing_workflow_files = environment.missing_workflow_files(repo_root);
+     missing_workflow_files.sort();
+ 
+@@ -155,6 +167,11 @@
+                 detail: None,
+             },
+             DoctorCheck {
++                id: DoctorCheckId::FeatureBindingResolved,
++                status: status_from_bool(feature_binding_status.is_ok()),
++                detail: feature_binding_status.err(),
++            },
++            DoctorCheck {
+                 id: DoctorCheckId::RequiredWorkflowFilesPresent,
+                 status: status_from_bool(missing_workflow_files.is_empty()),
+                 detail: (!missing_workflow_files.is_empty())
+@@ -191,6 +208,10 @@
+         };
+         lines.push(format!("- [{status}] {}", check.id.label()));
+ 
++        if let Some(detail) = &check.detail {
++            lines.push(format!("  detail: {detail}"));
++        }
++
+         if let Some(fix) = failing_fix(check) {
+             lines.push(format!("  fix: {fix}"));
+         }
+@@ -218,6 +239,10 @@
+             "Add a GitHub remote such as `git remote add origin git@github.com:<owner>/<repo>.git`."
+                 .to_string(),
+         ),
++        DoctorCheckId::FeatureBindingResolved => Some(
++            "Ensure this worktree is on a feature branch with an open GitHub pull request."
++                .to_string(),
++        ),
+         DoctorCheckId::RequiredWorkflowFilesPresent => Some(format!(
+             "Add the missing workflow files under .github/workflows: {}",
+             check.detail.as_deref().unwrap_or("unknown")
+diff --git a/cli/tests/doctor.rs b/cli/tests/doctor.rs
+index 8041ddaf0abe3ab2fbfbc4c9380bb23c541e47f7..329ad1a4442a1b5e48d6db8ec24afccb25e58b56
+--- a/cli/tests/doctor.rs
++++ b/cli/tests/doctor.rs
+@@ -2,8 +2,8 @@
+ use std::path::{Path, PathBuf};
+ 
+ use calypso_cli::doctor::{
+-    DoctorCheckId, DoctorEnvironment, DoctorStatus, collect_doctor_report,
+-    git_remote_output_has_github_remote,
++    collect_doctor_report, git_remote_output_has_github_remote, DoctorCheckId, DoctorEnvironment,
++    DoctorStatus,
+ };
+ 
+ #[derive(Default)]
+@@ -11,6 +11,8 @@
+     commands: BTreeSet<String>,
+     gh_authenticated: bool,
+     github_remote_roots: BTreeSet<PathBuf>,
++    feature_binding_roots: BTreeSet<PathBuf>,
++    feature_binding_errors: BTreeMap<PathBuf, String>,
+     missing_workflow_files: BTreeMap<PathBuf, Vec<String>>,
+ }
+ 
+@@ -30,6 +32,17 @@
+         self
+     }
+ 
++    fn with_feature_binding_root(mut self, root: &Path) -> Self {
++        self.feature_binding_roots.insert(root.to_path_buf());
++        self
++    }
++
++    fn with_feature_binding_error(mut self, root: &Path, detail: &str) -> Self {
++        self.feature_binding_errors
++            .insert(root.to_path_buf(), detail.to_string());
++        self
++    }
++
+     fn with_missing_workflow_files(mut self, root: &Path, files: &[&str]) -> Self {
+         self.missing_workflow_files.insert(
+             root.to_path_buf(),
+@@ -52,6 +65,18 @@
+         self.github_remote_roots.contains(repo_root)
+     }
+ 
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String> {
++        if self.feature_binding_roots.contains(repo_root) {
++            return Ok(());
++        }
++
++        Err(self
++            .feature_binding_errors
++            .get(repo_root)
++            .cloned()
++            .unwrap_or_else(|| "branch is not mapped to an open pull request".to_string()))
++    }
++
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+         self.missing_workflow_files
+             .get(repo_root)
+@@ -76,7 +101,8 @@
+             .with_command("gh")
+             .with_command("codex")
+             .with_gh_authenticated(true)
+-            .with_github_remote_root(repo_root),
++            .with_github_remote_root(repo_root)
++            .with_feature_binding_root(repo_root),
+         repo_root,
+     );
+ 
+@@ -96,6 +122,10 @@
+         DoctorStatus::Passing
+     );
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Passing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+         DoctorStatus::Passing
+     );
+@@ -120,6 +150,10 @@
+         DoctorStatus::Failing
+     );
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+         DoctorStatus::Passing
+     );
+@@ -132,7 +166,8 @@
+         &FakeEnvironment::default()
+             .with_command("gh")
+             .with_gh_authenticated(true)
+-            .with_github_remote_root(repo_root),
++            .with_github_remote_root(repo_root)
++            .with_feature_binding_root(repo_root),
+         repo_root,
+     );
+ 
+@@ -155,12 +190,34 @@
+         Some(true)
+     );
+     assert_eq!(
++        evidence.result_for("builtin.doctor.feature_binding_resolved"),
++        Some(true)
++    );
++    assert_eq!(
+         evidence.result_for("builtin.doctor.required_workflows_present"),
+         Some(true)
+     );
+ }
+ 
+ #[test]
++fn doctor_report_marks_missing_feature_binding_as_failing() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++    let statuses = status_map(&report);
++
++    assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++}
++
++#[test]
+ fn doctor_report_marks_missing_required_workflows_as_failing() {
+     let repo_root = Path::new("/tmp/calypso");
+     let report = collect_doctor_report(
+@@ -194,6 +251,25 @@
+ }
+ 
+ #[test]
++fn doctor_report_render_includes_actionable_fix_for_missing_feature_binding() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++
++    let rendered = calypso_cli::doctor::render_doctor_report(&report);
++
++    assert!(rendered.contains("feature-binding-resolved"));
++    assert!(rendered
++        .contains("Ensure this worktree is on a feature branch with an open GitHub pull request."));
++    assert!(rendered.contains("current branch is not mapped to an open pull request"));
++}
++
++#[test]
+ fn git_remote_parser_detects_github_https_and_ssh_remotes() {
+     assert!(git_remote_output_has_github_remote(
+         "origin\thttps://github.com/acme/calypso.git (fetch)\n"
+
+codex
+The doctor changes are formatted cleanly. I’m taking one pass at restoring local Rust validation by downgrading only the lockfile’s `serde_json` selection to the newest cached version, because otherwise the sandbox can’t resolve dependencies at all and I can’t complete the required test loop.
+exec
+/bin/bash -lc 'RUSTC_WRAPPER= cargo update -p serde_json --precise 1.0.146 --offline' in /tmp/calypso-worktrees/feat-cli-doctor-context/cli exited 101 in 0ms:
+error: failed to select a version for the requirement `libc = "^0.2"` (locked to 0.2.183)
+candidate versions found which didn't match: 0.2.180, 0.2.177, 0.2.161, ...
+location searched: crates.io index
+required by package `crossterm v0.26.1`
+    ... which satisfies dependency `crossterm = "^0.26.1"` (locked to 0.26.1) of package `calypso-cli v0.1.0 (/tmp/calypso-worktrees/feat-cli-doctor-context/cli)`
+As a reminder, you're using offline mode (--offline) which can sometimes cause surprising resolution failures, if this error is too confusing you may wish to retry without `--offline`.
+file update:
+diff --git a/cli/src/doctor.rs b/cli/src/doctor.rs
+index 73f1f50249bf7facbcce287961c2551705e57301..8072c99962553055daa9be912a44baed208f5311
+--- a/cli/src/doctor.rs
++++ b/cli/src/doctor.rs
+@@ -1,6 +1,7 @@
+ use std::path::Path;
+ use std::process::Command;
+ 
++use crate::runtime::discover_current_repository_context;
+ use crate::state::BuiltinEvidence;
+ 
+ const REQUIRED_WORKFLOW_FILES: [&str; 6] = [
+@@ -18,6 +19,7 @@
+     CodexInstalled,
+     GhAuthenticated,
+     GithubRemoteConfigured,
++    FeatureBindingResolved,
+     RequiredWorkflowFilesPresent,
+ }
+ 
+@@ -28,6 +30,7 @@
+             DoctorCheckId::CodexInstalled => "builtin.doctor.codex_installed",
+             DoctorCheckId::GhAuthenticated => "builtin.doctor.gh_authenticated",
+             DoctorCheckId::GithubRemoteConfigured => "builtin.doctor.github_remote_configured",
++            DoctorCheckId::FeatureBindingResolved => "builtin.doctor.feature_binding_resolved",
+             DoctorCheckId::RequiredWorkflowFilesPresent => {
+                 "builtin.doctor.required_workflows_present"
+             }
+@@ -40,6 +43,7 @@
+             DoctorCheckId::CodexInstalled => "codex-installed",
+             DoctorCheckId::GhAuthenticated => "gh-authenticated",
+             DoctorCheckId::GithubRemoteConfigured => "github-remote-configured",
++            DoctorCheckId::FeatureBindingResolved => "feature-binding-resolved",
+             DoctorCheckId::RequiredWorkflowFilesPresent => "required-workflows-present",
+         }
+     }
+@@ -80,6 +84,7 @@
+     fn command_exists(&self, command: &str) -> bool;
+     fn gh_authenticated(&self) -> bool;
+     fn has_github_remote(&self, repo_root: &Path) -> bool;
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String>;
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String>;
+ }
+ 
+@@ -113,6 +118,12 @@
+             })
+     }
+ 
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String> {
++        discover_current_repository_context(repo_root)
++            .map(|_| ())
++            .map_err(|error| error.to_string())
++    }
++
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+         let workflows_root = repo_root.join(".github/workflows");
+         let mut missing = REQUIRED_WORKFLOW_FILES
+@@ -129,6 +140,7 @@
+     environment: &impl DoctorEnvironment,
+     repo_root: &Path,
+ ) -> DoctorReport {
++    let feature_binding_status = environment.feature_binding_status(repo_root);
+     let mut missing_workflow_files = environment.missing_workflow_files(repo_root);
+     missing_workflow_files.sort();
+ 
+@@ -155,6 +167,11 @@
+                 detail: None,
+             },
+             DoctorCheck {
++                id: DoctorCheckId::FeatureBindingResolved,
++                status: status_from_bool(feature_binding_status.is_ok()),
++                detail: feature_binding_status.err(),
++            },
++            DoctorCheck {
+                 id: DoctorCheckId::RequiredWorkflowFilesPresent,
+                 status: status_from_bool(missing_workflow_files.is_empty()),
+                 detail: (!missing_workflow_files.is_empty())
+@@ -191,6 +208,10 @@
+         };
+         lines.push(format!("- [{status}] {}", check.id.label()));
+ 
++        if let Some(detail) = &check.detail {
++            lines.push(format!("  detail: {detail}"));
++        }
++
+         if let Some(fix) = failing_fix(check) {
+             lines.push(format!("  fix: {fix}"));
+         }
+@@ -218,6 +239,10 @@
+             "Add a GitHub remote such as `git remote add origin git@github.com:<owner>/<repo>.git`."
+                 .to_string(),
+         ),
++        DoctorCheckId::FeatureBindingResolved => Some(
++            "Ensure this worktree is on a feature branch with an open GitHub pull request."
++                .to_string(),
++        ),
+         DoctorCheckId::RequiredWorkflowFilesPresent => Some(format!(
+             "Add the missing workflow files under .github/workflows: {}",
+             check.detail.as_deref().unwrap_or("unknown")
+diff --git a/cli/tests/doctor.rs b/cli/tests/doctor.rs
+index 8041ddaf0abe3ab2fbfbc4c9380bb23c541e47f7..329ad1a4442a1b5e48d6db8ec24afccb25e58b56
+--- a/cli/tests/doctor.rs
++++ b/cli/tests/doctor.rs
+@@ -2,8 +2,8 @@
+ use std::path::{Path, PathBuf};
+ 
+ use calypso_cli::doctor::{
+-    DoctorCheckId, DoctorEnvironment, DoctorStatus, collect_doctor_report,
+-    git_remote_output_has_github_remote,
++    collect_doctor_report, git_remote_output_has_github_remote, DoctorCheckId, DoctorEnvironment,
++    DoctorStatus,
+ };
+ 
+ #[derive(Default)]
+@@ -11,6 +11,8 @@
+     commands: BTreeSet<String>,
+     gh_authenticated: bool,
+     github_remote_roots: BTreeSet<PathBuf>,
++    feature_binding_roots: BTreeSet<PathBuf>,
++    feature_binding_errors: BTreeMap<PathBuf, String>,
+     missing_workflow_files: BTreeMap<PathBuf, Vec<String>>,
+ }
+ 
+@@ -30,6 +32,17 @@
+         self
+     }
+ 
++    fn with_feature_binding_root(mut self, root: &Path) -> Self {
++        self.feature_binding_roots.insert(root.to_path_buf());
++        self
++    }
++
++    fn with_feature_binding_error(mut self, root: &Path, detail: &str) -> Self {
++        self.feature_binding_errors
++            .insert(root.to_path_buf(), detail.to_string());
++        self
++    }
++
+     fn with_missing_workflow_files(mut self, root: &Path, files: &[&str]) -> Self {
+         self.missing_workflow_files.insert(
+             root.to_path_buf(),
+@@ -52,6 +65,18 @@
+         self.github_remote_roots.contains(repo_root)
+     }
+ 
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String> {
++        if self.feature_binding_roots.contains(repo_root) {
++            return Ok(());
++        }
++
++        Err(self
++            .feature_binding_errors
++            .get(repo_root)
++            .cloned()
++            .unwrap_or_else(|| "branch is not mapped to an open pull request".to_string()))
++    }
++
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+         self.missing_workflow_files
+             .get(repo_root)
+@@ -76,7 +101,8 @@
+             .with_command("gh")
+             .with_command("codex")
+             .with_gh_authenticated(true)
+-            .with_github_remote_root(repo_root),
++            .with_github_remote_root(repo_root)
++            .with_feature_binding_root(repo_root),
+         repo_root,
+     );
+ 
+@@ -96,6 +122,10 @@
+         DoctorStatus::Passing
+     );
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Passing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+         DoctorStatus::Passing
+     );
+@@ -120,6 +150,10 @@
+         DoctorStatus::Failing
+     );
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+         DoctorStatus::Passing
+     );
+@@ -132,7 +166,8 @@
+         &FakeEnvironment::default()
+             .with_command("gh")
+             .with_gh_authenticated(true)
+-            .with_github_remote_root(repo_root),
++            .with_github_remote_root(repo_root)
++            .with_feature_binding_root(repo_root),
+         repo_root,
+     );
+ 
+@@ -155,12 +190,34 @@
+         Some(true)
+     );
+     assert_eq!(
++        evidence.result_for("builtin.doctor.feature_binding_resolved"),
++        Some(true)
++    );
++    assert_eq!(
+         evidence.result_for("builtin.doctor.required_workflows_present"),
+         Some(true)
+     );
+ }
+ 
+ #[test]
++fn doctor_report_marks_missing_feature_binding_as_failing() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++    let statuses = status_map(&report);
++
++    assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++}
++
++#[test]
+ fn doctor_report_marks_missing_required_workflows_as_failing() {
+     let repo_root = Path::new("/tmp/calypso");
+     let report = collect_doctor_report(
+@@ -194,6 +251,25 @@
+ }
+ 
+ #[test]
++fn doctor_report_render_includes_actionable_fix_for_missing_feature_binding() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++
++    let rendered = calypso_cli::doctor::render_doctor_report(&report);
++
++    assert!(rendered.contains("feature-binding-resolved"));
++    assert!(rendered
++        .contains("Ensure this worktree is on a feature branch with an open GitHub pull request."));
++    assert!(rendered.contains("current branch is not mapped to an open pull request"));
++}
++
++#[test]
+ fn git_remote_parser_detects_github_https_and_ssh_remotes() {
+     assert!(git_remote_output_has_github_remote(
+         "origin\thttps://github.com/acme/calypso.git (fetch)\n"
+
+codex
+Local feature work is implemented for one small slice, but it is not committable yet because Rust validation is still blocked by the sandbox’s stale cargo index. I’m doing one final completion check now: branch conflict status, current diff, and whether any other obvious open review/CI signals exist locally.
+exec
+/bin/bash -lc 'git status --short --branch' in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+## feat/cli-doctor-context...origin/feat/cli-doctor-context
+ M cli/src/doctor.rs
+ M cli/tests/doctor.rs
+exec
+/bin/bash -lc 'git diff --check' in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+
+exec
+/bin/bash -lc 'git rev-list --left-right --count HEAD...origin/main' in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+1	0
+exec
+/bin/bash -lc 'git merge-base --is-ancestor origin/main HEAD; echo $?' in /tmp/calypso-worktrees/feat-cli-doctor-context succeeded in 0ms:
+0
+file update:
+diff --git a/cli/src/doctor.rs b/cli/src/doctor.rs
+index 73f1f50249bf7facbcce287961c2551705e57301..8072c99962553055daa9be912a44baed208f5311
+--- a/cli/src/doctor.rs
++++ b/cli/src/doctor.rs
+@@ -1,6 +1,7 @@
+ use std::path::Path;
+ use std::process::Command;
+ 
++use crate::runtime::discover_current_repository_context;
+ use crate::state::BuiltinEvidence;
+ 
+ const REQUIRED_WORKFLOW_FILES: [&str; 6] = [
+@@ -18,6 +19,7 @@
+     CodexInstalled,
+     GhAuthenticated,
+     GithubRemoteConfigured,
++    FeatureBindingResolved,
+     RequiredWorkflowFilesPresent,
+ }
+ 
+@@ -28,6 +30,7 @@
+             DoctorCheckId::CodexInstalled => "builtin.doctor.codex_installed",
+             DoctorCheckId::GhAuthenticated => "builtin.doctor.gh_authenticated",
+             DoctorCheckId::GithubRemoteConfigured => "builtin.doctor.github_remote_configured",
++            DoctorCheckId::FeatureBindingResolved => "builtin.doctor.feature_binding_resolved",
+             DoctorCheckId::RequiredWorkflowFilesPresent => {
+                 "builtin.doctor.required_workflows_present"
+             }
+@@ -40,6 +43,7 @@
+             DoctorCheckId::CodexInstalled => "codex-installed",
+             DoctorCheckId::GhAuthenticated => "gh-authenticated",
+             DoctorCheckId::GithubRemoteConfigured => "github-remote-configured",
++            DoctorCheckId::FeatureBindingResolved => "feature-binding-resolved",
+             DoctorCheckId::RequiredWorkflowFilesPresent => "required-workflows-present",
+         }
+     }
+@@ -80,6 +84,7 @@
+     fn command_exists(&self, command: &str) -> bool;
+     fn gh_authenticated(&self) -> bool;
+     fn has_github_remote(&self, repo_root: &Path) -> bool;
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String>;
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String>;
+ }
+ 
+@@ -113,6 +118,12 @@
+             })
+     }
+ 
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String> {
++        discover_current_repository_context(repo_root)
++            .map(|_| ())
++            .map_err(|error| error.to_string())
++    }
++
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+         let workflows_root = repo_root.join(".github/workflows");
+         let mut missing = REQUIRED_WORKFLOW_FILES
+@@ -129,6 +140,7 @@
+     environment: &impl DoctorEnvironment,
+     repo_root: &Path,
+ ) -> DoctorReport {
++    let feature_binding_status = environment.feature_binding_status(repo_root);
+     let mut missing_workflow_files = environment.missing_workflow_files(repo_root);
+     missing_workflow_files.sort();
+ 
+@@ -155,6 +167,11 @@
+                 detail: None,
+             },
+             DoctorCheck {
++                id: DoctorCheckId::FeatureBindingResolved,
++                status: status_from_bool(feature_binding_status.is_ok()),
++                detail: feature_binding_status.err(),
++            },
++            DoctorCheck {
+                 id: DoctorCheckId::RequiredWorkflowFilesPresent,
+                 status: status_from_bool(missing_workflow_files.is_empty()),
+                 detail: (!missing_workflow_files.is_empty())
+@@ -191,6 +208,10 @@
+         };
+         lines.push(format!("- [{status}] {}", check.id.label()));
+ 
++        if let Some(detail) = &check.detail {
++            lines.push(format!("  detail: {detail}"));
++        }
++
+         if let Some(fix) = failing_fix(check) {
+             lines.push(format!("  fix: {fix}"));
+         }
+@@ -218,6 +239,10 @@
+             "Add a GitHub remote such as `git remote add origin git@github.com:<owner>/<repo>.git`."
+                 .to_string(),
+         ),
++        DoctorCheckId::FeatureBindingResolved => Some(
++            "Ensure this worktree is on a feature branch with an open GitHub pull request."
++                .to_string(),
++        ),
+         DoctorCheckId::RequiredWorkflowFilesPresent => Some(format!(
+             "Add the missing workflow files under .github/workflows: {}",
+             check.detail.as_deref().unwrap_or("unknown")
+diff --git a/cli/tests/doctor.rs b/cli/tests/doctor.rs
+index 8041ddaf0abe3ab2fbfbc4c9380bb23c541e47f7..329ad1a4442a1b5e48d6db8ec24afccb25e58b56
+--- a/cli/tests/doctor.rs
++++ b/cli/tests/doctor.rs
+@@ -2,8 +2,8 @@
+ use std::path::{Path, PathBuf};
+ 
+ use calypso_cli::doctor::{
+-    DoctorCheckId, DoctorEnvironment, DoctorStatus, collect_doctor_report,
+-    git_remote_output_has_github_remote,
++    collect_doctor_report, git_remote_output_has_github_remote, DoctorCheckId, DoctorEnvironment,
++    DoctorStatus,
+ };
+ 
+ #[derive(Default)]
+@@ -11,6 +11,8 @@
+     commands: BTreeSet<String>,
+     gh_authenticated: bool,
+     github_remote_roots: BTreeSet<PathBuf>,
++    feature_binding_roots: BTreeSet<PathBuf>,
++    feature_binding_errors: BTreeMap<PathBuf, String>,
+     missing_workflow_files: BTreeMap<PathBuf, Vec<String>>,
+ }
+ 
+@@ -30,6 +32,17 @@
+         self
+     }
+ 
++    fn with_feature_binding_root(mut self, root: &Path) -> Self {
++        self.feature_binding_roots.insert(root.to_path_buf());
++        self
++    }
++
++    fn with_feature_binding_error(mut self, root: &Path, detail: &str) -> Self {
++        self.feature_binding_errors
++            .insert(root.to_path_buf(), detail.to_string());
++        self
++    }
++
+     fn with_missing_workflow_files(mut self, root: &Path, files: &[&str]) -> Self {
+         self.missing_workflow_files.insert(
+             root.to_path_buf(),
+@@ -52,6 +65,18 @@
+         self.github_remote_roots.contains(repo_root)
+     }
+ 
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String> {
++        if self.feature_binding_roots.contains(repo_root) {
++            return Ok(());
++        }
++
++        Err(self
++            .feature_binding_errors
++            .get(repo_root)
++            .cloned()
++            .unwrap_or_else(|| "branch is not mapped to an open pull request".to_string()))
++    }
++
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+         self.missing_workflow_files
+             .get(repo_root)
+@@ -76,7 +101,8 @@
+             .with_command("gh")
+             .with_command("codex")
+             .with_gh_authenticated(true)
+-            .with_github_remote_root(repo_root),
++            .with_github_remote_root(repo_root)
++            .with_feature_binding_root(repo_root),
+         repo_root,
+     );
+ 
+@@ -96,6 +122,10 @@
+         DoctorStatus::Passing
+     );
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Passing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+         DoctorStatus::Passing
+     );
+@@ -120,6 +150,10 @@
+         DoctorStatus::Failing
+     );
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+         DoctorStatus::Passing
+     );
+@@ -132,7 +166,8 @@
+         &FakeEnvironment::default()
+             .with_command("gh")
+             .with_gh_authenticated(true)
+-            .with_github_remote_root(repo_root),
++            .with_github_remote_root(repo_root)
++            .with_feature_binding_root(repo_root),
+         repo_root,
+     );
+ 
+@@ -155,12 +190,34 @@
+         Some(true)
+     );
+     assert_eq!(
++        evidence.result_for("builtin.doctor.feature_binding_resolved"),
++        Some(true)
++    );
++    assert_eq!(
+         evidence.result_for("builtin.doctor.required_workflows_present"),
+         Some(true)
+     );
+ }
+ 
+ #[test]
++fn doctor_report_marks_missing_feature_binding_as_failing() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++    let statuses = status_map(&report);
++
++    assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++}
++
++#[test]
+ fn doctor_report_marks_missing_required_workflows_as_failing() {
+     let repo_root = Path::new("/tmp/calypso");
+     let report = collect_doctor_report(
+@@ -194,6 +251,25 @@
+ }
+ 
+ #[test]
++fn doctor_report_render_includes_actionable_fix_for_missing_feature_binding() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++
++    let rendered = calypso_cli::doctor::render_doctor_report(&report);
++
++    assert!(rendered.contains("feature-binding-resolved"));
++    assert!(rendered
++        .contains("Ensure this worktree is on a feature branch with an open GitHub pull request."));
++    assert!(rendered.contains("current branch is not mapped to an open pull request"));
++}
++
++#[test]
+ fn git_remote_parser_detects_github_https_and_ssh_remotes() {
+     assert!(git_remote_output_has_github_remote(
+         "origin\thttps://github.com/acme/calypso.git (fetch)\n"
+
+Plan update
+Inspected PR/body/docs, identified the main missing doctor requirement, implemented that slice test-first, and then attempted validation. Local Rust test execution remains blocked by the sandbox's stale cargo index cache, so the PR cannot be marked complete or committed yet.
+  ✓ Inspect PR body/checklist, feature PRD, and local implementation plan to identify remaining work
+  ✓ Resolve validation blockers or establish whether local validation is blocked by the sandbox environment
+  ✓ Implement one small missing doctor feature with tests first
+  • Run relevant tests and commit the increment
+  • Update PR checklist and local implementation plan after passing validation
+file update:
+diff --git a/cli/src/doctor.rs b/cli/src/doctor.rs
+index 73f1f50249bf7facbcce287961c2551705e57301..8072c99962553055daa9be912a44baed208f5311
+--- a/cli/src/doctor.rs
++++ b/cli/src/doctor.rs
+@@ -1,6 +1,7 @@
+ use std::path::Path;
+ use std::process::Command;
+ 
++use crate::runtime::discover_current_repository_context;
+ use crate::state::BuiltinEvidence;
+ 
+ const REQUIRED_WORKFLOW_FILES: [&str; 6] = [
+@@ -18,6 +19,7 @@
+     CodexInstalled,
+     GhAuthenticated,
+     GithubRemoteConfigured,
++    FeatureBindingResolved,
+     RequiredWorkflowFilesPresent,
+ }
+ 
+@@ -28,6 +30,7 @@
+             DoctorCheckId::CodexInstalled => "builtin.doctor.codex_installed",
+             DoctorCheckId::GhAuthenticated => "builtin.doctor.gh_authenticated",
+             DoctorCheckId::GithubRemoteConfigured => "builtin.doctor.github_remote_configured",
++            DoctorCheckId::FeatureBindingResolved => "builtin.doctor.feature_binding_resolved",
+             DoctorCheckId::RequiredWorkflowFilesPresent => {
+                 "builtin.doctor.required_workflows_present"
+             }
+@@ -40,6 +43,7 @@
+             DoctorCheckId::CodexInstalled => "codex-installed",
+             DoctorCheckId::GhAuthenticated => "gh-authenticated",
+             DoctorCheckId::GithubRemoteConfigured => "github-remote-configured",
++            DoctorCheckId::FeatureBindingResolved => "feature-binding-resolved",
+             DoctorCheckId::RequiredWorkflowFilesPresent => "required-workflows-present",
+         }
+     }
+@@ -80,6 +84,7 @@
+     fn command_exists(&self, command: &str) -> bool;
+     fn gh_authenticated(&self) -> bool;
+     fn has_github_remote(&self, repo_root: &Path) -> bool;
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String>;
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String>;
+ }
+ 
+@@ -113,6 +118,12 @@
+             })
+     }
+ 
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String> {
++        discover_current_repository_context(repo_root)
++            .map(|_| ())
++            .map_err(|error| error.to_string())
++    }
++
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+         let workflows_root = repo_root.join(".github/workflows");
+         let mut missing = REQUIRED_WORKFLOW_FILES
+@@ -129,6 +140,7 @@
+     environment: &impl DoctorEnvironment,
+     repo_root: &Path,
+ ) -> DoctorReport {
++    let feature_binding_status = environment.feature_binding_status(repo_root);
+     let mut missing_workflow_files = environment.missing_workflow_files(repo_root);
+     missing_workflow_files.sort();
+ 
+@@ -155,6 +167,11 @@
+                 detail: None,
+             },
+             DoctorCheck {
++                id: DoctorCheckId::FeatureBindingResolved,
++                status: status_from_bool(feature_binding_status.is_ok()),
++                detail: feature_binding_status.err(),
++            },
++            DoctorCheck {
+                 id: DoctorCheckId::RequiredWorkflowFilesPresent,
+                 status: status_from_bool(missing_workflow_files.is_empty()),
+                 detail: (!missing_workflow_files.is_empty())
+@@ -191,6 +208,10 @@
+         };
+         lines.push(format!("- [{status}] {}", check.id.label()));
+ 
++        if let Some(detail) = &check.detail {
++            lines.push(format!("  detail: {detail}"));
++        }
++
+         if let Some(fix) = failing_fix(check) {
+             lines.push(format!("  fix: {fix}"));
+         }
+@@ -218,6 +239,10 @@
+             "Add a GitHub remote such as `git remote add origin git@github.com:<owner>/<repo>.git`."
+                 .to_string(),
+         ),
++        DoctorCheckId::FeatureBindingResolved => Some(
++            "Ensure this worktree is on a feature branch with an open GitHub pull request."
++                .to_string(),
++        ),
+         DoctorCheckId::RequiredWorkflowFilesPresent => Some(format!(
+             "Add the missing workflow files under .github/workflows: {}",
+             check.detail.as_deref().unwrap_or("unknown")
+diff --git a/cli/tests/doctor.rs b/cli/tests/doctor.rs
+index 8041ddaf0abe3ab2fbfbc4c9380bb23c541e47f7..329ad1a4442a1b5e48d6db8ec24afccb25e58b56
+--- a/cli/tests/doctor.rs
++++ b/cli/tests/doctor.rs
+@@ -2,8 +2,8 @@
+ use std::path::{Path, PathBuf};
+ 
+ use calypso_cli::doctor::{
+-    DoctorCheckId, DoctorEnvironment, DoctorStatus, collect_doctor_report,
+-    git_remote_output_has_github_remote,
++    collect_doctor_report, git_remote_output_has_github_remote, DoctorCheckId, DoctorEnvironment,
++    DoctorStatus,
+ };
+ 
+ #[derive(Default)]
+@@ -11,6 +11,8 @@
+     commands: BTreeSet<String>,
+     gh_authenticated: bool,
+     github_remote_roots: BTreeSet<PathBuf>,
++    feature_binding_roots: BTreeSet<PathBuf>,
++    feature_binding_errors: BTreeMap<PathBuf, String>,
+     missing_workflow_files: BTreeMap<PathBuf, Vec<String>>,
+ }
+ 
+@@ -30,6 +32,17 @@
+         self
+     }
+ 
++    fn with_feature_binding_root(mut self, root: &Path) -> Self {
++        self.feature_binding_roots.insert(root.to_path_buf());
++        self
++    }
++
++    fn with_feature_binding_error(mut self, root: &Path, detail: &str) -> Self {
++        self.feature_binding_errors
++            .insert(root.to_path_buf(), detail.to_string());
++        self
++    }
++
+     fn with_missing_workflow_files(mut self, root: &Path, files: &[&str]) -> Self {
+         self.missing_workflow_files.insert(
+             root.to_path_buf(),
+@@ -52,6 +65,18 @@
+         self.github_remote_roots.contains(repo_root)
+     }
+ 
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String> {
++        if self.feature_binding_roots.contains(repo_root) {
++            return Ok(());
++        }
++
++        Err(self
++            .feature_binding_errors
++            .get(repo_root)
++            .cloned()
++            .unwrap_or_else(|| "branch is not mapped to an open pull request".to_string()))
++    }
++
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+         self.missing_workflow_files
+             .get(repo_root)
+@@ -76,7 +101,8 @@
+             .with_command("gh")
+             .with_command("codex")
+             .with_gh_authenticated(true)
+-            .with_github_remote_root(repo_root),
++            .with_github_remote_root(repo_root)
++            .with_feature_binding_root(repo_root),
+         repo_root,
+     );
+ 
+@@ -96,6 +122,10 @@
+         DoctorStatus::Passing
+     );
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Passing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+         DoctorStatus::Passing
+     );
+@@ -120,6 +150,10 @@
+         DoctorStatus::Failing
+     );
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+         DoctorStatus::Passing
+     );
+@@ -132,7 +166,8 @@
+         &FakeEnvironment::default()
+             .with_command("gh")
+             .with_gh_authenticated(true)
+-            .with_github_remote_root(repo_root),
++            .with_github_remote_root(repo_root)
++            .with_feature_binding_root(repo_root),
+         repo_root,
+     );
+ 
+@@ -155,12 +190,34 @@
+         Some(true)
+     );
+     assert_eq!(
++        evidence.result_for("builtin.doctor.feature_binding_resolved"),
++        Some(true)
++    );
++    assert_eq!(
+         evidence.result_for("builtin.doctor.required_workflows_present"),
+         Some(true)
+     );
+ }
+ 
+ #[test]
++fn doctor_report_marks_missing_feature_binding_as_failing() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++    let statuses = status_map(&report);
++
++    assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++}
++
++#[test]
+ fn doctor_report_marks_missing_required_workflows_as_failing() {
+     let repo_root = Path::new("/tmp/calypso");
+     let report = collect_doctor_report(
+@@ -194,6 +251,25 @@
+ }
+ 
+ #[test]
++fn doctor_report_render_includes_actionable_fix_for_missing_feature_binding() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++
++    let rendered = calypso_cli::doctor::render_doctor_report(&report);
++
++    assert!(rendered.contains("feature-binding-resolved"));
++    assert!(rendered
++        .contains("Ensure this worktree is on a feature branch with an open GitHub pull request."));
++    assert!(rendered.contains("current branch is not mapped to an open pull request"));
++}
++
++#[test]
+ fn git_remote_parser_detects_github_https_and_ssh_remotes() {
+     assert!(git_remote_output_has_github_remote(
+         "origin\thttps://github.com/acme/calypso.git (fetch)\n"
+
+codex
+**Status**
+
+I inspected PR #26 via `gh`: the body is still description-only, there is no checklist in the PR body, no open review decision, and no recorded status checks. The feature PRD is [docs/plans/cli-doctor-context-feature.md](/tmp/calypso-worktrees/feat-cli-doctor-context/docs/plans/cli-doctor-context-feature.md). The local worktree plan is stale and points at a different PR in [docs/plans/implementation-plan.md](/tmp/calypso-worktrees/feat-cli-doctor-context/docs/plans/implementation-plan.md).
+
+I implemented one missing PRD item test-first: `doctor` now includes an explicit feature/worktree binding check and renders the failure detail plus remediation. The code changes are in [cli/src/doctor.rs](/tmp/calypso-worktrees/feat-cli-doctor-context/cli/src/doctor.rs) and [cli/tests/doctor.rs](/tmp/calypso-worktrees/feat-cli-doctor-context/cli/tests/doctor.rs).
+
+**Blocked**
+
+I could not complete the required validation loop or commit this increment because local Rust dependency resolution is broken in this sandbox:
+`cargo test doctor` failed first on `sccache`, which I bypassed with `RUSTC_WRAPPER=`.
+After that, cargo could not resolve locked crates offline because the local crates index/cache is stale relative to `Cargo.lock` (`zmij 1.0.21`, then `libc 0.2.183`, and likely more). Network access is disabled, so I cannot refresh the index.
+`rustfmt` succeeded and `git diff --check` is clean. The branch is not behind `origin/main` (`HEAD...origin/main = 1 0`), so there is no evident merge conflict with main.
+
+Exit conditions are not met: relevant tests were not runnable, no commit was created, the PR checklist is still absent, and the local implementation plan is still out of date.
+file update:
+diff --git a/cli/src/doctor.rs b/cli/src/doctor.rs
+index 73f1f50249bf7facbcce287961c2551705e57301..8072c99962553055daa9be912a44baed208f5311
+--- a/cli/src/doctor.rs
++++ b/cli/src/doctor.rs
+@@ -1,6 +1,7 @@
+ use std::path::Path;
+ use std::process::Command;
+ 
++use crate::runtime::discover_current_repository_context;
+ use crate::state::BuiltinEvidence;
+ 
+ const REQUIRED_WORKFLOW_FILES: [&str; 6] = [
+@@ -18,6 +19,7 @@
+     CodexInstalled,
+     GhAuthenticated,
+     GithubRemoteConfigured,
++    FeatureBindingResolved,
+     RequiredWorkflowFilesPresent,
+ }
+ 
+@@ -28,6 +30,7 @@
+             DoctorCheckId::CodexInstalled => "builtin.doctor.codex_installed",
+             DoctorCheckId::GhAuthenticated => "builtin.doctor.gh_authenticated",
+             DoctorCheckId::GithubRemoteConfigured => "builtin.doctor.github_remote_configured",
++            DoctorCheckId::FeatureBindingResolved => "builtin.doctor.feature_binding_resolved",
+             DoctorCheckId::RequiredWorkflowFilesPresent => {
+                 "builtin.doctor.required_workflows_present"
+             }
+@@ -40,6 +43,7 @@
+             DoctorCheckId::CodexInstalled => "codex-installed",
+             DoctorCheckId::GhAuthenticated => "gh-authenticated",
+             DoctorCheckId::GithubRemoteConfigured => "github-remote-configured",
++            DoctorCheckId::FeatureBindingResolved => "feature-binding-resolved",
+             DoctorCheckId::RequiredWorkflowFilesPresent => "required-workflows-present",
+         }
+     }
+@@ -80,6 +84,7 @@
+     fn command_exists(&self, command: &str) -> bool;
+     fn gh_authenticated(&self) -> bool;
+     fn has_github_remote(&self, repo_root: &Path) -> bool;
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String>;
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String>;
+ }
+ 
+@@ -113,6 +118,12 @@
+             })
+     }
+ 
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String> {
++        discover_current_repository_context(repo_root)
++            .map(|_| ())
++            .map_err(|error| error.to_string())
++    }
++
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+         let workflows_root = repo_root.join(".github/workflows");
+         let mut missing = REQUIRED_WORKFLOW_FILES
+@@ -129,6 +140,7 @@
+     environment: &impl DoctorEnvironment,
+     repo_root: &Path,
+ ) -> DoctorReport {
++    let feature_binding_status = environment.feature_binding_status(repo_root);
+     let mut missing_workflow_files = environment.missing_workflow_files(repo_root);
+     missing_workflow_files.sort();
+ 
+@@ -155,6 +167,11 @@
+                 detail: None,
+             },
+             DoctorCheck {
++                id: DoctorCheckId::FeatureBindingResolved,
++                status: status_from_bool(feature_binding_status.is_ok()),
++                detail: feature_binding_status.err(),
++            },
++            DoctorCheck {
+                 id: DoctorCheckId::RequiredWorkflowFilesPresent,
+                 status: status_from_bool(missing_workflow_files.is_empty()),
+                 detail: (!missing_workflow_files.is_empty())
+@@ -191,6 +208,10 @@
+         };
+         lines.push(format!("- [{status}] {}", check.id.label()));
+ 
++        if let Some(detail) = &check.detail {
++            lines.push(format!("  detail: {detail}"));
++        }
++
+         if let Some(fix) = failing_fix(check) {
+             lines.push(format!("  fix: {fix}"));
+         }
+@@ -218,6 +239,10 @@
+             "Add a GitHub remote such as `git remote add origin git@github.com:<owner>/<repo>.git`."
+                 .to_string(),
+         ),
++        DoctorCheckId::FeatureBindingResolved => Some(
++            "Ensure this worktree is on a feature branch with an open GitHub pull request."
++                .to_string(),
++        ),
+         DoctorCheckId::RequiredWorkflowFilesPresent => Some(format!(
+             "Add the missing workflow files under .github/workflows: {}",
+             check.detail.as_deref().unwrap_or("unknown")
+diff --git a/cli/tests/doctor.rs b/cli/tests/doctor.rs
+index 8041ddaf0abe3ab2fbfbc4c9380bb23c541e47f7..329ad1a4442a1b5e48d6db8ec24afccb25e58b56
+--- a/cli/tests/doctor.rs
++++ b/cli/tests/doctor.rs
+@@ -2,8 +2,8 @@
+ use std::path::{Path, PathBuf};
+ 
+ use calypso_cli::doctor::{
+-    DoctorCheckId, DoctorEnvironment, DoctorStatus, collect_doctor_report,
+-    git_remote_output_has_github_remote,
++    collect_doctor_report, git_remote_output_has_github_remote, DoctorCheckId, DoctorEnvironment,
++    DoctorStatus,
+ };
+ 
+ #[derive(Default)]
+@@ -11,6 +11,8 @@
+     commands: BTreeSet<String>,
+     gh_authenticated: bool,
+     github_remote_roots: BTreeSet<PathBuf>,
++    feature_binding_roots: BTreeSet<PathBuf>,
++    feature_binding_errors: BTreeMap<PathBuf, String>,
+     missing_workflow_files: BTreeMap<PathBuf, Vec<String>>,
+ }
+ 
+@@ -30,6 +32,17 @@
+         self
+     }
+ 
++    fn with_feature_binding_root(mut self, root: &Path) -> Self {
++        self.feature_binding_roots.insert(root.to_path_buf());
++        self
++    }
++
++    fn with_feature_binding_error(mut self, root: &Path, detail: &str) -> Self {
++        self.feature_binding_errors
++            .insert(root.to_path_buf(), detail.to_string());
++        self
++    }
++
+     fn with_missing_workflow_files(mut self, root: &Path, files: &[&str]) -> Self {
+         self.missing_workflow_files.insert(
+             root.to_path_buf(),
+@@ -52,6 +65,18 @@
+         self.github_remote_roots.contains(repo_root)
+     }
+ 
++    fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String> {
++        if self.feature_binding_roots.contains(repo_root) {
++            return Ok(());
++        }
++
++        Err(self
++            .feature_binding_errors
++            .get(repo_root)
++            .cloned()
++            .unwrap_or_else(|| "branch is not mapped to an open pull request".to_string()))
++    }
++
+     fn missing_workflow_files(&self, repo_root: &Path) -> Vec<String> {
+         self.missing_workflow_files
+             .get(repo_root)
+@@ -76,7 +101,8 @@
+             .with_command("gh")
+             .with_command("codex")
+             .with_gh_authenticated(true)
+-            .with_github_remote_root(repo_root),
++            .with_github_remote_root(repo_root)
++            .with_feature_binding_root(repo_root),
+         repo_root,
+     );
+ 
+@@ -96,6 +122,10 @@
+         DoctorStatus::Passing
+     );
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Passing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+         DoctorStatus::Passing
+     );
+@@ -120,6 +150,10 @@
+         DoctorStatus::Failing
+     );
+     assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++    assert_eq!(
+         statuses[&DoctorCheckId::RequiredWorkflowFilesPresent],
+         DoctorStatus::Passing
+     );
+@@ -132,7 +166,8 @@
+         &FakeEnvironment::default()
+             .with_command("gh")
+             .with_gh_authenticated(true)
+-            .with_github_remote_root(repo_root),
++            .with_github_remote_root(repo_root)
++            .with_feature_binding_root(repo_root),
+         repo_root,
+     );
+ 
+@@ -155,12 +190,34 @@
+         Some(true)
+     );
+     assert_eq!(
++        evidence.result_for("builtin.doctor.feature_binding_resolved"),
++        Some(true)
++    );
++    assert_eq!(
+         evidence.result_for("builtin.doctor.required_workflows_present"),
+         Some(true)
+     );
+ }
+ 
+ #[test]
++fn doctor_report_marks_missing_feature_binding_as_failing() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++    let statuses = status_map(&report);
++
++    assert_eq!(
++        statuses[&DoctorCheckId::FeatureBindingResolved],
++        DoctorStatus::Failing
++    );
++}
++
++#[test]
+ fn doctor_report_marks_missing_required_workflows_as_failing() {
+     let repo_root = Path::new("/tmp/calypso");
+     let report = collect_doctor_report(
+@@ -194,6 +251,25 @@
+ }
+ 
+ #[test]
++fn doctor_report_render_includes_actionable_fix_for_missing_feature_binding() {
++    let repo_root = Path::new("/tmp/calypso");
++    let report = collect_doctor_report(
++        &FakeEnvironment::default().with_feature_binding_error(
++            repo_root,
++            "current branch is not mapped to an open pull request",
++        ),
++        repo_root,
++    );
++
++    let rendered = calypso_cli::doctor::render_doctor_report(&report);
++
++    assert!(rendered.contains("feature-binding-resolved"));
++    assert!(rendered
++        .contains("Ensure this worktree is on a feature branch with an open GitHub pull request."));
++    assert!(rendered.contains("current branch is not mapped to an open pull request"));
++}
++
++#[test]
+ fn git_remote_parser_detects_github_https_and_ssh_remotes() {
+     assert!(git_remote_output_has_github_remote(
+         "origin\thttps://github.com/acme/calypso.git (fetch)\n"
+
+tokens used
+73,591

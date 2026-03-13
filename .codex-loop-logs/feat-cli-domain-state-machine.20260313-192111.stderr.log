@@ -1,0 +1,4651 @@
+OpenAI Codex v0.114.0 (research preview)
+--------
+workdir: /tmp/calypso-worktrees/feat-cli-domain-state-machine
+model: gpt-5.4
+provider: openai
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR, /home/lucas/.codex/memories]
+reasoning effort: none
+reasoning summaries: none
+session id: 019ce8a5-490a-7da1-9fb6-167df04f73fa
+--------
+user
+You are the sole agent assigned to this Calypso feature worktree. This worktree maps to exactly one pull request. Your job is to keep advancing the PR until it is complete, then exit. Do not merge the PR. Do not stop early unless the PR is already closed or merged.
+
+Execute this exact loop in order on every pass:
+
+Step 1: Inspect the pull request.
+- Read the current PR description.
+- Read the current PR checklist.
+- Identify the remaining unchecked items, open review issues, known CI failures, and any stated blockers.
+
+Step 2: Read the planning documents.
+- Find and read the relevant PRD file for this feature.
+- Read the local implementation plan for this worktree.
+- Build a concrete list of remaining tasks from the PR description, PRD, implementation plan, and any failing CI or tests.
+
+Step 3: Resolve validation failures first.
+- If there are known CI failures, failing tests, lint errors, type errors, build errors, or merge conflicts with main, work on those before starting new feature development.
+- Stay on validation and merge-conflict resolution until those problems are gone.
+
+Step 4: If validation is green, continue feature development with TDD.
+- Pick exactly one small incomplete feature or checklist item.
+- Write or update a failing test for that item first.
+- Run the relevant test to confirm it fails.
+- Implement the minimum code needed to make that test pass.
+- Refactor only if needed to keep the code clear and maintainable.
+- Run the relevant tests again after the change.
+
+Step 5: Commit small increments.
+- When a small coherent unit of work is complete and tests for that unit pass, create a small commit.
+- Prefer multiple small commits over large commits.
+- Do not batch unrelated changes into one commit.
+
+Step 6: Update project tracking only after validation passes.
+- When the current increment is implemented and the relevant tests pass, update the PR checklist.
+- Update the local implementation plan to reflect exactly what is now complete and what remains.
+- Keep both documents synchronized with the actual code and test status.
+
+Step 7: Re-evaluate completion.
+- Check whether all planned features are implemented.
+- Check whether all required tests have been written.
+- Check whether all relevant tests now pass.
+- Check whether the PR checklist is fully complete.
+- Check whether the local implementation plan is fully updated.
+- Check whether the branch is free of merge conflicts with main.
+
+If any completion condition is not satisfied, repeat the loop from Step 1.
+
+Exit only when all of the following are true:
+- every planned feature is implemented
+- all required tests exist
+- all relevant tests pass
+- there are no known CI or validation failures
+- the PR checklist is fully updated and complete
+- the local implementation plan is fully updated
+- the branch has no merge conflicts with main
+
+Final rule:
+- Do not merge the PR.
+- If the PR is already merged or closed, exit without making changes.
+- Otherwise continue until all exit conditions are satisfied, then exit.
+mcp startup: no servers
+codex
+I’m inspecting the PR state and local planning docs first so I can build the remaining-task list before touching code. After that I’ll prioritize any failing validation or merge issues ahead of feature work.
+exec
+/bin/bash -lc "pwd && rg --files -g 'AGENTS.md' -g '*PRD*' -g '*prd*' -g '*plan*' -g '*Plan*' -g '*checklist*' -g '*CHECKLIST*' -g '*.md' ." in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+/tmp/calypso-worktrees/feat-cli-domain-state-machine
+./FAQ.md
+./docs/plans/cli-domain-state-machine-feature.md
+./docs/plans/next-prompt.md
+./docs/plans/implementation-plan.md
+./README.md
+./agent-communication.md
+./agent-context/development/development-standards.md
+./agent-context/development/product-owner-interview.md
+./agent-context/development/documentation-standard.md
+./agent-context/development/hardening.md
+./agent-context/development/git-standards.md
+./agent-context/init/scaffold-task.md
+./AGENT.md
+./agent-context/index.md
+./agent-context/implementation-ts/process-implementation.md
+./agent-context/implementation-ts/auth-implementation.md
+./agent-context/implementation-ts/deployment-implementation.md
+./agent-context/implementation-ts/testing-implementation.md
+./agent-context/implementation-ts/data-implementation.md
+exec
+/bin/bash -lc 'git status --short --branch && git log --oneline --decorate -n 12' in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+## feat/cli-domain-state-machine...origin/feat/cli-domain-state-machine
+afdedc2 (HEAD -> feat/cli-domain-state-machine, origin/feat/cli-domain-state-machine) docs: specify cli domain state machine feature
+3e7bf7d (origin/main, main, feat/submodule) Merge pull request #22 from dot-matrix-labs/feat/cli-tui-operator-surface
+0f710bc (origin/feat/cli-tui-operator-surface) fix: preserve tui session follow-up state
+4263f50 test: make gh app resolver test use unique temp dir
+f07b59f fix: satisfy tui branch quality gates
+50a0f8f fix: make tui branch msrv compatible
+a5ea099 fix: stabilize tui validation coverage
+3ade65e feat: persist tui session output and follow-ups
+8e3c5c7 feat: add interactive operator surface loop
+6ea061a feat: add headless operator surface renderer
+b438ddd chore: start tui operator surface slice
+f53a838 Merge pull request #20 from dot-matrix-labs/feat/cli-doctor-gh-runtime
+codex
+I found the feature-specific plan files. Next I’m reading the PR description/checklist source, the PRD, and the implementation plan to extract the actual remaining work before I run validation.
+exec
+/bin/bash -lc "sed -n '1,220p' docs/plans/cli-domain-state-machine-feature.md" in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+# CLI Domain State Machine Feature
+
+## Summary
+
+Implement the Phase 1 core domain model for `calypso-cli` so the prototype can reason about repository state, feature state, gate groups, agent sessions, and deterministic state transitions without coupling that logic to terminal, filesystem, or provider adapters.
+
+## Problem
+
+The current CLI bootstrap and persistence work can discover repository context and load template/state files, but the product still lacks a first-class domain model for feature orchestration. Without explicit domain types and transition guards, later slices such as gate evaluation, TUI status rendering, and supervised agent scheduling will encode workflow policy in ad hoc adapter code.
+
+## User Outcome
+
+An operator can inspect a repository-local feature unit and get a deterministic answer for:
+
+- what state the feature is in
+- which gates are blocking advancement
+- which transition is allowed next
+- whether an agent session outcome should advance, block, or pause the feature
+
+## Scope
+exec
+/bin/bash -lc "sed -n '1,260p' cli/calypso-cli-implementation-plan.md" in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+# Calypso CLI Implementation Plan
+
+## Goal
+
+Build a motivating prototype of `calypso-cli` in Rust that proves the core product loop:
+
+- enforce the Calypso state machine locally
+- supervise agent execution through Codex CLI
+- inspect the GitHub status relevant to the current feature branch
+- present agents, sessions, and grouped content gates in a terminal UI
+
+This prototype is intentionally narrow. It does not attempt to implement the full product specification.
+
+The prototype should assume the canonical Calypso information architecture:
+
+- one orchestrator per repository
+- one feature equals one branch, one worktree, and one pull request
+- agent work is scheduled by the orchestrator against those feature units
+
+## Prototype assumptions
+exec
+/bin/bash -lc "sed -n '1,220p' docs/plans/next-prompt.md" in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+No further feature work remains in this worktree.
+
+If review feedback arrives on PR #21, inspect the current PR body and checklist, reread [cli/spec.md](/Users/lucas/code/ts/calypso-worktrees/cli-codex-session-runtime/cli/spec.md) and [cli/calypso-cli-implementation-plan.md](/Users/lucas/code/ts/calypso-worktrees/cli-codex-session-runtime/cli/calypso-cli-implementation-plan.md), then address exactly one review item with a failing test first before changing code.
+exec
+/bin/bash -lc "sed -n '1,260p' docs/plans/implementation-plan.md" in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+# Worktree Implementation Plan
+
+## PR: `feat: build codex session runtime`
+
+- [x] Read the PR description, current branch state, and the Phase 5 Codex adapter requirements in [cli/calypso-cli-implementation-plan.md](/Users/lucas/code/ts/calypso-worktrees/cli-codex-session-runtime/cli/calypso-cli-implementation-plan.md).
+- [x] Extend persisted runtime state to capture provider session IDs, streamed output, and normalized terminal outcomes.
+- [x] Implement a Codex runtime that launches subprocesses, streams stdout and stderr, accepts follow-up input, and normalizes terminal states.
+- [x] Add a first-class interactive Codex command constructor for launching against a specific worktree.
+- [x] Cover the runtime with tests for streaming, provider session-id extraction, follow-up input routing, waiting-for-human detection, failed or aborted processes, persisted snapshots, and command construction.
+- [x] Validate the slice with `cargo fmt --check` and `cargo test -p calypso-cli`.
+
+## Remaining Work
+
+- [x] None. This PR slice is complete and ready for review.
+codex
+The branch-specific plan file is stale: it still describes a different PR slice. I’m locating the actual PR body/checklist source for this worktree and then I’ll run validation to see whether there are active failures to clear first.
+exec
+/bin/bash -lc "rg --files .github docs cli | sed -n '1,240p'" in /tmp/calypso-worktrees/feat-cli-domain-state-machineexec
+/bin/bash -lc 'rg -n "cli domain state machine|domain state machine|PR #|Remaining Work|checklist|feat/cli-domain-state-machine|feat: build|feat:.*domain" .' in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+cli/spec.md
+cli/build.rs
+cli/AGENTS.md
+cli/calypso-cli-implementation-plan.md
+cli/Cargo.lock
+docs/plans/cli-domain-state-machine-feature.md
+docs/plans/next-prompt.md
+docs/plans/implementation-plan.md
+cli/templates/default/prompts.yml
+cli/templates/default/agents.yml
+cli/templates/default/state-machine.yml
+cli/Cargo.toml
+cli/tests/doctor.rs
+cli/scripts/codex-worktree-loop.sh
+cli/tests/runtime.rs
+cli/tests/cli.rs
+cli/tests/tui.rs
+cli/tests/codex.rs
+cli/tests/state.rs
+cli/tests/templates.rs
+ succeeded in 0ms:
+./docs/plans/next-prompt.md:3:If review feedback arrives on PR #21, inspect the current PR body and checklist, reread [cli/spec.md](/Users/lucas/code/ts/calypso-worktrees/cli-codex-session-runtime/cli/spec.md) and [cli/calypso-cli-implementation-plan.md](/Users/lucas/code/ts/calypso-worktrees/cli-codex-session-runtime/cli/calypso-cli-implementation-plan.md), then address exactly one review item with a failing test first before changing code.
+./docs/plans/implementation-plan.md:3:## PR: `feat: build codex session runtime`
+./docs/plans/implementation-plan.md:12:## Remaining Work
+./agent-communication.md:163:- A checklist for a specific task
+./agent-communication.md:309:**Purpose:** Provide a verifiable, staged checklist that confirms correct application of the blueprint.
+./agent-communication.md:317:- The Alpha checklist MUST be the minimum gate before any real data enters the system
+./agent-communication.md:322:- A single flat checklist with no staging
+./agent-communication.md:381:- [ ] All checklist items are binary-verifiable
+./agent-communication.md:497:A binary-verifiable checklist the agent runs after completing any work in this domain. Every item MUST be checkable by reading code or running a command — no subjective items:
+./agent-communication.md:539:Development documents are optimized for one-shot agent execution, not for human readability. They are step sequences, decision trees, and checklists — not explanatory prose. An agent that follows a development document from top to bottom MUST arrive at the correct outcome without human intervention.
+./agent-communication.md:671:7. Run the correctness checklist from the relevant implementation document.
+./agent-communication.md:694:6. Run the correctness checklist from the relevant implementation document.
+./agent-communication.md:695:7. Run the antipattern checklist from the relevant implementation document.
+./agent-communication.md:750:2. Run the pre-deployment checklist from `agent-context/implementation-ts/deployment-implementation.md`.
+./agent-communication.md:773:- Cross-references to implementation documents are REQUIRED wherever a workflow involves domain-specific patterns (e.g., "run the correctness checklist from the auth implementation document").
+./scripts/hooks/commit-msg:13:    echo "COMMIT BLOCKED: Conformance checklist has unchecked items:" >&2
+./AGENT.md:36:2. The implementation document contains: stack spec, package inventory, module structure, interfaces, patterns, and checklists.
+./cli/spec.md:66:   - Progress is determined by files, Git state, pull request state, checklists, validations, transcripts, and structured agent outcomes.
+./cli/spec.md:235:A gate is a named checkpoint that must be satisfied before a feature, release, or deployment may advance. Gates are represented in structured state and, when applicable, mirrored in the pull request checklist.
+./cli/spec.md:585:- seed the pull request description with the current gate checklist
+exec
+/bin/bash -lc 'cargo test -p calypso-cli' in /tmp/calypso-worktrees/feat-cli-domain-state-machine exited 101 in 0ms:
+error: could not find `Cargo.toml` in `/tmp/calypso-worktrees/feat-cli-domain-state-machine` or any parent directory
+codex
+`cargo test` from the repo root failed because this worktree’s Rust crate lives under `cli/`. I’m switching into that crate, then I’ll inspect the current state-machine code and tests to see what is already implemented versus still missing.
+exec
+/bin/bash -lc "sed -n '1,260p' cli/src/state.rs" in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+use std::collections::BTreeMap;
+use std::fmt;
+use std::fs;
+use std::path::Path;
+
+use serde::{Deserialize, Serialize};
+
+use crate::template::{AgentTaskKind, TemplateSet};
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RepositoryState {
+    pub version: u32,
+    pub repo_id: String,
+    pub current_feature: FeatureState,
+}
+
+impl RepositoryState {
+    pub fn to_json_pretty(&self) -> Result<String, StateError> {
+        serde_json::to_string_pretty(self).map_err(StateError::Json)
+    }
+exec
+/bin/bash -lc "sed -n '1,260p' cli/tests/state.rs" in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+use std::fs;
+use std::path::PathBuf;
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use calypso_cli::state::{
+    AgentSession, AgentSessionStatus, AgentTerminalOutcome, BuiltinEvidence, FeatureState, Gate,
+    GateEvaluationError, GateGroup, GateInitializationError, GateStatus, PullRequestRef,
+    RepositoryState, SessionOutput, SessionOutputStream, StateError, WorkflowState,
+};
+use calypso_cli::template::{TemplateSet, load_embedded_template_set};
+
+fn sample_state() -> RepositoryState {
+    RepositoryState {
+        version: 1,
+        repo_id: "acme-api".to_string(),
+        current_feature: FeatureState {
+            feature_id: "feat-auth-refresh".to_string(),
+            branch: "feat/123-token-refresh".to_string(),
+            worktree_path: "/worktrees/feat-123-token-refresh".to_string(),
+            pull_request: PullRequestRef {
+exec
+/bin/bash -lc "sed -n '260,520p' cli/src/state.rs" in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+                )
+            }
+        }
+    }
+}
+
+impl std::error::Error for GateInitializationError {}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct BuiltinEvidence {
+    results: BTreeMap<String, bool>,
+}
+
+impl BuiltinEvidence {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_result(mut self, builtin: &str, passed: bool) -> Self {
+        self.results.insert(builtin.to_string(), passed);
+exec
+/bin/bash -lc "sed -n '260,520p' cli/tests/state.rs" in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+    .expect_err("unknown workflow state should fail initialization");
+
+    assert!(matches!(
+        error,
+        GateInitializationError::UnknownWorkflowState(_)
+    ));
+    assert!(error.to_string().contains("made-up"));
+}
+
+#[test]
+fn feature_state_initializes_supported_workflow_variants_from_template() {
+    for initial_state in [
+        ("implementation", WorkflowState::Implementation),
+        ("waiting-for-human", WorkflowState::WaitingForHuman),
+        ("ready-for-review", WorkflowState::ReadyForReview),
+        ("blocked", WorkflowState::Blocked),
+    ] {
+        let template = TemplateSet::from_yaml_strings(
+            &format!(
+                r#"
+codex
+The existing slice has persistence and gate evaluation, but it is still missing the core state-machine behavior the PRD calls out: validated transitions, grouped rollups, and richer feature/session domain semantics. I’m confirming the current template model and then I’ll add one missing behavior test-first.
+exec
+/bin/bash -lc "sed -n '1,260p' cli/src/template.rs" in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+use std::collections::{BTreeMap, BTreeSet};
+use std::fmt;
+use std::fs;
+use std::path::Path;
+
+use serde::{Deserialize, Serialize};
+
+const DEFAULT_STATE_MACHINE_YAML: &str = include_str!("../templates/default/state-machine.yml");
+const DEFAULT_AGENTS_YAML: &str = include_str!("../templates/default/agents.yml");
+const DEFAULT_PROMPTS_YAML: &str = include_str!("../templates/default/prompts.yml");
+const LOCAL_STATE_MACHINE_FILE: &str = "calypso-state-machine.yml";
+const LOCAL_AGENTS_FILE: &str = "calypso-agents.yml";
+const LOCAL_PROMPTS_FILE: &str = "calypso-prompts.yml";
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TemplateSet {
+    pub state_machine: StateMachineTemplate,
+    pub agents: AgentCatalog,
+    pub prompts: PromptCatalog,
+}
+exec
+/bin/bash -lc "sed -n '1,220p' cli/src/lib.rs" in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+pub mod app;
+pub mod codex;
+pub mod doctor;
+pub mod github;
+pub mod runtime;
+pub mod state;
+pub mod template;
+pub mod tui;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BuildInfo<'a> {
+    pub version: &'a str,
+    pub git_hash: &'a str,
+    pub build_time: &'a str,
+    pub git_tags: &'a str,
+}
+
+pub fn render_version(info: BuildInfo<'_>) -> String {
+    format!(
+        "calypso-cli {}\nGit hash: {}\nBuild time: {}\nGit tags: {}",
+exec
+/bin/bash -lc "sed -n '1,240p' cli/templates/default/state-machine.yml" in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+initial_state: new
+states:
+  - new
+  - implementation
+  - waiting-for-human
+  - ready-for-review
+  - blocked
+gate_groups:
+  - id: specification
+    label: Specification
+    gates:
+      - id: pr-canonicalized
+        label: PR canonicalized
+        task: pr-editor
+  - id: implementation
+    label: Implementation
+    gates:
+      - id: blueprint-policy-clean
+        label: Blueprint policy clean
+        task: blueprint-review
+exec
+/bin/bash -lc 'RUSTC_WRAPPER= cargo test' in /tmp/calypso-worktrees/feat-cli-domain-state-machine/cli exited 101 in 11.07s:
+warning: spurious network error (2 tries remaining): [6] Could not resolve hostname (Could not resolve host: index.crates.io)
+warning: spurious network error (1 try remaining): [6] Could not resolve hostname (Could not resolve host: index.crates.io)
+error: failed to get `libc` as a dependency of package `crossterm v0.26.1`
+    ... which satisfies dependency `crossterm = "^0.26.1"` (locked to 0.26.1) of package `calypso-cli v0.1.0 (/tmp/calypso-worktrees/feat-cli-domain-state-machine/cli)`
+
+Caused by:
+  download of config.json failed
+
+Caused by:
+  failed to download from `https://index.crates.io/config.json`
+
+Caused by:
+  [6] Could not resolve hostname (Could not resolve host: index.crates.io)
+codex
+Validation is blocked by the sandbox’s lack of network access: this crate’s dependencies are not fully cached, so Cargo cannot resolve `crates.io` right now. I can still advance the PR with test-first edits and run the smallest offline checks available, but full Rust validation in this environment is currently not possible.
+exec
+/bin/bash -lc "sed -n '1,240p' cli/AGENTS.md" in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+# CLI Agent Instructions
+
+## Development mode
+
+- Always use TDD development.
+- Write the test first.
+- Then write the minimal stub needed for the test to compile or run.
+- Then implement the behavior.
+- Push changes and wait for CI jobs to run before treating the work as complete.
+exec
+/bin/bash -lc "sed -n '1,260p' cli/src/app.rs" in /tmp/calypso-worktrees/feat-cli-domain-state-machineexec
+/bin/bash -lc "sed -n '1,260p' cli/tests/app.rs" in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+use std::path::Path;
+
+use calypso_cli::app::{
+    gate_status_label, missing_pull_request_evidence, missing_pull_request_ref,
+    parse_pull_request_ref, render_feature_status, resolve_current_branch,
+    resolve_current_pull_request_with_program, resolve_repo_root, run_command, run_doctor,
+};
+use calypso_cli::state::{
+    FeatureState, Gate, GateGroup, GateStatus, PullRequestRef, WorkflowState,
+};
+
+fn feature_with_gate_statuses(statuses: &[GateStatus]) -> FeatureState {
+    FeatureState {
+        feature_id: "feature".to_string(),
+        branch: "feature".to_string(),
+        worktree_path: "/tmp/feature".to_string(),
+        pull_request: PullRequestRef {
+            number: 7,
+            url: "https://github.com/dot-matrix-labs/calypso/pull/7".to_string(),
+        },
+ succeeded in 0ms:
+use std::path::{Path, PathBuf};
+use std::process::Command;
+
+use serde::Deserialize;
+
+use crate::doctor::{HostDoctorEnvironment, collect_doctor_report, render_doctor_report};
+use crate::github::{HostGithubEnvironment, collect_github_report};
+use crate::state::{BuiltinEvidence, FeatureState, GateStatus, PullRequestRef};
+use crate::template::load_embedded_template_set;
+
+pub fn run_doctor(cwd: &Path) -> String {
+    let repo_root = resolve_repo_root(cwd).unwrap_or_else(|| cwd.to_path_buf());
+    let report = collect_doctor_report(&HostDoctorEnvironment, &repo_root);
+
+    render_doctor_report(&report)
+}
+
+pub fn run_status(cwd: &Path) -> Result<String, String> {
+    let repo_root =
+        resolve_repo_root(cwd).ok_or_else(|| "not inside a git repository".to_string())?;
+codex
+I’ve narrowed the first increment to transition validation, because that is explicitly required by the PRD and not present in `cli/src/state.rs`. I’m reading the product spec for transition semantics so the new API matches the feature workflow instead of inventing ad hoc rules.
+exec
+/bin/bash -lc 'rg -n "waiting_for_human|ready_for_review|blocked|transition|workflow state|state machine" cli/spec.md cli/calypso-cli-implementation-plan.md docs/plans/cli-domain-state-machine-feature.md' in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+docs/plans/cli-domain-state-machine-feature.md:5:Implement the Phase 1 core domain model for `calypso-cli` so the prototype can reason about repository state, feature state, gate groups, agent sessions, and deterministic state transitions without coupling that logic to terminal, filesystem, or provider adapters.
+docs/plans/cli-domain-state-machine-feature.md:9:The current CLI bootstrap and persistence work can discover repository context and load template/state files, but the product still lacks a first-class domain model for feature orchestration. Without explicit domain types and transition guards, later slices such as gate evaluation, TUI status rendering, and supervised agent scheduling will encode workflow policy in ad hoc adapter code.
+docs/plans/cli-domain-state-machine-feature.md:17:- which transition is allowed next
+docs/plans/cli-domain-state-machine-feature.md:23:- Model the prototype feature lifecycle described in `cli/calypso-cli-implementation-plan.md`: `new`, `implementation`, `waiting_for_human`, `ready_for_review`, and `blocked`.
+docs/plans/cli-domain-state-machine-feature.md:24:- Add transition validators that consume domain facts rather than shelling out directly.
+docs/plans/cli-domain-state-machine-feature.md:31:- No multi-feature scheduling or release/deployment state machines in this slice.
+docs/plans/cli-domain-state-machine-feature.md:36:2. Each workflow state must expose the valid next states and the facts required to reach them.
+docs/plans/cli-domain-state-machine-feature.md:43:- State transitions are rejected with explicit reasons when required facts are missing.
+docs/plans/cli-domain-state-machine-feature.md:46:- Unsupported transitions cannot be constructed by callers without going through validation helpers.
+docs/plans/cli-domain-state-machine-feature.md:58:- valid transition matrix for every prototype feature state
+docs/plans/cli-domain-state-machine-feature.md:59:- invalid transition rejection with human-readable reason strings
+cli/calypso-cli-implementation-plan.md:7:- enforce the Calypso state machine locally
+cli/calypso-cli-implementation-plan.md:101:- deterministic transition logic
+cli/calypso-cli-implementation-plan.md:119:- GitHub status inspection only needs to cover what the feature state machine cares about for the current branch or PR.
+cli/calypso-cli-implementation-plan.md:134:Implement only the feature-branch workflow state needed for supervised development, for example:
+cli/calypso-cli-implementation-plan.md:138:- `waiting_for_human`
+cli/calypso-cli-implementation-plan.md:139:- `ready_for_review`
+cli/calypso-cli-implementation-plan.md:140:- `blocked`
+cli/calypso-cli-implementation-plan.md:232:- [ ] Define a minimal YAML-backed feature workflow state machine model.
+cli/calypso-cli-implementation-plan.md:233:- [ ] Define deterministic transition checks.
+exec
+/bin/bash -lc "sed -n '1000,1105p' cli/spec.md" in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+- create containerized digital twins from selected backups
+- surface database-state information in a dedicated workflow area rather than burying it inside generic deployment output
+
+One important quality gate before merge to `main` is validating that the incoming software version, together with its database migrations, is compatible with the last known database state.
+
+Calypso should support or require CI workflows that restore the last known database state, apply the candidate migrations, and verify that the candidate software version operates correctly against that migrated state before merge approval is granted.
+
+### Kubernetes environment requirements
+
+Calypso must be able to:
+
+- validate access to target clusters and namespaces
+- validate that required static-files, API, and worker service roles are present and correctly configured
+- inspect workloads, rollout state, events, logs, services, ingress resources, and certificates
+- detect policy or environment drift relevant to Calypso-managed applications
+- bootstrap or validate required supporting components for Calypso-managed deployments
+- diagnose failed or degraded deployments through a doctor workflow
+- support branch-scoped preview environments used by studio mode
+
+Calypso is not required to provide general-purpose cluster provisioning or replace native Kubernetes operators.
+exec
+/bin/bash -lc "sed -n '220,360p' cli/calypso-cli-implementation-plan.md" in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+- [ ] Add a short architecture note explaining why each dependency exists.
+
+Completed scaffold notes:
+
+- Initial Cargo project exists with `build.rs`, library crate, and binary entrypoint.
+- Version and help output are implemented via test-first development.
+- Current verified behavior includes semantic version plus 6-character Git hash, build time, and Git tag output.
+
+## Phase 1: Core domain model
+
+- [ ] Define domain types for repository state, feature state, agent session, gate group, gate status, and agent outcome.
+- [ ] Define the canonical feature unit mapping: feature = branch = worktree = pull request.
+- [ ] Define a minimal YAML-backed feature workflow state machine model.
+- [ ] Define deterministic transition checks.
+- [ ] Define basic scheduling metadata for safe agent concurrency.
+- [ ] Add tests for state transitions and gate grouping logic.
+
+Next overall step outside PR #19:
+
+- Validate the expected local GitHub remote context for the repository before moving deeper into gate-evaluation runtime work.
+exec
+/bin/bash -lc "sed -n '795,845p' cli/spec.md" in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+### 9.1 Feature state machine
+
+Calypso must define a feature lifecycle with explicit, validated transitions.
+
+Representative states include:
+
+- `new`
+- `prd-review`
+- `architecture-plan`
+- `scaffold-tdd`
+- `architecture-review`
+- `implementation`
+- `qa-validation`
+- `release-ready`
+- `done`
+- `blocked`
+- `aborted`
+
+The exact v1 state set may be narrower, but the product model must support explicit feature-stage progression rather than a single generic `in_progress` state.
+
+exec
+/bin/bash -lc 'rg -n "WaitingForHuman|ReadyForReview|Blocked|workflow_state|transition" cli/src cli/tests' in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+cli/tests/runtime.rs:306:    runtime.state.current_feature.workflow_state = WorkflowState::ReadyForReview;
+cli/tests/runtime.rs:312:        resumed.state.current_feature.workflow_state,
+cli/tests/runtime.rs:313:        WorkflowState::ReadyForReview
+cli/tests/cli.rs:29:            workflow_state: WorkflowState::Implementation,
+cli/tests/cli.rs:44:                status: AgentSessionStatus::WaitingForHuman,
+cli/tests/tui.rs:18:        workflow_state: WorkflowState::WaitingForHuman,
+cli/tests/tui.rs:169:    feature.workflow_state = WorkflowState::New;
+cli/tests/tui.rs:183:    feature.workflow_state = WorkflowState::ReadyForReview;
+cli/tests/tui.rs:189:    feature.workflow_state = WorkflowState::Blocked;
+cli/tests/codex.rs:205:    assert_eq!(persisted.status, AgentSessionStatus::WaitingForHuman);
+cli/tests/codex.rs:227:    assert_eq!(session.status(), SessionStatus::WaitingForHuman);
+cli/tests/state.rs:24:            workflow_state: WorkflowState::Implementation,
+cli/tests/state.rs:126:        serde_json::to_string(&WorkflowState::WaitingForHuman)
+cli/tests/state.rs:131:        serde_json::to_string(&WorkflowState::ReadyForReview)
+cli/tests/state.rs:136:        serde_json::to_string(&WorkflowState::Blocked).expect("workflow state should serialize"),
+cli/tests/state.rs:150:        serde_json::to_string(&AgentSessionStatus::WaitingForHuman)
+cli/tests/state.rs:209:    assert_eq!(feature.workflow_state, WorkflowState::New);
+cli/tests/state.rs:226:fn feature_state_initialization_rejects_unknown_initial_workflow_state() {
+cli/tests/state.rs:273:        ("waiting-for-human", WorkflowState::WaitingForHuman),
+cli/tests/state.rs:274:        ("ready-for-review", WorkflowState::ReadyForReview),
+Plan update
+I’ve inspected the feature docs and current implementation. Full Cargo validation is blocked by missing cached crates in a no-network sandbox, so I’m advancing the core domain model with test-first edits and keeping validation status explicit.
+  ✓ Replace the stale worktree plan context with the actual domain-state-machine remaining tasks from the PR docs and implementation plan.
+  → Add deterministic workflow transition coverage in cli/tests/state.rs for allowed transitions and explicit rejection reasons.
+  • Implement the matching pure-domain transition API in cli/src/state.rs and format the crate.
+  • Attempt the narrowest available validation in this environment and then update the local plan/checklist if validation is sufficient.
+codex
+I’m writing the failing state-machine tests now. This increment stays focused on one checklist item: deterministic workflow transitions with explicit rejection reasons.
+file update
+M /tmp/calypso-worktrees/feat-cli-domain-state-machine/cli/tests/state.rs
+@@ -7,3 +7,4 @@
+     GateEvaluationError, GateGroup, GateInitializationError, GateStatus, PullRequestRef,
+-    RepositoryState, SessionOutput, SessionOutputStream, StateError, WorkflowState,
++    RepositoryState, SessionOutput, SessionOutputStream, StateError, TransitionFacts,
++    TransitionError, WorkflowState,
+ };
+@@ -70,2 +71,8 @@
+ 
++fn sample_feature(workflow_state: WorkflowState) -> FeatureState {
++    let mut feature = sample_state().current_feature;
++    feature.workflow_state = workflow_state;
++    feature
++}
++
+ #[test]
+@@ -506 +513,99 @@
+ }
++
++#[test]
++fn feature_state_reports_available_transitions_for_each_workflow_state() {
++    assert_eq!(
++        sample_feature(WorkflowState::New).available_transitions(&TransitionFacts {
++            feature_binding_complete: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            waiting_for_human_input: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::WaitingForHuman]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            ready_for_review: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::ReadyForReview]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            blocking_issue_present: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Blocked]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::WaitingForHuman).available_transitions(&TransitionFacts {
++            human_response_ready: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::ReadyForReview).available_transitions(&TransitionFacts {
++            review_rework_required: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Blocked).available_transitions(&TransitionFacts {
++            blocker_resolved: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++}
++
++#[test]
++fn feature_state_rejects_transitions_without_required_facts() {
++    let mut feature = sample_feature(WorkflowState::Implementation);
++
++    let error = feature
++        .transition_to(WorkflowState::ReadyForReview, &TransitionFacts::default())
++        .expect_err("missing readiness facts should reject the transition");
++
++    assert_eq!(
++        error,
++        TransitionError::Rejected {
++            from: WorkflowState::Implementation,
++            to: WorkflowState::ReadyForReview,
++            reason: "feature is not ready for review".to_string(),
++        }
++    );
++    assert_eq!(
++        error.to_string(),
++        "cannot transition from 'implementation' to 'ready-for-review': feature is not ready for review"
++    );
++}
++
++#[test]
++fn feature_state_transitions_when_required_facts_are_present() {
++    let mut feature = sample_feature(WorkflowState::WaitingForHuman);
++
++    feature
++        .transition_to(
++            WorkflowState::Implementation,
++            &TransitionFacts {
++                human_response_ready: true,
++                ..TransitionFacts::default()
++            },
++        )
++        .expect("human response should resume implementation");
++
++    assert_eq!(feature.workflow_state, WorkflowState::Implementation);
++}
+apply_patch(auto_approved=true) exited 0 in 16ms:
+Success. Updated the following files:
+M /tmp/calypso-worktrees/feat-cli-domain-state-machine/cli/tests/state.rs
+file update:
+diff --git a/cli/tests/state.rs b/cli/tests/state.rs
+index 1e9a352789f914c85b82e50317ea49600b127b71..0446311aa9840deaa6c27791954982e4722b70d8
+--- a/cli/tests/state.rs
++++ b/cli/tests/state.rs
+@@ -5,7 +5,8 @@
+ use calypso_cli::state::{
+     AgentSession, AgentSessionStatus, AgentTerminalOutcome, BuiltinEvidence, FeatureState, Gate,
+     GateEvaluationError, GateGroup, GateInitializationError, GateStatus, PullRequestRef,
+-    RepositoryState, SessionOutput, SessionOutputStream, StateError, WorkflowState,
++    RepositoryState, SessionOutput, SessionOutputStream, StateError, TransitionFacts,
++    TransitionError, WorkflowState,
+ };
+ use calypso_cli::template::{TemplateSet, load_embedded_template_set};
+ 
+@@ -68,6 +69,12 @@
+     std::env::temp_dir().join(format!("calypso-state-{unique}.json"))
+ }
+ 
++fn sample_feature(workflow_state: WorkflowState) -> FeatureState {
++    let mut feature = sample_state().current_feature;
++    feature.workflow_state = workflow_state;
++    feature
++}
++
+ #[test]
+ fn repository_state_round_trips_through_json() {
+     let state = sample_state();
+@@ -504,3 +511,101 @@
+         ]
+     );
+ }
++
++#[test]
++fn feature_state_reports_available_transitions_for_each_workflow_state() {
++    assert_eq!(
++        sample_feature(WorkflowState::New).available_transitions(&TransitionFacts {
++            feature_binding_complete: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            waiting_for_human_input: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::WaitingForHuman]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            ready_for_review: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::ReadyForReview]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            blocking_issue_present: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Blocked]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::WaitingForHuman).available_transitions(&TransitionFacts {
++            human_response_ready: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::ReadyForReview).available_transitions(&TransitionFacts {
++            review_rework_required: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Blocked).available_transitions(&TransitionFacts {
++            blocker_resolved: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++}
++
++#[test]
++fn feature_state_rejects_transitions_without_required_facts() {
++    let mut feature = sample_feature(WorkflowState::Implementation);
++
++    let error = feature
++        .transition_to(WorkflowState::ReadyForReview, &TransitionFacts::default())
++        .expect_err("missing readiness facts should reject the transition");
++
++    assert_eq!(
++        error,
++        TransitionError::Rejected {
++            from: WorkflowState::Implementation,
++            to: WorkflowState::ReadyForReview,
++            reason: "feature is not ready for review".to_string(),
++        }
++    );
++    assert_eq!(
++        error.to_string(),
++        "cannot transition from 'implementation' to 'ready-for-review': feature is not ready for review"
++    );
++}
++
++#[test]
++fn feature_state_transitions_when_required_facts_are_present() {
++    let mut feature = sample_feature(WorkflowState::WaitingForHuman);
++
++    feature
++        .transition_to(
++            WorkflowState::Implementation,
++            &TransitionFacts {
++                human_response_ready: true,
++                ..TransitionFacts::default()
++            },
++        )
++        .expect("human response should resume implementation");
++
++    assert_eq!(feature.workflow_state, WorkflowState::Implementation);
++}
+
+file update:
+diff --git a/cli/tests/state.rs b/cli/tests/state.rs
+index 1e9a352789f914c85b82e50317ea49600b127b71..0446311aa9840deaa6c27791954982e4722b70d8
+--- a/cli/tests/state.rs
++++ b/cli/tests/state.rs
+@@ -5,7 +5,8 @@
+ use calypso_cli::state::{
+     AgentSession, AgentSessionStatus, AgentTerminalOutcome, BuiltinEvidence, FeatureState, Gate,
+     GateEvaluationError, GateGroup, GateInitializationError, GateStatus, PullRequestRef,
+-    RepositoryState, SessionOutput, SessionOutputStream, StateError, WorkflowState,
++    RepositoryState, SessionOutput, SessionOutputStream, StateError, TransitionFacts,
++    TransitionError, WorkflowState,
+ };
+ use calypso_cli::template::{TemplateSet, load_embedded_template_set};
+ 
+@@ -68,6 +69,12 @@
+     std::env::temp_dir().join(format!("calypso-state-{unique}.json"))
+ }
+ 
++fn sample_feature(workflow_state: WorkflowState) -> FeatureState {
++    let mut feature = sample_state().current_feature;
++    feature.workflow_state = workflow_state;
++    feature
++}
++
+ #[test]
+ fn repository_state_round_trips_through_json() {
+     let state = sample_state();
+@@ -504,3 +511,101 @@
+         ]
+     );
+ }
++
++#[test]
++fn feature_state_reports_available_transitions_for_each_workflow_state() {
++    assert_eq!(
++        sample_feature(WorkflowState::New).available_transitions(&TransitionFacts {
++            feature_binding_complete: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            waiting_for_human_input: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::WaitingForHuman]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            ready_for_review: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::ReadyForReview]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            blocking_issue_present: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Blocked]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::WaitingForHuman).available_transitions(&TransitionFacts {
++            human_response_ready: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::ReadyForReview).available_transitions(&TransitionFacts {
++            review_rework_required: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Blocked).available_transitions(&TransitionFacts {
++            blocker_resolved: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++}
++
++#[test]
++fn feature_state_rejects_transitions_without_required_facts() {
++    let mut feature = sample_feature(WorkflowState::Implementation);
++
++    let error = feature
++        .transition_to(WorkflowState::ReadyForReview, &TransitionFacts::default())
++        .expect_err("missing readiness facts should reject the transition");
++
++    assert_eq!(
++        error,
++        TransitionError::Rejected {
++            from: WorkflowState::Implementation,
++            to: WorkflowState::ReadyForReview,
++            reason: "feature is not ready for review".to_string(),
++        }
++    );
++    assert_eq!(
++        error.to_string(),
++        "cannot transition from 'implementation' to 'ready-for-review': feature is not ready for review"
++    );
++}
++
++#[test]
++fn feature_state_transitions_when_required_facts_are_present() {
++    let mut feature = sample_feature(WorkflowState::WaitingForHuman);
++
++    feature
++        .transition_to(
++            WorkflowState::Implementation,
++            &TransitionFacts {
++                human_response_ready: true,
++                ..TransitionFacts::default()
++            },
++        )
++        .expect("human response should resume implementation");
++
++    assert_eq!(feature.workflow_state, WorkflowState::Implementation);
++}
+
+codex
+The tests are in place. I’m adding the smallest pure-domain API needed to satisfy them: state-name formatting, transition facts, available-transition derivation, and validated state mutation.
+file update
+M /tmp/calypso-worktrees/feat-cli-domain-state-machine/cli/src/state.rs
+@@ -127,2 +127,16 @@
+     }
++
++    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<WorkflowState> {
++        self.workflow_state.available_transitions(facts)
++    }
++
++    pub fn transition_to(
++        &mut self,
++        target: WorkflowState,
++        facts: &TransitionFacts,
++    ) -> Result<(), TransitionError> {
++        self.workflow_state.validate_transition(target.clone(), facts)?;
++        self.workflow_state = target;
++        Ok(())
++    }
+ }
+@@ -158,4 +172,115 @@
+     }
++
++    pub fn as_str(&self) -> &'static str {
++        match self {
++            Self::New => "new",
++            Self::Implementation => "implementation",
++            Self::WaitingForHuman => "waiting-for-human",
++            Self::ReadyForReview => "ready-for-review",
++            Self::Blocked => "blocked",
++        }
++    }
++
++    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<Self> {
++        let candidates = match self {
++            Self::New => [(Self::Implementation, facts.feature_binding_complete)].as_slice(),
++            Self::Implementation => [
++                (Self::Blocked, facts.blocking_issue_present),
++                (Self::WaitingForHuman, facts.waiting_for_human_input),
++                (Self::ReadyForReview, facts.ready_for_review),
++            ]
++            .as_slice(),
++            Self::WaitingForHuman => [
++                (Self::Blocked, facts.blocking_issue_present),
++                (Self::Implementation, facts.human_response_ready),
++            ]
++            .as_slice(),
++            Self::ReadyForReview => [
++                (Self::Blocked, facts.blocking_issue_present),
++                (Self::Implementation, facts.review_rework_required),
++            ]
++            .as_slice(),
++            Self::Blocked => [(Self::Implementation, facts.blocker_resolved)].as_slice(),
++        };
++
++        candidates
++            .iter()
++            .filter_map(|(state, allowed)| allowed.then_some(state.clone()))
++            .collect()
++    }
++
++    pub fn validate_transition(
++        &self,
++        target: Self,
++        facts: &TransitionFacts,
++    ) -> Result<(), TransitionError> {
++        if self.available_transitions(facts).contains(&target) {
++            return Ok(());
++        }
++
++        Err(TransitionError::Rejected {
++            from: self.clone(),
++            to: target.clone(),
++            reason: self.missing_transition_reason(&target).to_string(),
++        })
++    }
++
++    fn missing_transition_reason(&self, target: &Self) -> &'static str {
++        match (self, target) {
++            (Self::New, Self::Implementation) => "feature binding is incomplete",
++            (Self::Implementation, Self::WaitingForHuman) => {
++                "no agent session is waiting for human input"
++            }
++            (Self::Implementation, Self::ReadyForReview) => "feature is not ready for review",
++            (Self::Implementation, Self::Blocked) => "no blocking issue is present",
++            (Self::WaitingForHuman, Self::Implementation) => "no human response is available",
++            (Self::WaitingForHuman, Self::Blocked) => "no blocking issue is present",
++            (Self::ReadyForReview, Self::Implementation) => {
++                "no follow-up implementation request is present"
++            }
++            (Self::ReadyForReview, Self::Blocked) => "no blocking issue is present",
++            (Self::Blocked, Self::Implementation) => "blocking issue is still present",
++            _ => "transition is not supported by the prototype workflow",
++        }
++    }
++}
++
++impl fmt::Display for WorkflowState {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.write_str(self.as_str())
++    }
++}
++
++#[derive(Debug, Clone, PartialEq, Eq, Default)]
++pub struct TransitionFacts {
++    pub feature_binding_complete: bool,
++    pub blocking_issue_present: bool,
++    pub waiting_for_human_input: bool,
++    pub human_response_ready: bool,
++    pub ready_for_review: bool,
++    pub review_rework_required: bool,
++    pub blocker_resolved: bool,
+ }
+ 
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub enum TransitionError {
++    Rejected {
++        from: WorkflowState,
++        to: WorkflowState,
++        reason: String,
++    },
++}
++
++impl fmt::Display for TransitionError {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        match self {
++            Self::Rejected { from, to, reason } => {
++                write!(f, "cannot transition from '{from}' to '{to}': {reason}")
++            }
++        }
++    }
++}
++
++impl std::error::Error for TransitionError {}
++
+ #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+apply_patch(auto_approved=true) exited 0 in 17ms:
+Success. Updated the following files:
+M /tmp/calypso-worktrees/feat-cli-domain-state-machine/cli/src/state.rs
+file update:
+diff --git a/cli/src/state.rs b/cli/src/state.rs
+index 12ce2ce5424323406cd51305cd343098821be74b..82bed68c8cc067b571fd87f6409a58f6cc078dd4
+--- a/cli/src/state.rs
++++ b/cli/src/state.rs
+@@ -125,6 +125,20 @@
+             .map(|gate| gate.id.clone())
+             .collect()
+     }
++
++    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<WorkflowState> {
++        self.workflow_state.available_transitions(facts)
++    }
++
++    pub fn transition_to(
++        &mut self,
++        target: WorkflowState,
++        facts: &TransitionFacts,
++    ) -> Result<(), TransitionError> {
++        self.workflow_state.validate_transition(target.clone(), facts)?;
++        self.workflow_state = target;
++        Ok(())
++    }
+ }
+ 
+ #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+@@ -156,8 +170,119 @@
+             )),
+         }
+     }
++
++    pub fn as_str(&self) -> &'static str {
++        match self {
++            Self::New => "new",
++            Self::Implementation => "implementation",
++            Self::WaitingForHuman => "waiting-for-human",
++            Self::ReadyForReview => "ready-for-review",
++            Self::Blocked => "blocked",
++        }
++    }
++
++    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<Self> {
++        let candidates = match self {
++            Self::New => [(Self::Implementation, facts.feature_binding_complete)].as_slice(),
++            Self::Implementation => [
++                (Self::Blocked, facts.blocking_issue_present),
++                (Self::WaitingForHuman, facts.waiting_for_human_input),
++                (Self::ReadyForReview, facts.ready_for_review),
++            ]
++            .as_slice(),
++            Self::WaitingForHuman => [
++                (Self::Blocked, facts.blocking_issue_present),
++                (Self::Implementation, facts.human_response_ready),
++            ]
++            .as_slice(),
++            Self::ReadyForReview => [
++                (Self::Blocked, facts.blocking_issue_present),
++                (Self::Implementation, facts.review_rework_required),
++            ]
++            .as_slice(),
++            Self::Blocked => [(Self::Implementation, facts.blocker_resolved)].as_slice(),
++        };
++
++        candidates
++            .iter()
++            .filter_map(|(state, allowed)| allowed.then_some(state.clone()))
++            .collect()
++    }
++
++    pub fn validate_transition(
++        &self,
++        target: Self,
++        facts: &TransitionFacts,
++    ) -> Result<(), TransitionError> {
++        if self.available_transitions(facts).contains(&target) {
++            return Ok(());
++        }
++
++        Err(TransitionError::Rejected {
++            from: self.clone(),
++            to: target.clone(),
++            reason: self.missing_transition_reason(&target).to_string(),
++        })
++    }
++
++    fn missing_transition_reason(&self, target: &Self) -> &'static str {
++        match (self, target) {
++            (Self::New, Self::Implementation) => "feature binding is incomplete",
++            (Self::Implementation, Self::WaitingForHuman) => {
++                "no agent session is waiting for human input"
++            }
++            (Self::Implementation, Self::ReadyForReview) => "feature is not ready for review",
++            (Self::Implementation, Self::Blocked) => "no blocking issue is present",
++            (Self::WaitingForHuman, Self::Implementation) => "no human response is available",
++            (Self::WaitingForHuman, Self::Blocked) => "no blocking issue is present",
++            (Self::ReadyForReview, Self::Implementation) => {
++                "no follow-up implementation request is present"
++            }
++            (Self::ReadyForReview, Self::Blocked) => "no blocking issue is present",
++            (Self::Blocked, Self::Implementation) => "blocking issue is still present",
++            _ => "transition is not supported by the prototype workflow",
++        }
++    }
++}
++
++impl fmt::Display for WorkflowState {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.write_str(self.as_str())
++    }
++}
++
++#[derive(Debug, Clone, PartialEq, Eq, Default)]
++pub struct TransitionFacts {
++    pub feature_binding_complete: bool,
++    pub blocking_issue_present: bool,
++    pub waiting_for_human_input: bool,
++    pub human_response_ready: bool,
++    pub ready_for_review: bool,
++    pub review_rework_required: bool,
++    pub blocker_resolved: bool,
+ }
+ 
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub enum TransitionError {
++    Rejected {
++        from: WorkflowState,
++        to: WorkflowState,
++        reason: String,
++    },
++}
++
++impl fmt::Display for TransitionError {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        match self {
++            Self::Rejected { from, to, reason } => {
++                write!(f, "cannot transition from '{from}' to '{to}': {reason}")
++            }
++        }
++    }
++}
++
++impl std::error::Error for TransitionError {}
++
+ #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+ pub struct GateGroup {
+     pub id: String,
+diff --git a/cli/tests/state.rs b/cli/tests/state.rs
+index 1e9a352789f914c85b82e50317ea49600b127b71..0446311aa9840deaa6c27791954982e4722b70d8
+--- a/cli/tests/state.rs
++++ b/cli/tests/state.rs
+@@ -5,7 +5,8 @@
+ use calypso_cli::state::{
+     AgentSession, AgentSessionStatus, AgentTerminalOutcome, BuiltinEvidence, FeatureState, Gate,
+     GateEvaluationError, GateGroup, GateInitializationError, GateStatus, PullRequestRef,
+-    RepositoryState, SessionOutput, SessionOutputStream, StateError, WorkflowState,
++    RepositoryState, SessionOutput, SessionOutputStream, StateError, TransitionFacts,
++    TransitionError, WorkflowState,
+ };
+ use calypso_cli::template::{TemplateSet, load_embedded_template_set};
+ 
+@@ -68,6 +69,12 @@
+     std::env::temp_dir().join(format!("calypso-state-{unique}.json"))
+ }
+ 
++fn sample_feature(workflow_state: WorkflowState) -> FeatureState {
++    let mut feature = sample_state().current_feature;
++    feature.workflow_state = workflow_state;
++    feature
++}
++
+ #[test]
+ fn repository_state_round_trips_through_json() {
+     let state = sample_state();
+@@ -504,3 +511,101 @@
+         ]
+     );
+ }
++
++#[test]
++fn feature_state_reports_available_transitions_for_each_workflow_state() {
++    assert_eq!(
++        sample_feature(WorkflowState::New).available_transitions(&TransitionFacts {
++            feature_binding_complete: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            waiting_for_human_input: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::WaitingForHuman]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            ready_for_review: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::ReadyForReview]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            blocking_issue_present: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Blocked]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::WaitingForHuman).available_transitions(&TransitionFacts {
++            human_response_ready: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::ReadyForReview).available_transitions(&TransitionFacts {
++            review_rework_required: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Blocked).available_transitions(&TransitionFacts {
++            blocker_resolved: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++}
++
++#[test]
++fn feature_state_rejects_transitions_without_required_facts() {
++    let mut feature = sample_feature(WorkflowState::Implementation);
++
++    let error = feature
++        .transition_to(WorkflowState::ReadyForReview, &TransitionFacts::default())
++        .expect_err("missing readiness facts should reject the transition");
++
++    assert_eq!(
++        error,
++        TransitionError::Rejected {
++            from: WorkflowState::Implementation,
++            to: WorkflowState::ReadyForReview,
++            reason: "feature is not ready for review".to_string(),
++        }
++    );
++    assert_eq!(
++        error.to_string(),
++        "cannot transition from 'implementation' to 'ready-for-review': feature is not ready for review"
++    );
++}
++
++#[test]
++fn feature_state_transitions_when_required_facts_are_present() {
++    let mut feature = sample_feature(WorkflowState::WaitingForHuman);
++
++    feature
++        .transition_to(
++            WorkflowState::Implementation,
++            &TransitionFacts {
++                human_response_ready: true,
++                ..TransitionFacts::default()
++            },
++        )
++        .expect("human response should resume implementation");
++
++    assert_eq!(feature.workflow_state, WorkflowState::Implementation);
++}
+
+file update:
+diff --git a/cli/src/state.rs b/cli/src/state.rs
+index 12ce2ce5424323406cd51305cd343098821be74b..82bed68c8cc067b571fd87f6409a58f6cc078dd4
+--- a/cli/src/state.rs
++++ b/cli/src/state.rs
+@@ -125,6 +125,20 @@
+             .map(|gate| gate.id.clone())
+             .collect()
+     }
++
++    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<WorkflowState> {
++        self.workflow_state.available_transitions(facts)
++    }
++
++    pub fn transition_to(
++        &mut self,
++        target: WorkflowState,
++        facts: &TransitionFacts,
++    ) -> Result<(), TransitionError> {
++        self.workflow_state.validate_transition(target.clone(), facts)?;
++        self.workflow_state = target;
++        Ok(())
++    }
+ }
+ 
+ #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+@@ -156,8 +170,119 @@
+             )),
+         }
+     }
++
++    pub fn as_str(&self) -> &'static str {
++        match self {
++            Self::New => "new",
++            Self::Implementation => "implementation",
++            Self::WaitingForHuman => "waiting-for-human",
++            Self::ReadyForReview => "ready-for-review",
++            Self::Blocked => "blocked",
++        }
++    }
++
++    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<Self> {
++        let candidates = match self {
++            Self::New => [(Self::Implementation, facts.feature_binding_complete)].as_slice(),
++            Self::Implementation => [
++                (Self::Blocked, facts.blocking_issue_present),
++                (Self::WaitingForHuman, facts.waiting_for_human_input),
++                (Self::ReadyForReview, facts.ready_for_review),
++            ]
++            .as_slice(),
++            Self::WaitingForHuman => [
++                (Self::Blocked, facts.blocking_issue_present),
++                (Self::Implementation, facts.human_response_ready),
++            ]
++            .as_slice(),
++            Self::ReadyForReview => [
++                (Self::Blocked, facts.blocking_issue_present),
++                (Self::Implementation, facts.review_rework_required),
++            ]
++            .as_slice(),
++            Self::Blocked => [(Self::Implementation, facts.blocker_resolved)].as_slice(),
++        };
++
++        candidates
++            .iter()
++            .filter_map(|(state, allowed)| allowed.then_some(state.clone()))
++            .collect()
++    }
++
++    pub fn validate_transition(
++        &self,
++        target: Self,
++        facts: &TransitionFacts,
++    ) -> Result<(), TransitionError> {
++        if self.available_transitions(facts).contains(&target) {
++            return Ok(());
++        }
++
++        Err(TransitionError::Rejected {
++            from: self.clone(),
++            to: target.clone(),
++            reason: self.missing_transition_reason(&target).to_string(),
++        })
++    }
++
++    fn missing_transition_reason(&self, target: &Self) -> &'static str {
++        match (self, target) {
++            (Self::New, Self::Implementation) => "feature binding is incomplete",
++            (Self::Implementation, Self::WaitingForHuman) => {
++                "no agent session is waiting for human input"
++            }
++            (Self::Implementation, Self::ReadyForReview) => "feature is not ready for review",
++            (Self::Implementation, Self::Blocked) => "no blocking issue is present",
++            (Self::WaitingForHuman, Self::Implementation) => "no human response is available",
++            (Self::WaitingForHuman, Self::Blocked) => "no blocking issue is present",
++            (Self::ReadyForReview, Self::Implementation) => {
++                "no follow-up implementation request is present"
++            }
++            (Self::ReadyForReview, Self::Blocked) => "no blocking issue is present",
++            (Self::Blocked, Self::Implementation) => "blocking issue is still present",
++            _ => "transition is not supported by the prototype workflow",
++        }
++    }
++}
++
++impl fmt::Display for WorkflowState {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.write_str(self.as_str())
++    }
++}
++
++#[derive(Debug, Clone, PartialEq, Eq, Default)]
++pub struct TransitionFacts {
++    pub feature_binding_complete: bool,
++    pub blocking_issue_present: bool,
++    pub waiting_for_human_input: bool,
++    pub human_response_ready: bool,
++    pub ready_for_review: bool,
++    pub review_rework_required: bool,
++    pub blocker_resolved: bool,
+ }
+ 
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub enum TransitionError {
++    Rejected {
++        from: WorkflowState,
++        to: WorkflowState,
++        reason: String,
++    },
++}
++
++impl fmt::Display for TransitionError {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        match self {
++            Self::Rejected { from, to, reason } => {
++                write!(f, "cannot transition from '{from}' to '{to}': {reason}")
++            }
++        }
++    }
++}
++
++impl std::error::Error for TransitionError {}
++
+ #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+ pub struct GateGroup {
+     pub id: String,
+diff --git a/cli/tests/state.rs b/cli/tests/state.rs
+index 1e9a352789f914c85b82e50317ea49600b127b71..0446311aa9840deaa6c27791954982e4722b70d8
+--- a/cli/tests/state.rs
++++ b/cli/tests/state.rs
+@@ -5,7 +5,8 @@
+ use calypso_cli::state::{
+     AgentSession, AgentSessionStatus, AgentTerminalOutcome, BuiltinEvidence, FeatureState, Gate,
+     GateEvaluationError, GateGroup, GateInitializationError, GateStatus, PullRequestRef,
+-    RepositoryState, SessionOutput, SessionOutputStream, StateError, WorkflowState,
++    RepositoryState, SessionOutput, SessionOutputStream, StateError, TransitionFacts,
++    TransitionError, WorkflowState,
+ };
+ use calypso_cli::template::{TemplateSet, load_embedded_template_set};
+ 
+@@ -68,6 +69,12 @@
+     std::env::temp_dir().join(format!("calypso-state-{unique}.json"))
+ }
+ 
++fn sample_feature(workflow_state: WorkflowState) -> FeatureState {
++    let mut feature = sample_state().current_feature;
++    feature.workflow_state = workflow_state;
++    feature
++}
++
+ #[test]
+ fn repository_state_round_trips_through_json() {
+     let state = sample_state();
+@@ -504,3 +511,101 @@
+         ]
+     );
+ }
++
++#[test]
++fn feature_state_reports_available_transitions_for_each_workflow_state() {
++    assert_eq!(
++        sample_feature(WorkflowState::New).available_transitions(&TransitionFacts {
++            feature_binding_complete: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            waiting_for_human_input: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::WaitingForHuman]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            ready_for_review: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::ReadyForReview]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            blocking_issue_present: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Blocked]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::WaitingForHuman).available_transitions(&TransitionFacts {
++            human_response_ready: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::ReadyForReview).available_transitions(&TransitionFacts {
++            review_rework_required: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Blocked).available_transitions(&TransitionFacts {
++            blocker_resolved: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++}
++
++#[test]
++fn feature_state_rejects_transitions_without_required_facts() {
++    let mut feature = sample_feature(WorkflowState::Implementation);
++
++    let error = feature
++        .transition_to(WorkflowState::ReadyForReview, &TransitionFacts::default())
++        .expect_err("missing readiness facts should reject the transition");
++
++    assert_eq!(
++        error,
++        TransitionError::Rejected {
++            from: WorkflowState::Implementation,
++            to: WorkflowState::ReadyForReview,
++            reason: "feature is not ready for review".to_string(),
++        }
++    );
++    assert_eq!(
++        error.to_string(),
++        "cannot transition from 'implementation' to 'ready-for-review': feature is not ready for review"
++    );
++}
++
++#[test]
++fn feature_state_transitions_when_required_facts_are_present() {
++    let mut feature = sample_feature(WorkflowState::WaitingForHuman);
++
++    feature
++        .transition_to(
++            WorkflowState::Implementation,
++            &TransitionFacts {
++                human_response_ready: true,
++                ..TransitionFacts::default()
++            },
++        )
++        .expect("human response should resume implementation");
++
++    assert_eq!(feature.workflow_state, WorkflowState::Implementation);
++}
+
+codex
+I spotted a likely lifetime problem in the first implementation of `available_transitions`, so I’m simplifying it before formatting. That keeps the new domain API straightforward and avoids relying on temporary slices.
+file update
+M /tmp/calypso-worktrees/feat-cli-domain-state-machine/cli/src/state.rs
+@@ -184,27 +184,45 @@
+     pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<Self> {
+-        let candidates = match self {
+-            Self::New => [(Self::Implementation, facts.feature_binding_complete)].as_slice(),
+-            Self::Implementation => [
+-                (Self::Blocked, facts.blocking_issue_present),
+-                (Self::WaitingForHuman, facts.waiting_for_human_input),
+-                (Self::ReadyForReview, facts.ready_for_review),
+-            ]
+-            .as_slice(),
+-            Self::WaitingForHuman => [
+-                (Self::Blocked, facts.blocking_issue_present),
+-                (Self::Implementation, facts.human_response_ready),
+-            ]
+-            .as_slice(),
+-            Self::ReadyForReview => [
+-                (Self::Blocked, facts.blocking_issue_present),
+-                (Self::Implementation, facts.review_rework_required),
+-            ]
+-            .as_slice(),
+-            Self::Blocked => [(Self::Implementation, facts.blocker_resolved)].as_slice(),
+-        };
++        let mut transitions = Vec::new();
++
++        match self {
++            Self::New => {
++                if facts.feature_binding_complete {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::Implementation => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.waiting_for_human_input {
++                    transitions.push(Self::WaitingForHuman);
++                }
++                if facts.ready_for_review {
++                    transitions.push(Self::ReadyForReview);
++                }
++            }
++            Self::WaitingForHuman => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.human_response_ready {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::ReadyForReview => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.review_rework_required {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::Blocked => {
++                if facts.blocker_resolved {
++                    transitions.push(Self::Implementation);
++                }
++            }
++        }
+ 
+-        candidates
+-            .iter()
+-            .filter_map(|(state, allowed)| allowed.then_some(state.clone()))
+-            .collect()
++        transitions
+     }
+apply_patch(auto_approved=true) exited 0 in 19ms:
+Success. Updated the following files:
+M /tmp/calypso-worktrees/feat-cli-domain-state-machine/cli/src/state.rs
+file update:
+diff --git a/cli/src/state.rs b/cli/src/state.rs
+index 12ce2ce5424323406cd51305cd343098821be74b..3f2320f4ea13a36596328bb8cedd1c9cf1fa8249
+--- a/cli/src/state.rs
++++ b/cli/src/state.rs
+@@ -125,6 +125,20 @@
+             .map(|gate| gate.id.clone())
+             .collect()
+     }
++
++    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<WorkflowState> {
++        self.workflow_state.available_transitions(facts)
++    }
++
++    pub fn transition_to(
++        &mut self,
++        target: WorkflowState,
++        facts: &TransitionFacts,
++    ) -> Result<(), TransitionError> {
++        self.workflow_state.validate_transition(target.clone(), facts)?;
++        self.workflow_state = target;
++        Ok(())
++    }
+ }
+ 
+ #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+@@ -156,8 +170,137 @@
+             )),
+         }
+     }
++
++    pub fn as_str(&self) -> &'static str {
++        match self {
++            Self::New => "new",
++            Self::Implementation => "implementation",
++            Self::WaitingForHuman => "waiting-for-human",
++            Self::ReadyForReview => "ready-for-review",
++            Self::Blocked => "blocked",
++        }
++    }
++
++    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<Self> {
++        let mut transitions = Vec::new();
++
++        match self {
++            Self::New => {
++                if facts.feature_binding_complete {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::Implementation => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.waiting_for_human_input {
++                    transitions.push(Self::WaitingForHuman);
++                }
++                if facts.ready_for_review {
++                    transitions.push(Self::ReadyForReview);
++                }
++            }
++            Self::WaitingForHuman => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.human_response_ready {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::ReadyForReview => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.review_rework_required {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::Blocked => {
++                if facts.blocker_resolved {
++                    transitions.push(Self::Implementation);
++                }
++            }
++        }
++
++        transitions
++    }
++
++    pub fn validate_transition(
++        &self,
++        target: Self,
++        facts: &TransitionFacts,
++    ) -> Result<(), TransitionError> {
++        if self.available_transitions(facts).contains(&target) {
++            return Ok(());
++        }
++
++        Err(TransitionError::Rejected {
++            from: self.clone(),
++            to: target.clone(),
++            reason: self.missing_transition_reason(&target).to_string(),
++        })
++    }
++
++    fn missing_transition_reason(&self, target: &Self) -> &'static str {
++        match (self, target) {
++            (Self::New, Self::Implementation) => "feature binding is incomplete",
++            (Self::Implementation, Self::WaitingForHuman) => {
++                "no agent session is waiting for human input"
++            }
++            (Self::Implementation, Self::ReadyForReview) => "feature is not ready for review",
++            (Self::Implementation, Self::Blocked) => "no blocking issue is present",
++            (Self::WaitingForHuman, Self::Implementation) => "no human response is available",
++            (Self::WaitingForHuman, Self::Blocked) => "no blocking issue is present",
++            (Self::ReadyForReview, Self::Implementation) => {
++                "no follow-up implementation request is present"
++            }
++            (Self::ReadyForReview, Self::Blocked) => "no blocking issue is present",
++            (Self::Blocked, Self::Implementation) => "blocking issue is still present",
++            _ => "transition is not supported by the prototype workflow",
++        }
++    }
+ }
+ 
++impl fmt::Display for WorkflowState {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.write_str(self.as_str())
++    }
++}
++
++#[derive(Debug, Clone, PartialEq, Eq, Default)]
++pub struct TransitionFacts {
++    pub feature_binding_complete: bool,
++    pub blocking_issue_present: bool,
++    pub waiting_for_human_input: bool,
++    pub human_response_ready: bool,
++    pub ready_for_review: bool,
++    pub review_rework_required: bool,
++    pub blocker_resolved: bool,
++}
++
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub enum TransitionError {
++    Rejected {
++        from: WorkflowState,
++        to: WorkflowState,
++        reason: String,
++    },
++}
++
++impl fmt::Display for TransitionError {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        match self {
++            Self::Rejected { from, to, reason } => {
++                write!(f, "cannot transition from '{from}' to '{to}': {reason}")
++            }
++        }
++    }
++}
++
++impl std::error::Error for TransitionError {}
++
+ #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+ pub struct GateGroup {
+     pub id: String,
+diff --git a/cli/tests/state.rs b/cli/tests/state.rs
+index 1e9a352789f914c85b82e50317ea49600b127b71..0446311aa9840deaa6c27791954982e4722b70d8
+--- a/cli/tests/state.rs
++++ b/cli/tests/state.rs
+@@ -5,7 +5,8 @@
+ use calypso_cli::state::{
+     AgentSession, AgentSessionStatus, AgentTerminalOutcome, BuiltinEvidence, FeatureState, Gate,
+     GateEvaluationError, GateGroup, GateInitializationError, GateStatus, PullRequestRef,
+-    RepositoryState, SessionOutput, SessionOutputStream, StateError, WorkflowState,
++    RepositoryState, SessionOutput, SessionOutputStream, StateError, TransitionFacts,
++    TransitionError, WorkflowState,
+ };
+ use calypso_cli::template::{TemplateSet, load_embedded_template_set};
+ 
+@@ -68,6 +69,12 @@
+     std::env::temp_dir().join(format!("calypso-state-{unique}.json"))
+ }
+ 
++fn sample_feature(workflow_state: WorkflowState) -> FeatureState {
++    let mut feature = sample_state().current_feature;
++    feature.workflow_state = workflow_state;
++    feature
++}
++
+ #[test]
+ fn repository_state_round_trips_through_json() {
+     let state = sample_state();
+@@ -504,3 +511,101 @@
+         ]
+     );
+ }
++
++#[test]
++fn feature_state_reports_available_transitions_for_each_workflow_state() {
++    assert_eq!(
++        sample_feature(WorkflowState::New).available_transitions(&TransitionFacts {
++            feature_binding_complete: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            waiting_for_human_input: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::WaitingForHuman]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            ready_for_review: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::ReadyForReview]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            blocking_issue_present: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Blocked]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::WaitingForHuman).available_transitions(&TransitionFacts {
++            human_response_ready: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::ReadyForReview).available_transitions(&TransitionFacts {
++            review_rework_required: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Blocked).available_transitions(&TransitionFacts {
++            blocker_resolved: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++}
++
++#[test]
++fn feature_state_rejects_transitions_without_required_facts() {
++    let mut feature = sample_feature(WorkflowState::Implementation);
++
++    let error = feature
++        .transition_to(WorkflowState::ReadyForReview, &TransitionFacts::default())
++        .expect_err("missing readiness facts should reject the transition");
++
++    assert_eq!(
++        error,
++        TransitionError::Rejected {
++            from: WorkflowState::Implementation,
++            to: WorkflowState::ReadyForReview,
++            reason: "feature is not ready for review".to_string(),
++        }
++    );
++    assert_eq!(
++        error.to_string(),
++        "cannot transition from 'implementation' to 'ready-for-review': feature is not ready for review"
++    );
++}
++
++#[test]
++fn feature_state_transitions_when_required_facts_are_present() {
++    let mut feature = sample_feature(WorkflowState::WaitingForHuman);
++
++    feature
++        .transition_to(
++            WorkflowState::Implementation,
++            &TransitionFacts {
++                human_response_ready: true,
++                ..TransitionFacts::default()
++            },
++        )
++        .expect("human response should resume implementation");
++
++    assert_eq!(feature.workflow_state, WorkflowState::Implementation);
++}
+
+file update:
+diff --git a/cli/src/state.rs b/cli/src/state.rs
+index 12ce2ce5424323406cd51305cd343098821be74b..3f2320f4ea13a36596328bb8cedd1c9cf1fa8249
+--- a/cli/src/state.rs
++++ b/cli/src/state.rs
+@@ -125,6 +125,20 @@
+             .map(|gate| gate.id.clone())
+             .collect()
+     }
++
++    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<WorkflowState> {
++        self.workflow_state.available_transitions(facts)
++    }
++
++    pub fn transition_to(
++        &mut self,
++        target: WorkflowState,
++        facts: &TransitionFacts,
++    ) -> Result<(), TransitionError> {
++        self.workflow_state.validate_transition(target.clone(), facts)?;
++        self.workflow_state = target;
++        Ok(())
++    }
+ }
+ 
+ #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+@@ -156,8 +170,137 @@
+             )),
+         }
+     }
++
++    pub fn as_str(&self) -> &'static str {
++        match self {
++            Self::New => "new",
++            Self::Implementation => "implementation",
++            Self::WaitingForHuman => "waiting-for-human",
++            Self::ReadyForReview => "ready-for-review",
++            Self::Blocked => "blocked",
++        }
++    }
++
++    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<Self> {
++        let mut transitions = Vec::new();
++
++        match self {
++            Self::New => {
++                if facts.feature_binding_complete {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::Implementation => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.waiting_for_human_input {
++                    transitions.push(Self::WaitingForHuman);
++                }
++                if facts.ready_for_review {
++                    transitions.push(Self::ReadyForReview);
++                }
++            }
++            Self::WaitingForHuman => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.human_response_ready {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::ReadyForReview => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.review_rework_required {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::Blocked => {
++                if facts.blocker_resolved {
++                    transitions.push(Self::Implementation);
++                }
++            }
++        }
++
++        transitions
++    }
++
++    pub fn validate_transition(
++        &self,
++        target: Self,
++        facts: &TransitionFacts,
++    ) -> Result<(), TransitionError> {
++        if self.available_transitions(facts).contains(&target) {
++            return Ok(());
++        }
++
++        Err(TransitionError::Rejected {
++            from: self.clone(),
++            to: target.clone(),
++            reason: self.missing_transition_reason(&target).to_string(),
++        })
++    }
++
++    fn missing_transition_reason(&self, target: &Self) -> &'static str {
++        match (self, target) {
++            (Self::New, Self::Implementation) => "feature binding is incomplete",
++            (Self::Implementation, Self::WaitingForHuman) => {
++                "no agent session is waiting for human input"
++            }
++            (Self::Implementation, Self::ReadyForReview) => "feature is not ready for review",
++            (Self::Implementation, Self::Blocked) => "no blocking issue is present",
++            (Self::WaitingForHuman, Self::Implementation) => "no human response is available",
++            (Self::WaitingForHuman, Self::Blocked) => "no blocking issue is present",
++            (Self::ReadyForReview, Self::Implementation) => {
++                "no follow-up implementation request is present"
++            }
++            (Self::ReadyForReview, Self::Blocked) => "no blocking issue is present",
++            (Self::Blocked, Self::Implementation) => "blocking issue is still present",
++            _ => "transition is not supported by the prototype workflow",
++        }
++    }
+ }
+ 
++impl fmt::Display for WorkflowState {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.write_str(self.as_str())
++    }
++}
++
++#[derive(Debug, Clone, PartialEq, Eq, Default)]
++pub struct TransitionFacts {
++    pub feature_binding_complete: bool,
++    pub blocking_issue_present: bool,
++    pub waiting_for_human_input: bool,
++    pub human_response_ready: bool,
++    pub ready_for_review: bool,
++    pub review_rework_required: bool,
++    pub blocker_resolved: bool,
++}
++
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub enum TransitionError {
++    Rejected {
++        from: WorkflowState,
++        to: WorkflowState,
++        reason: String,
++    },
++}
++
++impl fmt::Display for TransitionError {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        match self {
++            Self::Rejected { from, to, reason } => {
++                write!(f, "cannot transition from '{from}' to '{to}': {reason}")
++            }
++        }
++    }
++}
++
++impl std::error::Error for TransitionError {}
++
+ #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+ pub struct GateGroup {
+     pub id: String,
+diff --git a/cli/tests/state.rs b/cli/tests/state.rs
+index 1e9a352789f914c85b82e50317ea49600b127b71..0446311aa9840deaa6c27791954982e4722b70d8
+--- a/cli/tests/state.rs
++++ b/cli/tests/state.rs
+@@ -5,7 +5,8 @@
+ use calypso_cli::state::{
+     AgentSession, AgentSessionStatus, AgentTerminalOutcome, BuiltinEvidence, FeatureState, Gate,
+     GateEvaluationError, GateGroup, GateInitializationError, GateStatus, PullRequestRef,
+-    RepositoryState, SessionOutput, SessionOutputStream, StateError, WorkflowState,
++    RepositoryState, SessionOutput, SessionOutputStream, StateError, TransitionFacts,
++    TransitionError, WorkflowState,
+ };
+ use calypso_cli::template::{TemplateSet, load_embedded_template_set};
+ 
+@@ -68,6 +69,12 @@
+     std::env::temp_dir().join(format!("calypso-state-{unique}.json"))
+ }
+ 
++fn sample_feature(workflow_state: WorkflowState) -> FeatureState {
++    let mut feature = sample_state().current_feature;
++    feature.workflow_state = workflow_state;
++    feature
++}
++
+ #[test]
+ fn repository_state_round_trips_through_json() {
+     let state = sample_state();
+@@ -504,3 +511,101 @@
+         ]
+     );
+ }
++
++#[test]
++fn feature_state_reports_available_transitions_for_each_workflow_state() {
++    assert_eq!(
++        sample_feature(WorkflowState::New).available_transitions(&TransitionFacts {
++            feature_binding_complete: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            waiting_for_human_input: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::WaitingForHuman]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            ready_for_review: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::ReadyForReview]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            blocking_issue_present: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Blocked]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::WaitingForHuman).available_transitions(&TransitionFacts {
++            human_response_ready: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::ReadyForReview).available_transitions(&TransitionFacts {
++            review_rework_required: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Blocked).available_transitions(&TransitionFacts {
++            blocker_resolved: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++}
++
++#[test]
++fn feature_state_rejects_transitions_without_required_facts() {
++    let mut feature = sample_feature(WorkflowState::Implementation);
++
++    let error = feature
++        .transition_to(WorkflowState::ReadyForReview, &TransitionFacts::default())
++        .expect_err("missing readiness facts should reject the transition");
++
++    assert_eq!(
++        error,
++        TransitionError::Rejected {
++            from: WorkflowState::Implementation,
++            to: WorkflowState::ReadyForReview,
++            reason: "feature is not ready for review".to_string(),
++        }
++    );
++    assert_eq!(
++        error.to_string(),
++        "cannot transition from 'implementation' to 'ready-for-review': feature is not ready for review"
++    );
++}
++
++#[test]
++fn feature_state_transitions_when_required_facts_are_present() {
++    let mut feature = sample_feature(WorkflowState::WaitingForHuman);
++
++    feature
++        .transition_to(
++            WorkflowState::Implementation,
++            &TransitionFacts {
++                human_response_ready: true,
++                ..TransitionFacts::default()
++            },
++        )
++        .expect("human response should resume implementation");
++
++    assert_eq!(feature.workflow_state, WorkflowState::Implementation);
++}
+
+exec
+/bin/bash -lc 'rustfmt cli/src/state.rs cli/tests/state.rs' in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+
+file update:
+diff --git a/cli/src/state.rs b/cli/src/state.rs
+index 12ce2ce5424323406cd51305cd343098821be74b..18195554e9042de304aa6185bdace2af81dd527a
+--- a/cli/src/state.rs
++++ b/cli/src/state.rs
+@@ -125,6 +125,21 @@
+             .map(|gate| gate.id.clone())
+             .collect()
+     }
++
++    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<WorkflowState> {
++        self.workflow_state.available_transitions(facts)
++    }
++
++    pub fn transition_to(
++        &mut self,
++        target: WorkflowState,
++        facts: &TransitionFacts,
++    ) -> Result<(), TransitionError> {
++        self.workflow_state
++            .validate_transition(target.clone(), facts)?;
++        self.workflow_state = target;
++        Ok(())
++    }
+ }
+ 
+ #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+@@ -156,8 +171,137 @@
+             )),
+         }
+     }
++
++    pub fn as_str(&self) -> &'static str {
++        match self {
++            Self::New => "new",
++            Self::Implementation => "implementation",
++            Self::WaitingForHuman => "waiting-for-human",
++            Self::ReadyForReview => "ready-for-review",
++            Self::Blocked => "blocked",
++        }
++    }
++
++    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<Self> {
++        let mut transitions = Vec::new();
++
++        match self {
++            Self::New => {
++                if facts.feature_binding_complete {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::Implementation => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.waiting_for_human_input {
++                    transitions.push(Self::WaitingForHuman);
++                }
++                if facts.ready_for_review {
++                    transitions.push(Self::ReadyForReview);
++                }
++            }
++            Self::WaitingForHuman => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.human_response_ready {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::ReadyForReview => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.review_rework_required {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::Blocked => {
++                if facts.blocker_resolved {
++                    transitions.push(Self::Implementation);
++                }
++            }
++        }
++
++        transitions
++    }
++
++    pub fn validate_transition(
++        &self,
++        target: Self,
++        facts: &TransitionFacts,
++    ) -> Result<(), TransitionError> {
++        if self.available_transitions(facts).contains(&target) {
++            return Ok(());
++        }
++
++        Err(TransitionError::Rejected {
++            from: self.clone(),
++            to: target.clone(),
++            reason: self.missing_transition_reason(&target).to_string(),
++        })
++    }
++
++    fn missing_transition_reason(&self, target: &Self) -> &'static str {
++        match (self, target) {
++            (Self::New, Self::Implementation) => "feature binding is incomplete",
++            (Self::Implementation, Self::WaitingForHuman) => {
++                "no agent session is waiting for human input"
++            }
++            (Self::Implementation, Self::ReadyForReview) => "feature is not ready for review",
++            (Self::Implementation, Self::Blocked) => "no blocking issue is present",
++            (Self::WaitingForHuman, Self::Implementation) => "no human response is available",
++            (Self::WaitingForHuman, Self::Blocked) => "no blocking issue is present",
++            (Self::ReadyForReview, Self::Implementation) => {
++                "no follow-up implementation request is present"
++            }
++            (Self::ReadyForReview, Self::Blocked) => "no blocking issue is present",
++            (Self::Blocked, Self::Implementation) => "blocking issue is still present",
++            _ => "transition is not supported by the prototype workflow",
++        }
++    }
++}
++
++impl fmt::Display for WorkflowState {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.write_str(self.as_str())
++    }
++}
++
++#[derive(Debug, Clone, PartialEq, Eq, Default)]
++pub struct TransitionFacts {
++    pub feature_binding_complete: bool,
++    pub blocking_issue_present: bool,
++    pub waiting_for_human_input: bool,
++    pub human_response_ready: bool,
++    pub ready_for_review: bool,
++    pub review_rework_required: bool,
++    pub blocker_resolved: bool,
++}
++
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub enum TransitionError {
++    Rejected {
++        from: WorkflowState,
++        to: WorkflowState,
++        reason: String,
++    },
++}
++
++impl fmt::Display for TransitionError {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        match self {
++            Self::Rejected { from, to, reason } => {
++                write!(f, "cannot transition from '{from}' to '{to}': {reason}")
++            }
++        }
++    }
+ }
+ 
++impl std::error::Error for TransitionError {}
++
+ #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+ pub struct GateGroup {
+     pub id: String,
+diff --git a/cli/tests/state.rs b/cli/tests/state.rs
+index 1e9a352789f914c85b82e50317ea49600b127b71..d84e668750bc9579be54a54636512e55363ad635
+--- a/cli/tests/state.rs
++++ b/cli/tests/state.rs
+@@ -5,9 +5,10 @@
+ use calypso_cli::state::{
+     AgentSession, AgentSessionStatus, AgentTerminalOutcome, BuiltinEvidence, FeatureState, Gate,
+     GateEvaluationError, GateGroup, GateInitializationError, GateStatus, PullRequestRef,
+-    RepositoryState, SessionOutput, SessionOutputStream, StateError, WorkflowState,
++    RepositoryState, SessionOutput, SessionOutputStream, StateError, TransitionError,
++    TransitionFacts, WorkflowState,
+ };
+-use calypso_cli::template::{TemplateSet, load_embedded_template_set};
++use calypso_cli::template::{load_embedded_template_set, TemplateSet};
+ 
+ fn sample_state() -> RepositoryState {
+     RepositoryState {
+@@ -68,6 +69,12 @@
+     std::env::temp_dir().join(format!("calypso-state-{unique}.json"))
+ }
+ 
++fn sample_feature(workflow_state: WorkflowState) -> FeatureState {
++    let mut feature = sample_state().current_feature;
++    feature.workflow_state = workflow_state;
++    feature
++}
++
+ #[test]
+ fn repository_state_round_trips_through_json() {
+     let state = sample_state();
+@@ -213,13 +220,11 @@
+         template.state_machine.gate_groups.len()
+     );
+     assert_eq!(feature.gate_groups[0].gates[0].task, "pr-editor");
+-    assert!(
+-        feature
+-            .gate_groups
+-            .iter()
+-            .flat_map(|group| group.gates.iter())
+-            .all(|gate| gate.status == GateStatus::Pending)
+-    );
++    assert!(feature
++        .gate_groups
++        .iter()
++        .flat_map(|group| group.gates.iter())
++        .all(|gate| gate.status == GateStatus::Pending));
+ }
+ 
+ #[test]
+@@ -382,14 +387,12 @@
+         .evaluate_gates(&template, &BuiltinEvidence::new())
+         .expect("gate evaluation should succeed");
+ 
+-    assert!(
+-        feature
+-            .gate_groups
+-            .iter()
+-            .flat_map(|group| group.gates.iter())
+-            .filter(|gate| gate.id == "rust-quality-green" || gate.id == "merge-drift-reviewed")
+-            .all(|gate| gate.status == GateStatus::Pending)
+-    );
++    assert!(feature
++        .gate_groups
++        .iter()
++        .flat_map(|group| group.gates.iter())
++        .filter(|gate| gate.id == "rust-quality-green" || gate.id == "merge-drift-reviewed")
++        .all(|gate| gate.status == GateStatus::Pending));
+ }
+ 
+ #[test]
+@@ -504,3 +507,101 @@
+         ]
+     );
+ }
++
++#[test]
++fn feature_state_reports_available_transitions_for_each_workflow_state() {
++    assert_eq!(
++        sample_feature(WorkflowState::New).available_transitions(&TransitionFacts {
++            feature_binding_complete: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            waiting_for_human_input: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::WaitingForHuman]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            ready_for_review: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::ReadyForReview]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            blocking_issue_present: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Blocked]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::WaitingForHuman).available_transitions(&TransitionFacts {
++            human_response_ready: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::ReadyForReview).available_transitions(&TransitionFacts {
++            review_rework_required: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Blocked).available_transitions(&TransitionFacts {
++            blocker_resolved: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++}
++
++#[test]
++fn feature_state_rejects_transitions_without_required_facts() {
++    let mut feature = sample_feature(WorkflowState::Implementation);
++
++    let error = feature
++        .transition_to(WorkflowState::ReadyForReview, &TransitionFacts::default())
++        .expect_err("missing readiness facts should reject the transition");
++
++    assert_eq!(
++        error,
++        TransitionError::Rejected {
++            from: WorkflowState::Implementation,
++            to: WorkflowState::ReadyForReview,
++            reason: "feature is not ready for review".to_string(),
++        }
++    );
++    assert_eq!(
++        error.to_string(),
++        "cannot transition from 'implementation' to 'ready-for-review': feature is not ready for review"
++    );
++}
++
++#[test]
++fn feature_state_transitions_when_required_facts_are_present() {
++    let mut feature = sample_feature(WorkflowState::WaitingForHuman);
++
++    feature
++        .transition_to(
++            WorkflowState::Implementation,
++            &TransitionFacts {
++                human_response_ready: true,
++                ..TransitionFacts::default()
++            },
++        )
++        .expect("human response should resume implementation");
++
++    assert_eq!(feature.workflow_state, WorkflowState::Implementation);
++}
+
+exec
+/bin/bash -lc "sed -n '1,280p' cli/src/state.rs" in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+use std::collections::BTreeMap;
+use std::fmt;
+use std::fs;
+use std::path::Path;
+
+use serde::{Deserialize, Serialize};
+
+use crate::template::{AgentTaskKind, TemplateSet};
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RepositoryState {
+    pub version: u32,
+    pub repo_id: String,
+    pub current_feature: FeatureState,
+}
+
+impl RepositoryState {
+    pub fn to_json_pretty(&self) -> Result<String, StateError> {
+        serde_json::to_string_pretty(self).map_err(StateError::Json)
+    }
+exec
+/bin/bash -lc "sed -n '1,520p' cli/tests/state.rs" in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+use std::fs;
+use std::path::PathBuf;
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use calypso_cli::state::{
+    AgentSession, AgentSessionStatus, AgentTerminalOutcome, BuiltinEvidence, FeatureState, Gate,
+    GateEvaluationError, GateGroup, GateInitializationError, GateStatus, PullRequestRef,
+    RepositoryState, SessionOutput, SessionOutputStream, StateError, TransitionError,
+    TransitionFacts, WorkflowState,
+};
+use calypso_cli::template::{load_embedded_template_set, TemplateSet};
+
+fn sample_state() -> RepositoryState {
+    RepositoryState {
+        version: 1,
+        repo_id: "acme-api".to_string(),
+        current_feature: FeatureState {
+            feature_id: "feat-auth-refresh".to_string(),
+            branch: "feat/123-token-refresh".to_string(),
+            worktree_path: "/worktrees/feat-123-token-refresh".to_string(),
+exec
+/bin/bash -lc 'git diff -- cli/src/state.rs cli/tests/state.rs' in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+diff --git a/cli/src/state.rs b/cli/src/state.rs
+index 12ce2ce..1819555 100644
+--- a/cli/src/state.rs
++++ b/cli/src/state.rs
+@@ -125,6 +125,21 @@ impl FeatureState {
+             .map(|gate| gate.id.clone())
+             .collect()
+     }
++
++    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<WorkflowState> {
++        self.workflow_state.available_transitions(facts)
++    }
++
++    pub fn transition_to(
++        &mut self,
++        target: WorkflowState,
++        facts: &TransitionFacts,
++    ) -> Result<(), TransitionError> {
++        self.workflow_state
++            .validate_transition(target.clone(), facts)?;
+file update:
+diff --git a/cli/src/state.rs b/cli/src/state.rs
+index 12ce2ce5424323406cd51305cd343098821be74b..18195554e9042de304aa6185bdace2af81dd527a
+--- a/cli/src/state.rs
++++ b/cli/src/state.rs
+@@ -125,6 +125,21 @@
+             .map(|gate| gate.id.clone())
+             .collect()
+     }
++
++    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<WorkflowState> {
++        self.workflow_state.available_transitions(facts)
++    }
++
++    pub fn transition_to(
++        &mut self,
++        target: WorkflowState,
++        facts: &TransitionFacts,
++    ) -> Result<(), TransitionError> {
++        self.workflow_state
++            .validate_transition(target.clone(), facts)?;
++        self.workflow_state = target;
++        Ok(())
++    }
+ }
+ 
+ #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+@@ -156,8 +171,137 @@
+             )),
+         }
+     }
++
++    pub fn as_str(&self) -> &'static str {
++        match self {
++            Self::New => "new",
++            Self::Implementation => "implementation",
++            Self::WaitingForHuman => "waiting-for-human",
++            Self::ReadyForReview => "ready-for-review",
++            Self::Blocked => "blocked",
++        }
++    }
++
++    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<Self> {
++        let mut transitions = Vec::new();
++
++        match self {
++            Self::New => {
++                if facts.feature_binding_complete {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::Implementation => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.waiting_for_human_input {
++                    transitions.push(Self::WaitingForHuman);
++                }
++                if facts.ready_for_review {
++                    transitions.push(Self::ReadyForReview);
++                }
++            }
++            Self::WaitingForHuman => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.human_response_ready {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::ReadyForReview => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.review_rework_required {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::Blocked => {
++                if facts.blocker_resolved {
++                    transitions.push(Self::Implementation);
++                }
++            }
++        }
++
++        transitions
++    }
++
++    pub fn validate_transition(
++        &self,
++        target: Self,
++        facts: &TransitionFacts,
++    ) -> Result<(), TransitionError> {
++        if self.available_transitions(facts).contains(&target) {
++            return Ok(());
++        }
++
++        Err(TransitionError::Rejected {
++            from: self.clone(),
++            to: target.clone(),
++            reason: self.missing_transition_reason(&target).to_string(),
++        })
++    }
++
++    fn missing_transition_reason(&self, target: &Self) -> &'static str {
++        match (self, target) {
++            (Self::New, Self::Implementation) => "feature binding is incomplete",
++            (Self::Implementation, Self::WaitingForHuman) => {
++                "no agent session is waiting for human input"
++            }
++            (Self::Implementation, Self::ReadyForReview) => "feature is not ready for review",
++            (Self::Implementation, Self::Blocked) => "no blocking issue is present",
++            (Self::WaitingForHuman, Self::Implementation) => "no human response is available",
++            (Self::WaitingForHuman, Self::Blocked) => "no blocking issue is present",
++            (Self::ReadyForReview, Self::Implementation) => {
++                "no follow-up implementation request is present"
++            }
++            (Self::ReadyForReview, Self::Blocked) => "no blocking issue is present",
++            (Self::Blocked, Self::Implementation) => "blocking issue is still present",
++            _ => "transition is not supported by the prototype workflow",
++        }
++    }
++}
++
++impl fmt::Display for WorkflowState {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.write_str(self.as_str())
++    }
++}
++
++#[derive(Debug, Clone, PartialEq, Eq, Default)]
++pub struct TransitionFacts {
++    pub feature_binding_complete: bool,
++    pub blocking_issue_present: bool,
++    pub waiting_for_human_input: bool,
++    pub human_response_ready: bool,
++    pub ready_for_review: bool,
++    pub review_rework_required: bool,
++    pub blocker_resolved: bool,
++}
++
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub enum TransitionError {
++    Rejected {
++        from: WorkflowState,
++        to: WorkflowState,
++        reason: String,
++    },
++}
++
++impl fmt::Display for TransitionError {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        match self {
++            Self::Rejected { from, to, reason } => {
++                write!(f, "cannot transition from '{from}' to '{to}': {reason}")
++            }
++        }
++    }
+ }
+ 
++impl std::error::Error for TransitionError {}
++
+ #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+ pub struct GateGroup {
+     pub id: String,
+diff --git a/cli/tests/state.rs b/cli/tests/state.rs
+index 1e9a352789f914c85b82e50317ea49600b127b71..d84e668750bc9579be54a54636512e55363ad635
+--- a/cli/tests/state.rs
++++ b/cli/tests/state.rs
+@@ -5,9 +5,10 @@
+ use calypso_cli::state::{
+     AgentSession, AgentSessionStatus, AgentTerminalOutcome, BuiltinEvidence, FeatureState, Gate,
+     GateEvaluationError, GateGroup, GateInitializationError, GateStatus, PullRequestRef,
+-    RepositoryState, SessionOutput, SessionOutputStream, StateError, WorkflowState,
++    RepositoryState, SessionOutput, SessionOutputStream, StateError, TransitionError,
++    TransitionFacts, WorkflowState,
+ };
+-use calypso_cli::template::{TemplateSet, load_embedded_template_set};
++use calypso_cli::template::{load_embedded_template_set, TemplateSet};
+ 
+ fn sample_state() -> RepositoryState {
+     RepositoryState {
+@@ -68,6 +69,12 @@
+     std::env::temp_dir().join(format!("calypso-state-{unique}.json"))
+ }
+ 
++fn sample_feature(workflow_state: WorkflowState) -> FeatureState {
++    let mut feature = sample_state().current_feature;
++    feature.workflow_state = workflow_state;
++    feature
++}
++
+ #[test]
+ fn repository_state_round_trips_through_json() {
+     let state = sample_state();
+@@ -213,13 +220,11 @@
+         template.state_machine.gate_groups.len()
+     );
+     assert_eq!(feature.gate_groups[0].gates[0].task, "pr-editor");
+-    assert!(
+-        feature
+-            .gate_groups
+-            .iter()
+-            .flat_map(|group| group.gates.iter())
+-            .all(|gate| gate.status == GateStatus::Pending)
+-    );
++    assert!(feature
++        .gate_groups
++        .iter()
++        .flat_map(|group| group.gates.iter())
++        .all(|gate| gate.status == GateStatus::Pending));
+ }
+ 
+ #[test]
+@@ -382,14 +387,12 @@
+         .evaluate_gates(&template, &BuiltinEvidence::new())
+         .expect("gate evaluation should succeed");
+ 
+-    assert!(
+-        feature
+-            .gate_groups
+-            .iter()
+-            .flat_map(|group| group.gates.iter())
+-            .filter(|gate| gate.id == "rust-quality-green" || gate.id == "merge-drift-reviewed")
+-            .all(|gate| gate.status == GateStatus::Pending)
+-    );
++    assert!(feature
++        .gate_groups
++        .iter()
++        .flat_map(|group| group.gates.iter())
++        .filter(|gate| gate.id == "rust-quality-green" || gate.id == "merge-drift-reviewed")
++        .all(|gate| gate.status == GateStatus::Pending));
+ }
+ 
+ #[test]
+@@ -504,3 +507,101 @@
+         ]
+     );
+ }
++
++#[test]
++fn feature_state_reports_available_transitions_for_each_workflow_state() {
++    assert_eq!(
++        sample_feature(WorkflowState::New).available_transitions(&TransitionFacts {
++            feature_binding_complete: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            waiting_for_human_input: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::WaitingForHuman]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            ready_for_review: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::ReadyForReview]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            blocking_issue_present: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Blocked]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::WaitingForHuman).available_transitions(&TransitionFacts {
++            human_response_ready: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::ReadyForReview).available_transitions(&TransitionFacts {
++            review_rework_required: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Blocked).available_transitions(&TransitionFacts {
++            blocker_resolved: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++}
++
++#[test]
++fn feature_state_rejects_transitions_without_required_facts() {
++    let mut feature = sample_feature(WorkflowState::Implementation);
++
++    let error = feature
++        .transition_to(WorkflowState::ReadyForReview, &TransitionFacts::default())
++        .expect_err("missing readiness facts should reject the transition");
++
++    assert_eq!(
++        error,
++        TransitionError::Rejected {
++            from: WorkflowState::Implementation,
++            to: WorkflowState::ReadyForReview,
++            reason: "feature is not ready for review".to_string(),
++        }
++    );
++    assert_eq!(
++        error.to_string(),
++        "cannot transition from 'implementation' to 'ready-for-review': feature is not ready for review"
++    );
++}
++
++#[test]
++fn feature_state_transitions_when_required_facts_are_present() {
++    let mut feature = sample_feature(WorkflowState::WaitingForHuman);
++
++    feature
++        .transition_to(
++            WorkflowState::Implementation,
++            &TransitionFacts {
++                human_response_ready: true,
++                ..TransitionFacts::default()
++            },
++        )
++        .expect("human response should resume implementation");
++
++    assert_eq!(feature.workflow_state, WorkflowState::Implementation);
++}
+
+codex
+The code change is in place and formatted. I’m running the validation that does not depend on fetching crates, then I’ll re-check whether anything else in the branch can be advanced without the blocked Cargo dependency resolution.
+exec
+/bin/bash -lc 'git status --short' in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+ M cli/src/state.rs
+ M cli/tests/state.rs
+exec
+/bin/bash -lc 'git diff --check' in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+
+exec
+/bin/bash -lc 'cargo fmt --check' in /tmp/calypso-worktrees/feat-cli-domain-state-machine/cli exited 1 in 177ms:
+Diff in /tmp/calypso-worktrees/feat-cli-domain-state-machine/cli/tests/state.rs:8:
+     RepositoryState, SessionOutput, SessionOutputStream, StateError, TransitionError,
+     TransitionFacts, WorkflowState,
+ };
+-use calypso_cli::template::{load_embedded_template_set, TemplateSet};
++use calypso_cli::template::{TemplateSet, load_embedded_template_set};
+ 
+ fn sample_state() -> RepositoryState {
+     RepositoryState {
+Diff in /tmp/calypso-worktrees/feat-cli-domain-state-machine/cli/tests/state.rs:220:
+         template.state_machine.gate_groups.len()
+     );
+     assert_eq!(feature.gate_groups[0].gates[0].task, "pr-editor");
+-    assert!(feature
+-        .gate_groups
+-        .iter()
+-        .flat_map(|group| group.gates.iter())
+-        .all(|gate| gate.status == GateStatus::Pending));
++    assert!(
++        feature
+file update:
+diff --git a/cli/src/state.rs b/cli/src/state.rs
+index 12ce2ce5424323406cd51305cd343098821be74b..18195554e9042de304aa6185bdace2af81dd527a
+--- a/cli/src/state.rs
++++ b/cli/src/state.rs
+@@ -125,6 +125,21 @@
+             .map(|gate| gate.id.clone())
+             .collect()
+     }
++
++    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<WorkflowState> {
++        self.workflow_state.available_transitions(facts)
++    }
++
++    pub fn transition_to(
++        &mut self,
++        target: WorkflowState,
++        facts: &TransitionFacts,
++    ) -> Result<(), TransitionError> {
++        self.workflow_state
++            .validate_transition(target.clone(), facts)?;
++        self.workflow_state = target;
++        Ok(())
++    }
+ }
+ 
+ #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+@@ -156,8 +171,137 @@
+             )),
+         }
+     }
++
++    pub fn as_str(&self) -> &'static str {
++        match self {
++            Self::New => "new",
++            Self::Implementation => "implementation",
++            Self::WaitingForHuman => "waiting-for-human",
++            Self::ReadyForReview => "ready-for-review",
++            Self::Blocked => "blocked",
++        }
++    }
++
++    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<Self> {
++        let mut transitions = Vec::new();
++
++        match self {
++            Self::New => {
++                if facts.feature_binding_complete {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::Implementation => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.waiting_for_human_input {
++                    transitions.push(Self::WaitingForHuman);
++                }
++                if facts.ready_for_review {
++                    transitions.push(Self::ReadyForReview);
++                }
++            }
++            Self::WaitingForHuman => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.human_response_ready {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::ReadyForReview => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.review_rework_required {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::Blocked => {
++                if facts.blocker_resolved {
++                    transitions.push(Self::Implementation);
++                }
++            }
++        }
++
++        transitions
++    }
++
++    pub fn validate_transition(
++        &self,
++        target: Self,
++        facts: &TransitionFacts,
++    ) -> Result<(), TransitionError> {
++        if self.available_transitions(facts).contains(&target) {
++            return Ok(());
++        }
++
++        Err(TransitionError::Rejected {
++            from: self.clone(),
++            to: target.clone(),
++            reason: self.missing_transition_reason(&target).to_string(),
++        })
++    }
++
++    fn missing_transition_reason(&self, target: &Self) -> &'static str {
++        match (self, target) {
++            (Self::New, Self::Implementation) => "feature binding is incomplete",
++            (Self::Implementation, Self::WaitingForHuman) => {
++                "no agent session is waiting for human input"
++            }
++            (Self::Implementation, Self::ReadyForReview) => "feature is not ready for review",
++            (Self::Implementation, Self::Blocked) => "no blocking issue is present",
++            (Self::WaitingForHuman, Self::Implementation) => "no human response is available",
++            (Self::WaitingForHuman, Self::Blocked) => "no blocking issue is present",
++            (Self::ReadyForReview, Self::Implementation) => {
++                "no follow-up implementation request is present"
++            }
++            (Self::ReadyForReview, Self::Blocked) => "no blocking issue is present",
++            (Self::Blocked, Self::Implementation) => "blocking issue is still present",
++            _ => "transition is not supported by the prototype workflow",
++        }
++    }
++}
++
++impl fmt::Display for WorkflowState {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.write_str(self.as_str())
++    }
++}
++
++#[derive(Debug, Clone, PartialEq, Eq, Default)]
++pub struct TransitionFacts {
++    pub feature_binding_complete: bool,
++    pub blocking_issue_present: bool,
++    pub waiting_for_human_input: bool,
++    pub human_response_ready: bool,
++    pub ready_for_review: bool,
++    pub review_rework_required: bool,
++    pub blocker_resolved: bool,
++}
++
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub enum TransitionError {
++    Rejected {
++        from: WorkflowState,
++        to: WorkflowState,
++        reason: String,
++    },
++}
++
++impl fmt::Display for TransitionError {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        match self {
++            Self::Rejected { from, to, reason } => {
++                write!(f, "cannot transition from '{from}' to '{to}': {reason}")
++            }
++        }
++    }
+ }
+ 
++impl std::error::Error for TransitionError {}
++
+ #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+ pub struct GateGroup {
+     pub id: String,
+diff --git a/cli/tests/state.rs b/cli/tests/state.rs
+index 1e9a352789f914c85b82e50317ea49600b127b71..d84e668750bc9579be54a54636512e55363ad635
+--- a/cli/tests/state.rs
++++ b/cli/tests/state.rs
+@@ -5,9 +5,10 @@
+ use calypso_cli::state::{
+     AgentSession, AgentSessionStatus, AgentTerminalOutcome, BuiltinEvidence, FeatureState, Gate,
+     GateEvaluationError, GateGroup, GateInitializationError, GateStatus, PullRequestRef,
+-    RepositoryState, SessionOutput, SessionOutputStream, StateError, WorkflowState,
++    RepositoryState, SessionOutput, SessionOutputStream, StateError, TransitionError,
++    TransitionFacts, WorkflowState,
+ };
+-use calypso_cli::template::{TemplateSet, load_embedded_template_set};
++use calypso_cli::template::{load_embedded_template_set, TemplateSet};
+ 
+ fn sample_state() -> RepositoryState {
+     RepositoryState {
+@@ -68,6 +69,12 @@
+     std::env::temp_dir().join(format!("calypso-state-{unique}.json"))
+ }
+ 
++fn sample_feature(workflow_state: WorkflowState) -> FeatureState {
++    let mut feature = sample_state().current_feature;
++    feature.workflow_state = workflow_state;
++    feature
++}
++
+ #[test]
+ fn repository_state_round_trips_through_json() {
+     let state = sample_state();
+@@ -213,13 +220,11 @@
+         template.state_machine.gate_groups.len()
+     );
+     assert_eq!(feature.gate_groups[0].gates[0].task, "pr-editor");
+-    assert!(
+-        feature
+-            .gate_groups
+-            .iter()
+-            .flat_map(|group| group.gates.iter())
+-            .all(|gate| gate.status == GateStatus::Pending)
+-    );
++    assert!(feature
++        .gate_groups
++        .iter()
++        .flat_map(|group| group.gates.iter())
++        .all(|gate| gate.status == GateStatus::Pending));
+ }
+ 
+ #[test]
+@@ -382,14 +387,12 @@
+         .evaluate_gates(&template, &BuiltinEvidence::new())
+         .expect("gate evaluation should succeed");
+ 
+-    assert!(
+-        feature
+-            .gate_groups
+-            .iter()
+-            .flat_map(|group| group.gates.iter())
+-            .filter(|gate| gate.id == "rust-quality-green" || gate.id == "merge-drift-reviewed")
+-            .all(|gate| gate.status == GateStatus::Pending)
+-    );
++    assert!(feature
++        .gate_groups
++        .iter()
++        .flat_map(|group| group.gates.iter())
++        .filter(|gate| gate.id == "rust-quality-green" || gate.id == "merge-drift-reviewed")
++        .all(|gate| gate.status == GateStatus::Pending));
+ }
+ 
+ #[test]
+@@ -504,3 +507,101 @@
+         ]
+     );
+ }
++
++#[test]
++fn feature_state_reports_available_transitions_for_each_workflow_state() {
++    assert_eq!(
++        sample_feature(WorkflowState::New).available_transitions(&TransitionFacts {
++            feature_binding_complete: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            waiting_for_human_input: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::WaitingForHuman]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            ready_for_review: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::ReadyForReview]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            blocking_issue_present: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Blocked]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::WaitingForHuman).available_transitions(&TransitionFacts {
++            human_response_ready: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::ReadyForReview).available_transitions(&TransitionFacts {
++            review_rework_required: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Blocked).available_transitions(&TransitionFacts {
++            blocker_resolved: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++}
++
++#[test]
++fn feature_state_rejects_transitions_without_required_facts() {
++    let mut feature = sample_feature(WorkflowState::Implementation);
++
++    let error = feature
++        .transition_to(WorkflowState::ReadyForReview, &TransitionFacts::default())
++        .expect_err("missing readiness facts should reject the transition");
++
++    assert_eq!(
++        error,
++        TransitionError::Rejected {
++            from: WorkflowState::Implementation,
++            to: WorkflowState::ReadyForReview,
++            reason: "feature is not ready for review".to_string(),
++        }
++    );
++    assert_eq!(
++        error.to_string(),
++        "cannot transition from 'implementation' to 'ready-for-review': feature is not ready for review"
++    );
++}
++
++#[test]
++fn feature_state_transitions_when_required_facts_are_present() {
++    let mut feature = sample_feature(WorkflowState::WaitingForHuman);
++
++    feature
++        .transition_to(
++            WorkflowState::Implementation,
++            &TransitionFacts {
++                human_response_ready: true,
++                ..TransitionFacts::default()
++            },
++        )
++        .expect("human response should resume implementation");
++
++    assert_eq!(feature.workflow_state, WorkflowState::Implementation);
++}
+
+codex
+`cargo fmt --check` surfaced formatting drift in the test file, so I’m normalizing it with Cargo’s formatter before I do anything else.
+exec
+/bin/bash -lc 'cargo fmt' in /tmp/calypso-worktrees/feat-cli-domain-state-machine/cli succeeded in 217ms:
+
+file update:
+diff --git a/cli/src/state.rs b/cli/src/state.rs
+index 12ce2ce5424323406cd51305cd343098821be74b..18195554e9042de304aa6185bdace2af81dd527a
+--- a/cli/src/state.rs
++++ b/cli/src/state.rs
+@@ -125,6 +125,21 @@
+             .map(|gate| gate.id.clone())
+             .collect()
+     }
++
++    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<WorkflowState> {
++        self.workflow_state.available_transitions(facts)
++    }
++
++    pub fn transition_to(
++        &mut self,
++        target: WorkflowState,
++        facts: &TransitionFacts,
++    ) -> Result<(), TransitionError> {
++        self.workflow_state
++            .validate_transition(target.clone(), facts)?;
++        self.workflow_state = target;
++        Ok(())
++    }
+ }
+ 
+ #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+@@ -156,8 +171,137 @@
+             )),
+         }
+     }
++
++    pub fn as_str(&self) -> &'static str {
++        match self {
++            Self::New => "new",
++            Self::Implementation => "implementation",
++            Self::WaitingForHuman => "waiting-for-human",
++            Self::ReadyForReview => "ready-for-review",
++            Self::Blocked => "blocked",
++        }
++    }
++
++    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<Self> {
++        let mut transitions = Vec::new();
++
++        match self {
++            Self::New => {
++                if facts.feature_binding_complete {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::Implementation => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.waiting_for_human_input {
++                    transitions.push(Self::WaitingForHuman);
++                }
++                if facts.ready_for_review {
++                    transitions.push(Self::ReadyForReview);
++                }
++            }
++            Self::WaitingForHuman => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.human_response_ready {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::ReadyForReview => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.review_rework_required {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::Blocked => {
++                if facts.blocker_resolved {
++                    transitions.push(Self::Implementation);
++                }
++            }
++        }
++
++        transitions
++    }
++
++    pub fn validate_transition(
++        &self,
++        target: Self,
++        facts: &TransitionFacts,
++    ) -> Result<(), TransitionError> {
++        if self.available_transitions(facts).contains(&target) {
++            return Ok(());
++        }
++
++        Err(TransitionError::Rejected {
++            from: self.clone(),
++            to: target.clone(),
++            reason: self.missing_transition_reason(&target).to_string(),
++        })
++    }
++
++    fn missing_transition_reason(&self, target: &Self) -> &'static str {
++        match (self, target) {
++            (Self::New, Self::Implementation) => "feature binding is incomplete",
++            (Self::Implementation, Self::WaitingForHuman) => {
++                "no agent session is waiting for human input"
++            }
++            (Self::Implementation, Self::ReadyForReview) => "feature is not ready for review",
++            (Self::Implementation, Self::Blocked) => "no blocking issue is present",
++            (Self::WaitingForHuman, Self::Implementation) => "no human response is available",
++            (Self::WaitingForHuman, Self::Blocked) => "no blocking issue is present",
++            (Self::ReadyForReview, Self::Implementation) => {
++                "no follow-up implementation request is present"
++            }
++            (Self::ReadyForReview, Self::Blocked) => "no blocking issue is present",
++            (Self::Blocked, Self::Implementation) => "blocking issue is still present",
++            _ => "transition is not supported by the prototype workflow",
++        }
++    }
++}
++
++impl fmt::Display for WorkflowState {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.write_str(self.as_str())
++    }
++}
++
++#[derive(Debug, Clone, PartialEq, Eq, Default)]
++pub struct TransitionFacts {
++    pub feature_binding_complete: bool,
++    pub blocking_issue_present: bool,
++    pub waiting_for_human_input: bool,
++    pub human_response_ready: bool,
++    pub ready_for_review: bool,
++    pub review_rework_required: bool,
++    pub blocker_resolved: bool,
++}
++
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub enum TransitionError {
++    Rejected {
++        from: WorkflowState,
++        to: WorkflowState,
++        reason: String,
++    },
++}
++
++impl fmt::Display for TransitionError {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        match self {
++            Self::Rejected { from, to, reason } => {
++                write!(f, "cannot transition from '{from}' to '{to}': {reason}")
++            }
++        }
++    }
+ }
+ 
++impl std::error::Error for TransitionError {}
++
+ #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+ pub struct GateGroup {
+     pub id: String,
+diff --git a/cli/tests/state.rs b/cli/tests/state.rs
+index 1e9a352789f914c85b82e50317ea49600b127b71..1fa425d801372eb819fce9acd44a618937fe3ea9
+--- a/cli/tests/state.rs
++++ b/cli/tests/state.rs
+@@ -5,7 +5,8 @@
+ use calypso_cli::state::{
+     AgentSession, AgentSessionStatus, AgentTerminalOutcome, BuiltinEvidence, FeatureState, Gate,
+     GateEvaluationError, GateGroup, GateInitializationError, GateStatus, PullRequestRef,
+-    RepositoryState, SessionOutput, SessionOutputStream, StateError, WorkflowState,
++    RepositoryState, SessionOutput, SessionOutputStream, StateError, TransitionError,
++    TransitionFacts, WorkflowState,
+ };
+ use calypso_cli::template::{TemplateSet, load_embedded_template_set};
+ 
+@@ -68,6 +69,12 @@
+     std::env::temp_dir().join(format!("calypso-state-{unique}.json"))
+ }
+ 
++fn sample_feature(workflow_state: WorkflowState) -> FeatureState {
++    let mut feature = sample_state().current_feature;
++    feature.workflow_state = workflow_state;
++    feature
++}
++
+ #[test]
+ fn repository_state_round_trips_through_json() {
+     let state = sample_state();
+@@ -504,3 +511,101 @@
+         ]
+     );
+ }
++
++#[test]
++fn feature_state_reports_available_transitions_for_each_workflow_state() {
++    assert_eq!(
++        sample_feature(WorkflowState::New).available_transitions(&TransitionFacts {
++            feature_binding_complete: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            waiting_for_human_input: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::WaitingForHuman]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            ready_for_review: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::ReadyForReview]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            blocking_issue_present: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Blocked]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::WaitingForHuman).available_transitions(&TransitionFacts {
++            human_response_ready: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::ReadyForReview).available_transitions(&TransitionFacts {
++            review_rework_required: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Blocked).available_transitions(&TransitionFacts {
++            blocker_resolved: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++}
++
++#[test]
++fn feature_state_rejects_transitions_without_required_facts() {
++    let mut feature = sample_feature(WorkflowState::Implementation);
++
++    let error = feature
++        .transition_to(WorkflowState::ReadyForReview, &TransitionFacts::default())
++        .expect_err("missing readiness facts should reject the transition");
++
++    assert_eq!(
++        error,
++        TransitionError::Rejected {
++            from: WorkflowState::Implementation,
++            to: WorkflowState::ReadyForReview,
++            reason: "feature is not ready for review".to_string(),
++        }
++    );
++    assert_eq!(
++        error.to_string(),
++        "cannot transition from 'implementation' to 'ready-for-review': feature is not ready for review"
++    );
++}
++
++#[test]
++fn feature_state_transitions_when_required_facts_are_present() {
++    let mut feature = sample_feature(WorkflowState::WaitingForHuman);
++
++    feature
++        .transition_to(
++            WorkflowState::Implementation,
++            &TransitionFacts {
++                human_response_ready: true,
++                ..TransitionFacts::default()
++            },
++        )
++        .expect("human response should resume implementation");
++
++    assert_eq!(feature.workflow_state, WorkflowState::Implementation);
++}
+
+exec
+/bin/bash -lc 'git diff --stat' in /tmp/calypso-worktrees/feat-cli-domain-state-machine succeeded in 0ms:
+ cli/src/state.rs   | 144 +++++++++++++++++++++++++++++++++++++++++++++++++++++
+ cli/tests/state.rs | 107 ++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 250 insertions(+), 1 deletion(-)
+exec
+/bin/bash -lc 'cargo fmt --check' in /tmp/calypso-worktrees/feat-cli-domain-state-machine/cliexec
+/bin/bash -lc 'RUSTC_WRAPPER= cargo test --locked --offline' in /tmp/calypso-worktrees/feat-cli-domain-state-machine/cli exited 101 in 7ms:
+error: failed to select a version for the requirement `zmij = "^1.0"` (locked to 1.0.21)
+candidate versions found which didn't match: 1.0.19, 1.0.17, 1.0.16, ...
+location searched: crates.io index
+required by package `serde_json v1.0.149`
+    ... which satisfies dependency `serde_json = "^1.0"` (locked to 1.0.149) of package `calypso-cli v0.1.0 (/tmp/calypso-worktrees/feat-cli-domain-state-machine/cli)`
+As a reminder, you're using offline mode (--offline) which can sometimes cause surprising resolution failures, if this error is too confusing you may wish to retry without `--offline`.
+ succeeded in 165ms:
+
+file update:
+diff --git a/cli/src/state.rs b/cli/src/state.rs
+index 12ce2ce5424323406cd51305cd343098821be74b..18195554e9042de304aa6185bdace2af81dd527a
+--- a/cli/src/state.rs
++++ b/cli/src/state.rs
+@@ -125,6 +125,21 @@
+             .map(|gate| gate.id.clone())
+             .collect()
+     }
++
++    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<WorkflowState> {
++        self.workflow_state.available_transitions(facts)
++    }
++
++    pub fn transition_to(
++        &mut self,
++        target: WorkflowState,
++        facts: &TransitionFacts,
++    ) -> Result<(), TransitionError> {
++        self.workflow_state
++            .validate_transition(target.clone(), facts)?;
++        self.workflow_state = target;
++        Ok(())
++    }
+ }
+ 
+ #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+@@ -156,8 +171,137 @@
+             )),
+         }
+     }
++
++    pub fn as_str(&self) -> &'static str {
++        match self {
++            Self::New => "new",
++            Self::Implementation => "implementation",
++            Self::WaitingForHuman => "waiting-for-human",
++            Self::ReadyForReview => "ready-for-review",
++            Self::Blocked => "blocked",
++        }
++    }
++
++    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<Self> {
++        let mut transitions = Vec::new();
++
++        match self {
++            Self::New => {
++                if facts.feature_binding_complete {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::Implementation => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.waiting_for_human_input {
++                    transitions.push(Self::WaitingForHuman);
++                }
++                if facts.ready_for_review {
++                    transitions.push(Self::ReadyForReview);
++                }
++            }
++            Self::WaitingForHuman => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.human_response_ready {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::ReadyForReview => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.review_rework_required {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::Blocked => {
++                if facts.blocker_resolved {
++                    transitions.push(Self::Implementation);
++                }
++            }
++        }
++
++        transitions
++    }
++
++    pub fn validate_transition(
++        &self,
++        target: Self,
++        facts: &TransitionFacts,
++    ) -> Result<(), TransitionError> {
++        if self.available_transitions(facts).contains(&target) {
++            return Ok(());
++        }
++
++        Err(TransitionError::Rejected {
++            from: self.clone(),
++            to: target.clone(),
++            reason: self.missing_transition_reason(&target).to_string(),
++        })
++    }
++
++    fn missing_transition_reason(&self, target: &Self) -> &'static str {
++        match (self, target) {
++            (Self::New, Self::Implementation) => "feature binding is incomplete",
++            (Self::Implementation, Self::WaitingForHuman) => {
++                "no agent session is waiting for human input"
++            }
++            (Self::Implementation, Self::ReadyForReview) => "feature is not ready for review",
++            (Self::Implementation, Self::Blocked) => "no blocking issue is present",
++            (Self::WaitingForHuman, Self::Implementation) => "no human response is available",
++            (Self::WaitingForHuman, Self::Blocked) => "no blocking issue is present",
++            (Self::ReadyForReview, Self::Implementation) => {
++                "no follow-up implementation request is present"
++            }
++            (Self::ReadyForReview, Self::Blocked) => "no blocking issue is present",
++            (Self::Blocked, Self::Implementation) => "blocking issue is still present",
++            _ => "transition is not supported by the prototype workflow",
++        }
++    }
++}
++
++impl fmt::Display for WorkflowState {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.write_str(self.as_str())
++    }
++}
++
++#[derive(Debug, Clone, PartialEq, Eq, Default)]
++pub struct TransitionFacts {
++    pub feature_binding_complete: bool,
++    pub blocking_issue_present: bool,
++    pub waiting_for_human_input: bool,
++    pub human_response_ready: bool,
++    pub ready_for_review: bool,
++    pub review_rework_required: bool,
++    pub blocker_resolved: bool,
++}
++
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub enum TransitionError {
++    Rejected {
++        from: WorkflowState,
++        to: WorkflowState,
++        reason: String,
++    },
++}
++
++impl fmt::Display for TransitionError {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        match self {
++            Self::Rejected { from, to, reason } => {
++                write!(f, "cannot transition from '{from}' to '{to}': {reason}")
++            }
++        }
++    }
+ }
+ 
++impl std::error::Error for TransitionError {}
++
+ #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+ pub struct GateGroup {
+     pub id: String,
+diff --git a/cli/tests/state.rs b/cli/tests/state.rs
+index 1e9a352789f914c85b82e50317ea49600b127b71..1fa425d801372eb819fce9acd44a618937fe3ea9
+--- a/cli/tests/state.rs
++++ b/cli/tests/state.rs
+@@ -5,7 +5,8 @@
+ use calypso_cli::state::{
+     AgentSession, AgentSessionStatus, AgentTerminalOutcome, BuiltinEvidence, FeatureState, Gate,
+     GateEvaluationError, GateGroup, GateInitializationError, GateStatus, PullRequestRef,
+-    RepositoryState, SessionOutput, SessionOutputStream, StateError, WorkflowState,
++    RepositoryState, SessionOutput, SessionOutputStream, StateError, TransitionError,
++    TransitionFacts, WorkflowState,
+ };
+ use calypso_cli::template::{TemplateSet, load_embedded_template_set};
+ 
+@@ -68,6 +69,12 @@
+     std::env::temp_dir().join(format!("calypso-state-{unique}.json"))
+ }
+ 
++fn sample_feature(workflow_state: WorkflowState) -> FeatureState {
++    let mut feature = sample_state().current_feature;
++    feature.workflow_state = workflow_state;
++    feature
++}
++
+ #[test]
+ fn repository_state_round_trips_through_json() {
+     let state = sample_state();
+@@ -504,3 +511,101 @@
+         ]
+     );
+ }
++
++#[test]
++fn feature_state_reports_available_transitions_for_each_workflow_state() {
++    assert_eq!(
++        sample_feature(WorkflowState::New).available_transitions(&TransitionFacts {
++            feature_binding_complete: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            waiting_for_human_input: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::WaitingForHuman]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            ready_for_review: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::ReadyForReview]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            blocking_issue_present: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Blocked]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::WaitingForHuman).available_transitions(&TransitionFacts {
++            human_response_ready: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::ReadyForReview).available_transitions(&TransitionFacts {
++            review_rework_required: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Blocked).available_transitions(&TransitionFacts {
++            blocker_resolved: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++}
++
++#[test]
++fn feature_state_rejects_transitions_without_required_facts() {
++    let mut feature = sample_feature(WorkflowState::Implementation);
++
++    let error = feature
++        .transition_to(WorkflowState::ReadyForReview, &TransitionFacts::default())
++        .expect_err("missing readiness facts should reject the transition");
++
++    assert_eq!(
++        error,
++        TransitionError::Rejected {
++            from: WorkflowState::Implementation,
++            to: WorkflowState::ReadyForReview,
++            reason: "feature is not ready for review".to_string(),
++        }
++    );
++    assert_eq!(
++        error.to_string(),
++        "cannot transition from 'implementation' to 'ready-for-review': feature is not ready for review"
++    );
++}
++
++#[test]
++fn feature_state_transitions_when_required_facts_are_present() {
++    let mut feature = sample_feature(WorkflowState::WaitingForHuman);
++
++    feature
++        .transition_to(
++            WorkflowState::Implementation,
++            &TransitionFacts {
++                human_response_ready: true,
++                ..TransitionFacts::default()
++            },
++        )
++        .expect("human response should resume implementation");
++
++    assert_eq!(feature.workflow_state, WorkflowState::Implementation);
++}
+
+Plan update
+The transition API and tests are added and formatted. Cargo validation remains blocked because this sandbox lacks the exact locked crates needed for offline resolution, so I could not run the new tests.
+  ✓ Replace the stale worktree plan context with the actual domain-state-machine remaining tasks from the PR docs and implementation plan.
+  ✓ Add deterministic workflow transition coverage in cli/tests/state.rs for allowed transitions and explicit rejection reasons.
+  ✓ Implement the matching pure-domain transition API in cli/src/state.rs and format the crate.
+  ✓ Attempt the narrowest available validation in this environment and then update the local plan/checklist if validation is sufficient.
+file update:
+diff --git a/cli/src/state.rs b/cli/src/state.rs
+index 12ce2ce5424323406cd51305cd343098821be74b..18195554e9042de304aa6185bdace2af81dd527a
+--- a/cli/src/state.rs
++++ b/cli/src/state.rs
+@@ -125,6 +125,21 @@
+             .map(|gate| gate.id.clone())
+             .collect()
+     }
++
++    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<WorkflowState> {
++        self.workflow_state.available_transitions(facts)
++    }
++
++    pub fn transition_to(
++        &mut self,
++        target: WorkflowState,
++        facts: &TransitionFacts,
++    ) -> Result<(), TransitionError> {
++        self.workflow_state
++            .validate_transition(target.clone(), facts)?;
++        self.workflow_state = target;
++        Ok(())
++    }
+ }
+ 
+ #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+@@ -156,8 +171,137 @@
+             )),
+         }
+     }
++
++    pub fn as_str(&self) -> &'static str {
++        match self {
++            Self::New => "new",
++            Self::Implementation => "implementation",
++            Self::WaitingForHuman => "waiting-for-human",
++            Self::ReadyForReview => "ready-for-review",
++            Self::Blocked => "blocked",
++        }
++    }
++
++    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<Self> {
++        let mut transitions = Vec::new();
++
++        match self {
++            Self::New => {
++                if facts.feature_binding_complete {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::Implementation => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.waiting_for_human_input {
++                    transitions.push(Self::WaitingForHuman);
++                }
++                if facts.ready_for_review {
++                    transitions.push(Self::ReadyForReview);
++                }
++            }
++            Self::WaitingForHuman => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.human_response_ready {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::ReadyForReview => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.review_rework_required {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::Blocked => {
++                if facts.blocker_resolved {
++                    transitions.push(Self::Implementation);
++                }
++            }
++        }
++
++        transitions
++    }
++
++    pub fn validate_transition(
++        &self,
++        target: Self,
++        facts: &TransitionFacts,
++    ) -> Result<(), TransitionError> {
++        if self.available_transitions(facts).contains(&target) {
++            return Ok(());
++        }
++
++        Err(TransitionError::Rejected {
++            from: self.clone(),
++            to: target.clone(),
++            reason: self.missing_transition_reason(&target).to_string(),
++        })
++    }
++
++    fn missing_transition_reason(&self, target: &Self) -> &'static str {
++        match (self, target) {
++            (Self::New, Self::Implementation) => "feature binding is incomplete",
++            (Self::Implementation, Self::WaitingForHuman) => {
++                "no agent session is waiting for human input"
++            }
++            (Self::Implementation, Self::ReadyForReview) => "feature is not ready for review",
++            (Self::Implementation, Self::Blocked) => "no blocking issue is present",
++            (Self::WaitingForHuman, Self::Implementation) => "no human response is available",
++            (Self::WaitingForHuman, Self::Blocked) => "no blocking issue is present",
++            (Self::ReadyForReview, Self::Implementation) => {
++                "no follow-up implementation request is present"
++            }
++            (Self::ReadyForReview, Self::Blocked) => "no blocking issue is present",
++            (Self::Blocked, Self::Implementation) => "blocking issue is still present",
++            _ => "transition is not supported by the prototype workflow",
++        }
++    }
++}
++
++impl fmt::Display for WorkflowState {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.write_str(self.as_str())
++    }
++}
++
++#[derive(Debug, Clone, PartialEq, Eq, Default)]
++pub struct TransitionFacts {
++    pub feature_binding_complete: bool,
++    pub blocking_issue_present: bool,
++    pub waiting_for_human_input: bool,
++    pub human_response_ready: bool,
++    pub ready_for_review: bool,
++    pub review_rework_required: bool,
++    pub blocker_resolved: bool,
++}
++
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub enum TransitionError {
++    Rejected {
++        from: WorkflowState,
++        to: WorkflowState,
++        reason: String,
++    },
++}
++
++impl fmt::Display for TransitionError {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        match self {
++            Self::Rejected { from, to, reason } => {
++                write!(f, "cannot transition from '{from}' to '{to}': {reason}")
++            }
++        }
++    }
+ }
+ 
++impl std::error::Error for TransitionError {}
++
+ #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+ pub struct GateGroup {
+     pub id: String,
+diff --git a/cli/tests/state.rs b/cli/tests/state.rs
+index 1e9a352789f914c85b82e50317ea49600b127b71..1fa425d801372eb819fce9acd44a618937fe3ea9
+--- a/cli/tests/state.rs
++++ b/cli/tests/state.rs
+@@ -5,7 +5,8 @@
+ use calypso_cli::state::{
+     AgentSession, AgentSessionStatus, AgentTerminalOutcome, BuiltinEvidence, FeatureState, Gate,
+     GateEvaluationError, GateGroup, GateInitializationError, GateStatus, PullRequestRef,
+-    RepositoryState, SessionOutput, SessionOutputStream, StateError, WorkflowState,
++    RepositoryState, SessionOutput, SessionOutputStream, StateError, TransitionError,
++    TransitionFacts, WorkflowState,
+ };
+ use calypso_cli::template::{TemplateSet, load_embedded_template_set};
+ 
+@@ -68,6 +69,12 @@
+     std::env::temp_dir().join(format!("calypso-state-{unique}.json"))
+ }
+ 
++fn sample_feature(workflow_state: WorkflowState) -> FeatureState {
++    let mut feature = sample_state().current_feature;
++    feature.workflow_state = workflow_state;
++    feature
++}
++
+ #[test]
+ fn repository_state_round_trips_through_json() {
+     let state = sample_state();
+@@ -504,3 +511,101 @@
+         ]
+     );
+ }
++
++#[test]
++fn feature_state_reports_available_transitions_for_each_workflow_state() {
++    assert_eq!(
++        sample_feature(WorkflowState::New).available_transitions(&TransitionFacts {
++            feature_binding_complete: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            waiting_for_human_input: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::WaitingForHuman]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            ready_for_review: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::ReadyForReview]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            blocking_issue_present: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Blocked]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::WaitingForHuman).available_transitions(&TransitionFacts {
++            human_response_ready: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::ReadyForReview).available_transitions(&TransitionFacts {
++            review_rework_required: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Blocked).available_transitions(&TransitionFacts {
++            blocker_resolved: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++}
++
++#[test]
++fn feature_state_rejects_transitions_without_required_facts() {
++    let mut feature = sample_feature(WorkflowState::Implementation);
++
++    let error = feature
++        .transition_to(WorkflowState::ReadyForReview, &TransitionFacts::default())
++        .expect_err("missing readiness facts should reject the transition");
++
++    assert_eq!(
++        error,
++        TransitionError::Rejected {
++            from: WorkflowState::Implementation,
++            to: WorkflowState::ReadyForReview,
++            reason: "feature is not ready for review".to_string(),
++        }
++    );
++    assert_eq!(
++        error.to_string(),
++        "cannot transition from 'implementation' to 'ready-for-review': feature is not ready for review"
++    );
++}
++
++#[test]
++fn feature_state_transitions_when_required_facts_are_present() {
++    let mut feature = sample_feature(WorkflowState::WaitingForHuman);
++
++    feature
++        .transition_to(
++            WorkflowState::Implementation,
++            &TransitionFacts {
++                human_response_ready: true,
++                ..TransitionFacts::default()
++            },
++        )
++        .expect("human response should resume implementation");
++
++    assert_eq!(feature.workflow_state, WorkflowState::Implementation);
++}
+
+codex
+Inspected the feature docs and current branch state. The effective PR/PRD sources for this worktree are [docs/plans/cli-domain-state-machine-feature.md](/tmp/calypso-worktrees/feat-cli-domain-state-machine/docs/plans/cli-domain-state-machine-feature.md) and [cli/calypso-cli-implementation-plan.md](/tmp/calypso-worktrees/feat-cli-domain-state-machine/cli/calypso-cli-implementation-plan.md). The local tracking files [docs/plans/implementation-plan.md](/tmp/calypso-worktrees/feat-cli-domain-state-machine/docs/plans/implementation-plan.md) and [docs/plans/next-prompt.md](/tmp/calypso-worktrees/feat-cli-domain-state-machine/docs/plans/next-prompt.md) are stale and still point at a different PR slice, so they remain an open tracking issue.
+
+I advanced one incomplete Phase 1 item with TDD edits:
+- Added transition coverage in [cli/tests/state.rs](/tmp/calypso-worktrees/feat-cli-domain-state-machine/cli/tests/state.rs) for the prototype workflow matrix, rejection reasons, and successful state mutation.
+- Implemented a pure-domain transition API in [cli/src/state.rs](/tmp/calypso-worktrees/feat-cli-domain-state-machine/cli/src/state.rs): `TransitionFacts`, `TransitionError`, `WorkflowState::available_transitions`, `WorkflowState::validate_transition`, `FeatureState::available_transitions`, and `FeatureState::transition_to`.
+
+Validation is still blocked. `cargo fmt --check` passes, but Rust test execution cannot run in this sandbox:
+- `cargo test` fails because the environment cannot reach `crates.io`
+- `RUSTC_WRAPPER= cargo test --locked --offline` fails because the locked crate set is not fully cached locally (`zmij 1.0.21` is unavailable offline)
+
+Because validation is not green, I did not update the PR checklist/local plan or create a commit. The PR is not complete yet. Remaining work still includes the stale tracking docs plus the unimplemented checklist items from [cli/calypso-cli-implementation-plan.md](/tmp/calypso-worktrees/feat-cli-domain-state-machine/cli/calypso-cli-implementation-plan.md), especially gate-group rollups, canonical feature-unit/scheduling metadata, evidence-driven transition derivation, and the later hook/checklist integration items.
+file update:
+diff --git a/cli/src/state.rs b/cli/src/state.rs
+index 12ce2ce5424323406cd51305cd343098821be74b..18195554e9042de304aa6185bdace2af81dd527a
+--- a/cli/src/state.rs
++++ b/cli/src/state.rs
+@@ -125,6 +125,21 @@
+             .map(|gate| gate.id.clone())
+             .collect()
+     }
++
++    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<WorkflowState> {
++        self.workflow_state.available_transitions(facts)
++    }
++
++    pub fn transition_to(
++        &mut self,
++        target: WorkflowState,
++        facts: &TransitionFacts,
++    ) -> Result<(), TransitionError> {
++        self.workflow_state
++            .validate_transition(target.clone(), facts)?;
++        self.workflow_state = target;
++        Ok(())
++    }
+ }
+ 
+ #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+@@ -156,8 +171,137 @@
+             )),
+         }
+     }
++
++    pub fn as_str(&self) -> &'static str {
++        match self {
++            Self::New => "new",
++            Self::Implementation => "implementation",
++            Self::WaitingForHuman => "waiting-for-human",
++            Self::ReadyForReview => "ready-for-review",
++            Self::Blocked => "blocked",
++        }
++    }
++
++    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<Self> {
++        let mut transitions = Vec::new();
++
++        match self {
++            Self::New => {
++                if facts.feature_binding_complete {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::Implementation => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.waiting_for_human_input {
++                    transitions.push(Self::WaitingForHuman);
++                }
++                if facts.ready_for_review {
++                    transitions.push(Self::ReadyForReview);
++                }
++            }
++            Self::WaitingForHuman => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.human_response_ready {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::ReadyForReview => {
++                if facts.blocking_issue_present {
++                    transitions.push(Self::Blocked);
++                }
++                if facts.review_rework_required {
++                    transitions.push(Self::Implementation);
++                }
++            }
++            Self::Blocked => {
++                if facts.blocker_resolved {
++                    transitions.push(Self::Implementation);
++                }
++            }
++        }
++
++        transitions
++    }
++
++    pub fn validate_transition(
++        &self,
++        target: Self,
++        facts: &TransitionFacts,
++    ) -> Result<(), TransitionError> {
++        if self.available_transitions(facts).contains(&target) {
++            return Ok(());
++        }
++
++        Err(TransitionError::Rejected {
++            from: self.clone(),
++            to: target.clone(),
++            reason: self.missing_transition_reason(&target).to_string(),
++        })
++    }
++
++    fn missing_transition_reason(&self, target: &Self) -> &'static str {
++        match (self, target) {
++            (Self::New, Self::Implementation) => "feature binding is incomplete",
++            (Self::Implementation, Self::WaitingForHuman) => {
++                "no agent session is waiting for human input"
++            }
++            (Self::Implementation, Self::ReadyForReview) => "feature is not ready for review",
++            (Self::Implementation, Self::Blocked) => "no blocking issue is present",
++            (Self::WaitingForHuman, Self::Implementation) => "no human response is available",
++            (Self::WaitingForHuman, Self::Blocked) => "no blocking issue is present",
++            (Self::ReadyForReview, Self::Implementation) => {
++                "no follow-up implementation request is present"
++            }
++            (Self::ReadyForReview, Self::Blocked) => "no blocking issue is present",
++            (Self::Blocked, Self::Implementation) => "blocking issue is still present",
++            _ => "transition is not supported by the prototype workflow",
++        }
++    }
++}
++
++impl fmt::Display for WorkflowState {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        f.write_str(self.as_str())
++    }
++}
++
++#[derive(Debug, Clone, PartialEq, Eq, Default)]
++pub struct TransitionFacts {
++    pub feature_binding_complete: bool,
++    pub blocking_issue_present: bool,
++    pub waiting_for_human_input: bool,
++    pub human_response_ready: bool,
++    pub ready_for_review: bool,
++    pub review_rework_required: bool,
++    pub blocker_resolved: bool,
++}
++
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub enum TransitionError {
++    Rejected {
++        from: WorkflowState,
++        to: WorkflowState,
++        reason: String,
++    },
++}
++
++impl fmt::Display for TransitionError {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        match self {
++            Self::Rejected { from, to, reason } => {
++                write!(f, "cannot transition from '{from}' to '{to}': {reason}")
++            }
++        }
++    }
+ }
+ 
++impl std::error::Error for TransitionError {}
++
+ #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+ pub struct GateGroup {
+     pub id: String,
+diff --git a/cli/tests/state.rs b/cli/tests/state.rs
+index 1e9a352789f914c85b82e50317ea49600b127b71..1fa425d801372eb819fce9acd44a618937fe3ea9
+--- a/cli/tests/state.rs
++++ b/cli/tests/state.rs
+@@ -5,7 +5,8 @@
+ use calypso_cli::state::{
+     AgentSession, AgentSessionStatus, AgentTerminalOutcome, BuiltinEvidence, FeatureState, Gate,
+     GateEvaluationError, GateGroup, GateInitializationError, GateStatus, PullRequestRef,
+-    RepositoryState, SessionOutput, SessionOutputStream, StateError, WorkflowState,
++    RepositoryState, SessionOutput, SessionOutputStream, StateError, TransitionError,
++    TransitionFacts, WorkflowState,
+ };
+ use calypso_cli::template::{TemplateSet, load_embedded_template_set};
+ 
+@@ -68,6 +69,12 @@
+     std::env::temp_dir().join(format!("calypso-state-{unique}.json"))
+ }
+ 
++fn sample_feature(workflow_state: WorkflowState) -> FeatureState {
++    let mut feature = sample_state().current_feature;
++    feature.workflow_state = workflow_state;
++    feature
++}
++
+ #[test]
+ fn repository_state_round_trips_through_json() {
+     let state = sample_state();
+@@ -504,3 +511,101 @@
+         ]
+     );
+ }
++
++#[test]
++fn feature_state_reports_available_transitions_for_each_workflow_state() {
++    assert_eq!(
++        sample_feature(WorkflowState::New).available_transitions(&TransitionFacts {
++            feature_binding_complete: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            waiting_for_human_input: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::WaitingForHuman]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            ready_for_review: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::ReadyForReview]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Implementation).available_transitions(&TransitionFacts {
++            blocking_issue_present: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Blocked]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::WaitingForHuman).available_transitions(&TransitionFacts {
++            human_response_ready: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::ReadyForReview).available_transitions(&TransitionFacts {
++            review_rework_required: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++
++    assert_eq!(
++        sample_feature(WorkflowState::Blocked).available_transitions(&TransitionFacts {
++            blocker_resolved: true,
++            ..TransitionFacts::default()
++        }),
++        vec![WorkflowState::Implementation]
++    );
++}
++
++#[test]
++fn feature_state_rejects_transitions_without_required_facts() {
++    let mut feature = sample_feature(WorkflowState::Implementation);
++
++    let error = feature
++        .transition_to(WorkflowState::ReadyForReview, &TransitionFacts::default())
++        .expect_err("missing readiness facts should reject the transition");
++
++    assert_eq!(
++        error,
++        TransitionError::Rejected {
++            from: WorkflowState::Implementation,
++            to: WorkflowState::ReadyForReview,
++            reason: "feature is not ready for review".to_string(),
++        }
++    );
++    assert_eq!(
++        error.to_string(),
++        "cannot transition from 'implementation' to 'ready-for-review': feature is not ready for review"
++    );
++}
++
++#[test]
++fn feature_state_transitions_when_required_facts_are_present() {
++    let mut feature = sample_feature(WorkflowState::WaitingForHuman);
++
++    feature
++        .transition_to(
++            WorkflowState::Implementation,
++            &TransitionFacts {
++                human_response_ready: true,
++                ..TransitionFacts::default()
++            },
++        )
++        .expect("human response should resume implementation");
++
++    assert_eq!(feature.workflow_state, WorkflowState::Implementation);
++}
+
+tokens used
+124,561

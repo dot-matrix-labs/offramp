@@ -1,0 +1,11 @@
+{
+    "name": "ui",
+    "private": true,
+    "main": "index.ts",
+    "scripts": {
+        "build": "tsc"
+    },
+    "dependencies": {
+        "react": "^18.2.0"
+    }
+}

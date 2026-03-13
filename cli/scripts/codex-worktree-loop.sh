@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-WORKTREES_ROOT="${CALYPSO_WORKTREES_ROOT:-/Users/lucas/code/ts/calypso-worktrees}"
-WORKTREE_GLOB="${CALYPSO_WORKTREE_GLOB:-cli-*}"
+WORKTREES_ROOT="${CALYPSO_WORKTREES_ROOT:-}"
+WORKTREE_GLOB="${CALYPSO_WORKTREE_GLOB:-}"
 SLEEP_SECONDS="${CALYPSO_LOOP_SLEEP_SECONDS:-30}"
 CODEX_BIN="${CALYPSO_CODEX_BIN:-codex}"
 CODEX_PROMPT="${CALYPSO_CODEX_PROMPT:-You are the sole agent assigned to this Calypso feature worktree. This worktree maps to exactly one pull request. Your job is to keep advancing the PR until it is complete, then exit. Do not merge the PR. Do not stop early unless the PR is already closed or merged.
@@ -67,6 +67,9 @@ Final rule:
 MAX_PARALLEL="${CALYPSO_MAX_PARALLEL:-0}"
 LOG_ROOT="${CALYPSO_CODEX_LOG_ROOT:-${WORKTREES_ROOT}/.codex-loop-logs}"
 RUN_ONCE=0
+WORKTREES_ROOT_SET=0
+WORKTREE_GLOB_SET=0
+declare -a DISCOVERED_WORKTREES=()
 
 usage() {
   cat <<EOF
@@ -97,6 +100,54 @@ EOF
 
 log() {
   printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
+}
+
+discover_worktrees() {
+  local git_output
+  local line
+  local path
+  local branch
+
+  DISCOVERED_WORKTREES=()
+
+  if [[ -n "$WORKTREES_ROOT" ]]; then
+    if [[ ! -d "$WORKTREES_ROOT" ]]; then
+      printf 'worktrees root does not exist: %s\n' "$WORKTREES_ROOT" >&2
+      exit 1
+    fi
+
+    shopt -s nullglob
+    for path in "$WORKTREES_ROOT"/${WORKTREE_GLOB:-*}; do
+      [[ -d "$path" ]] || continue
+      DISCOVERED_WORKTREES+=("$path")
+    done
+    shopt -u nullglob
+    return 0
+  fi
+
+  git_output="$(git worktree list --porcelain 2>/dev/null || true)"
+  if [[ -z "$git_output" ]]; then
+    printf 'unable to discover git worktrees from the current repository\n' >&2
+    exit 1
+  fi
+
+  while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    if [[ "$line" != worktree\ * ]]; then
+      continue
+    fi
+
+    path="${line#worktree }"
+    [[ "$path" != "$(pwd)" ]] || continue
+    [[ -d "$path" ]] || continue
+
+    if [[ -n "$WORKTREE_GLOB" ]]; then
+      branch="$(basename "$path")"
+      [[ "$branch" == $WORKTREE_GLOB ]] || continue
+    fi
+
+    DISCOVERED_WORKTREES+=("$path")
+  done <<<"$git_output"
 }
 
 pr_state_for_worktree() {
@@ -204,9 +255,8 @@ run_pass() {
   PASS_WORKTREES=()
   PASS_FAILURES=0
 
-  shopt -s nullglob
-  for worktree in "$WORKTREES_ROOT"/$WORKTREE_GLOB; do
-    [[ -d "$worktree" ]] || continue
+  discover_worktrees
+  for worktree in "${DISCOVERED_WORKTREES[@]}"; do
 
     state="$(pr_state_for_worktree "$worktree")"
     case "$state" in
@@ -226,7 +276,6 @@ run_pass() {
         ;;
     esac
   done
-  shopt -u nullglob
 
   wait_for_batch_completion
 
@@ -241,10 +290,12 @@ while [[ $# -gt 0 ]]; do
       ;;
     --root)
       WORKTREES_ROOT="$2"
+      WORKTREES_ROOT_SET=1
       shift
       ;;
     --glob)
       WORKTREE_GLOB="$2"
+      WORKTREE_GLOB_SET=1
       shift
       ;;
     --sleep)
@@ -276,9 +327,12 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-if [[ ! -d "$WORKTREES_ROOT" ]]; then
-  printf 'worktrees root does not exist: %s\n' "$WORKTREES_ROOT" >&2
-  exit 1
+if [[ "$WORKTREES_ROOT_SET" -eq 1 && "$WORKTREE_GLOB_SET" -eq 0 ]]; then
+  WORKTREE_GLOB="*"
+fi
+
+if [[ -z "$WORKTREES_ROOT" && -z "$WORKTREE_GLOB" ]]; then
+  LOG_ROOT="${CALYPSO_CODEX_LOG_ROOT:-$(pwd)/.codex-loop-logs}"
 fi
 
 mkdir -p "$LOG_ROOT"
@@ -289,7 +343,11 @@ while true; do
   run_pass
 
   if [[ "$PASS_ACTIVE_COUNT" -eq 0 ]]; then
-    log "no active worktrees remain under $WORKTREES_ROOT"
+    if [[ -n "$WORKTREES_ROOT" ]]; then
+      log "no active worktrees remain under $WORKTREES_ROOT"
+    else
+      log "no active worktrees remain in git worktree discovery"
+    fi
     exit 0
   fi
 
