@@ -1,0 +1,13 @@
+tasks:
+  - name: pr-editor
+    kind: agent
+    role: pr-editor
+  - name: blueprint-review
+    kind: agent
+    role: blueprint
+  - name: rust-quality
+    kind: builtin
+    builtin: builtin.ci.rust_quality_green
+  - name: main-compatibility
+    kind: builtin
+    builtin: builtin.git.is_main_compatible

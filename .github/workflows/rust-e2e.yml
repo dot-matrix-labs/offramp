@@ -1,0 +1,33 @@
+name: Rust end-to-end tests — cli
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "cli/**"
+      - ".github/workflows/rust-e2e.yml"
+  pull_request:
+    paths:
+      - "cli/**"
+      - ".github/workflows/rust-e2e.yml"
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            cli -> target
+
+      - name: Run end-to-end tests
+        working-directory: cli
+        run: cargo test-e2e

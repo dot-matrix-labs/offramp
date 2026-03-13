@@ -1,0 +1,33 @@
+name: Rust integration tests — cli
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "cli/**"
+      - ".github/workflows/rust-integration.yml"
+  pull_request:
+    paths:
+      - "cli/**"
+      - ".github/workflows/rust-integration.yml"
+  workflow_dispatch:
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            cli -> target
+
+      - name: Run integration tests
+        working-directory: cli
+        run: cargo test-integration
