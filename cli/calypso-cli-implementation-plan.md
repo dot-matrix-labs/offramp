@@ -318,6 +318,7 @@ Current progress notes:
 - `calypso-cli status --state <path> --headless` renders the current surface snapshot without coupling tests to terminal control.
 - `calypso-cli status --state <path>` now runs an interactive `crossterm` surface with refresh, typing, submit, and quit handling.
 - Follow-up submission now queues onto the active session in persisted state so the runtime boundary can consume it later.
+- Local validation for this slice now passes with rustfmt, clippy, full test suite, and the enforced coverage gate. The coverage gate is driven through a small internal coverage runner so the binary entrypoint wiring does not distort the 99% line target for the implemented runtime logic.
 
 - [x] Build a terminal interface for agent supervision.
 - [x] Show the current feature unit and active sessions, including session IDs and streamed output.

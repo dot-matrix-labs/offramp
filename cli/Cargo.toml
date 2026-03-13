@@ -17,3 +17,7 @@ path = "src/lib.rs"
 [[bin]]
 name = "calypso-cli"
 path = "src/main.rs"
+
+[[bin]]
+name = "coverage-driver"
+path = "src/bin/coverage_driver.rs"

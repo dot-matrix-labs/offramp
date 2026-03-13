@@ -86,6 +86,10 @@ fn input_buffer_supports_editing_and_submit() {
     assert_eq!(input.submit(), Some("h!".to_string()));
     assert_eq!(input.as_str(), "");
     assert_eq!(input.submit(), None);
+
+    input.push(' ');
+    input.push('\t');
+    assert_eq!(input.submit(), None);
 }
 
 #[test]
@@ -109,15 +113,72 @@ fn operator_surface_handles_follow_up_submission_and_quit() {
         surface.handle_key_event(KeyEvent::from(KeyCode::Esc)),
         SurfaceEvent::Quit
     );
+
+    let feature = sample_feature();
+    let mut surface = OperatorSurface::from_feature_state(&feature);
+    assert_eq!(
+        surface.handle_key_event(KeyEvent::from(KeyCode::Backspace)),
+        SurfaceEvent::Continue
+    );
+    assert_eq!(
+        surface.handle_key_event(KeyEvent::from(KeyCode::Enter)),
+        SurfaceEvent::Continue
+    );
+    assert_eq!(
+        surface.handle_key_event(KeyEvent::from(KeyCode::Tab)),
+        SurfaceEvent::Continue
+    );
+    assert!(
+        surface
+            .render()
+            .contains("Last event: ignored empty follow-up")
+    );
 }
 
 #[test]
 fn queue_follow_up_routes_message_to_active_session() {
     let mut feature = sample_feature();
 
-    assert!(queue_follow_up(&mut feature, "Please include the CI logs".to_string()));
+    assert!(queue_follow_up(
+        &mut feature,
+        "Please include the CI logs".to_string()
+    ));
     assert_eq!(
         feature.active_sessions[0].pending_follow_ups,
         vec!["Please include the CI logs".to_string()]
     );
+
+    feature.active_sessions[0].status = AgentSessionStatus::Completed;
+    assert!(!queue_follow_up(
+        &mut feature,
+        "This should not be queued".to_string()
+    ));
+}
+
+#[test]
+fn operator_surface_renders_empty_and_alternate_status_states() {
+    let mut feature = sample_feature();
+    feature.workflow_state = WorkflowState::New;
+    feature.gate_groups[0].gates[0].status = GateStatus::Manual;
+    feature.gate_groups[1].gates[0].status = GateStatus::Pending;
+    feature.active_sessions[0].status = AgentSessionStatus::Completed;
+    feature.active_sessions[0].recent_output.clear();
+
+    let rendered = OperatorSurface::from_feature_state(&feature).render();
+
+    assert!(rendered.contains("Workflow: new"));
+    assert!(rendered.contains("[manual] PR canonicalized"));
+    assert!(rendered.contains("[pending] Rust quality green"));
+    assert!(rendered.contains("engineer (session_01) [completed]"));
+    assert!(rendered.contains("No streamed output yet."));
+
+    feature.workflow_state = WorkflowState::ReadyForReview;
+    feature.active_sessions.clear();
+    let rendered = OperatorSurface::from_feature_state(&feature).render();
+    assert!(rendered.contains("Workflow: ready-for-review"));
+    assert!(rendered.contains("No active sessions"));
+
+    feature.workflow_state = WorkflowState::Blocked;
+    let rendered = OperatorSurface::from_feature_state(&feature).render();
+    assert!(rendered.contains("Workflow: blocked"));
 }

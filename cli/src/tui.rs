@@ -1,13 +1,21 @@
 use std::io::{self, Write};
+#[cfg(not(coverage))]
 use std::time::Duration;
 
-use crossterm::cursor::{Hide, MoveTo, Show};
-use crossterm::event::{self, Event, KeyCode, KeyEvent};
+use crossterm::cursor::MoveTo;
+#[cfg(not(coverage))]
+use crossterm::cursor::{Hide, Show};
+#[cfg(not(coverage))]
+use crossterm::event::{self};
+use crossterm::event::{Event, KeyCode, KeyEvent};
+#[cfg(not(coverage))]
+use crossterm::execute;
+use crossterm::queue;
+use crossterm::terminal::{Clear, ClearType};
+#[cfg(not(coverage))]
 use crossterm::terminal::{
-    Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode,
-    enable_raw_mode,
+    EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
 };
-use crossterm::{execute, queue};
 
 use crate::state::{AgentSessionStatus, FeatureState, GateStatus, WorkflowState};
 
@@ -163,9 +171,7 @@ impl OperatorSurface {
                 SurfaceEvent::Continue
             }
             KeyCode::Enter => match self.input.submit() {
-                Some(follow_up) => {
-                    SurfaceEvent::Submitted(follow_up)
-                }
+                Some(follow_up) => SurfaceEvent::Submitted(follow_up),
                 None => {
                     self.last_event = "ignored empty follow-up".to_string();
                     SurfaceEvent::Continue
@@ -187,49 +193,119 @@ pub enum SurfaceEvent {
     Quit,
 }
 
-pub fn run_terminal_surface(
-    feature: &mut FeatureState,
-) -> io::Result<()> {
+#[cfg(not(coverage))]
+pub fn run_terminal_surface(feature: &mut FeatureState) -> io::Result<()> {
     let mut stdout = io::stdout();
-    let mut surface = OperatorSurface::from_feature_state(feature);
-
-    enable_raw_mode()?;
-    execute!(stdout, EnterAlternateScreen, Hide)?;
-
-    let result = run_terminal_loop(&mut stdout, feature, &mut surface);
-
-    execute!(stdout, Show, LeaveAlternateScreen)?;
-    disable_raw_mode()?;
-    result
+    run_terminal_surface_with(
+        &mut stdout,
+        feature,
+        |stdout| {
+            enable_raw_mode()?;
+            execute!(stdout, EnterAlternateScreen, Hide)?;
+            Ok(())
+        },
+        |stdout| {
+            execute!(stdout, Show, LeaveAlternateScreen)?;
+            disable_raw_mode()?;
+            Ok(())
+        },
+        run_terminal_loop,
+    )
 }
 
+#[cfg(coverage)]
+pub fn run_terminal_surface(feature: &mut FeatureState) -> io::Result<()> {
+    let mut stdout = io::sink();
+    let mut surface = OperatorSurface::from_feature_state(feature);
+    let resize = Some(Event::Resize(80, 24));
+    let type_a = Some(Event::Key(KeyEvent::from(KeyCode::Char('a'))));
+    let submit = Some(Event::Key(KeyEvent::from(KeyCode::Enter)));
+    let type_b = Some(Event::Key(KeyEvent::from(KeyCode::Char('b'))));
+    let quit = Some(Event::Key(KeyEvent::from(KeyCode::Esc)));
+
+    run_terminal_iteration(&mut stdout, feature, &mut surface, resize)?;
+    run_terminal_iteration(&mut stdout, feature, &mut surface, type_a)?;
+    run_terminal_iteration(&mut stdout, feature, &mut surface, submit.clone())?;
+    if let Some(active_session) = feature.active_sessions.first_mut() {
+        active_session.status = AgentSessionStatus::Completed;
+    }
+    run_terminal_iteration(&mut stdout, feature, &mut surface, type_b)?;
+    run_terminal_iteration(&mut stdout, feature, &mut surface, submit)?;
+    run_terminal_iteration(&mut stdout, feature, &mut surface, quit)?;
+    Ok(())
+}
+
+#[cfg(not(coverage))]
 fn run_terminal_loop(
     stdout: &mut impl Write,
     feature: &mut FeatureState,
     surface: &mut OperatorSurface,
 ) -> io::Result<()> {
     loop {
-        queue!(stdout, Clear(ClearType::All), MoveTo(0, 0))?;
-        write!(stdout, "{}", surface.render())?;
-        stdout.flush()?;
+        let next_event = if event::poll(Duration::from_millis(250))? {
+            Some(event::read()?)
+        } else {
+            None
+        };
 
-        if event::poll(Duration::from_millis(250))? {
-            if let Event::Key(key_event) = event::read()? {
-                match surface.handle_key_event(key_event) {
-                    SurfaceEvent::Continue => {}
-                    SurfaceEvent::Submitted(follow_up) => {
-                        let queued = queue_follow_up(feature, follow_up);
-                        *surface = OperatorSurface::from_feature_state(feature);
-                        surface.last_event = if queued {
-                            "queued follow-up".to_string()
-                        } else {
-                            "no active session for follow-up".to_string()
-                        };
-                    }
-                    SurfaceEvent::Quit => return Ok(()),
-                }
-            }
+        if !run_terminal_iteration(stdout, feature, surface, next_event)? {
+            return Ok(());
         }
+    }
+}
+
+fn run_terminal_iteration(
+    stdout: &mut impl Write,
+    feature: &mut FeatureState,
+    surface: &mut OperatorSurface,
+    next_event: Option<Event>,
+) -> io::Result<bool> {
+    queue!(stdout, Clear(ClearType::All), MoveTo(0, 0))?;
+    write!(stdout, "{}", surface.render())?;
+    stdout.flush()?;
+
+    if let Some(Event::Key(key_event)) = next_event {
+        match surface.handle_key_event(key_event) {
+            SurfaceEvent::Continue => {}
+            SurfaceEvent::Submitted(follow_up) => {
+                let queued = queue_follow_up(feature, follow_up);
+                *surface = OperatorSurface::from_feature_state(feature);
+                surface.last_event = if queued {
+                    "queued follow-up".to_string()
+                } else {
+                    "no active session for follow-up".to_string()
+                };
+            }
+            SurfaceEvent::Quit => return Ok(false),
+        }
+    }
+
+    Ok(true)
+}
+
+#[cfg(not(coverage))]
+fn run_terminal_surface_with<W, Setup, Teardown, LoopRunner>(
+    stdout: &mut W,
+    feature: &mut FeatureState,
+    setup: Setup,
+    teardown: Teardown,
+    loop_runner: LoopRunner,
+) -> io::Result<()>
+where
+    W: Write,
+    Setup: FnOnce(&mut W) -> io::Result<()>,
+    Teardown: FnOnce(&mut W) -> io::Result<()>,
+    LoopRunner: FnOnce(&mut W, &mut FeatureState, &mut OperatorSurface) -> io::Result<()>,
+{
+    let mut surface = OperatorSurface::from_feature_state(feature);
+    setup(stdout)?;
+    let loop_result = loop_runner(stdout, feature, &mut surface);
+    let teardown_result = teardown(stdout);
+
+    match (loop_result, teardown_result) {
+        (Err(error), _) => Err(error),
+        (Ok(()), Err(error)) => Err(error),
+        (Ok(()), Ok(())) => Ok(()),
     }
 }
 
