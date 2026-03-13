@@ -3,9 +3,10 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use calypso_cli::state::{
-    AgentSession, AgentSessionStatus, FeatureState, Gate, GateGroup, GateStatus, PullRequestRef,
-    RepositoryState, StateError, WorkflowState,
+    AgentSession, AgentSessionStatus, FeatureState, Gate, GateGroup, GateInitializationError,
+    GateStatus, PullRequestRef, RepositoryState, StateError, WorkflowState,
 };
+use calypso_cli::template::{TemplateSet, load_embedded_template_set};
 
 fn sample_state() -> RepositoryState {
     RepositoryState {
@@ -27,6 +28,7 @@ fn sample_state() -> RepositoryState {
                     gates: vec![Gate {
                         id: "pr-canonicalized".to_string(),
                         label: "PR canonicalized".to_string(),
+                        task: "pr-editor".to_string(),
                         status: GateStatus::Passing,
                     }],
                 },
@@ -36,6 +38,7 @@ fn sample_state() -> RepositoryState {
                     gates: vec![Gate {
                         id: "rust-quality-green".to_string(),
                         label: "Rust quality green".to_string(),
+                        task: "rust-quality".to_string(),
                         status: GateStatus::Pending,
                     }],
                 },
@@ -145,4 +148,80 @@ fn state_enums_serialize_with_expected_kebab_case_variants() {
             .expect("session status should serialize"),
         "\"completed\""
     );
+}
+
+#[test]
+fn feature_state_initializes_gate_groups_from_template() {
+    let template = load_embedded_template_set().expect("embedded template should load");
+
+    let feature = FeatureState::from_template(
+        "feat-auth-refresh",
+        "feat/123-token-refresh",
+        "/worktrees/feat-123-token-refresh",
+        PullRequestRef {
+            number: 231,
+            url: "https://github.com/org/repo/pull/231".to_string(),
+        },
+        &template,
+    )
+    .expect("feature should initialize from template");
+
+    assert_eq!(feature.workflow_state, WorkflowState::New);
+    assert_eq!(feature.active_sessions.len(), 0);
+    assert_eq!(
+        feature.gate_groups.len(),
+        template.state_machine.gate_groups.len()
+    );
+    assert_eq!(feature.gate_groups[0].gates[0].task, "pr-editor");
+    assert!(
+        feature
+            .gate_groups
+            .iter()
+            .flat_map(|group| group.gates.iter())
+            .all(|gate| gate.status == GateStatus::Pending)
+    );
+}
+
+#[test]
+fn feature_state_initialization_rejects_unknown_initial_workflow_state() {
+    let invalid_template = TemplateSet::from_yaml_strings(
+        r#"
+initial_state: made-up
+states:
+  - made-up
+gate_groups:
+  - id: validation
+    label: Validation
+    gates:
+      - id: rust-quality-green
+        label: Rust quality green
+        task: rust-quality
+"#,
+        r#"
+tasks:
+  - name: rust-quality
+    kind: builtin
+    builtin: builtin.ci.rust_quality_green
+"#,
+        "prompts: {}\n",
+    )
+    .expect("template shape should still validate");
+
+    let error = FeatureState::from_template(
+        "feat-auth-refresh",
+        "feat/123-token-refresh",
+        "/worktrees/feat-123-token-refresh",
+        PullRequestRef {
+            number: 231,
+            url: "https://github.com/org/repo/pull/231".to_string(),
+        },
+        &invalid_template,
+    )
+    .expect_err("unknown workflow state should fail initialization");
+
+    assert!(matches!(
+        error,
+        GateInitializationError::UnknownWorkflowState(_)
+    ));
+    assert!(error.to_string().contains("made-up"));
 }

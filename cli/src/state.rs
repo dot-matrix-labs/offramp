@@ -4,6 +4,8 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
+use crate::template::TemplateSet;
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RepositoryState {
     pub version: u32,
@@ -42,6 +44,46 @@ pub struct FeatureState {
     pub active_sessions: Vec<AgentSession>,
 }
 
+impl FeatureState {
+    pub fn from_template(
+        feature_id: &str,
+        branch: &str,
+        worktree_path: &str,
+        pull_request: PullRequestRef,
+        template: &TemplateSet,
+    ) -> Result<Self, GateInitializationError> {
+        Ok(Self {
+            feature_id: feature_id.to_string(),
+            branch: branch.to_string(),
+            worktree_path: worktree_path.to_string(),
+            pull_request,
+            workflow_state: WorkflowState::from_template_state_name(
+                template.state_machine.initial_state.as_str(),
+            )?,
+            gate_groups: template
+                .state_machine
+                .gate_groups
+                .iter()
+                .map(|group| GateGroup {
+                    id: group.id.clone(),
+                    label: group.label.clone(),
+                    gates: group
+                        .gates
+                        .iter()
+                        .map(|gate| Gate {
+                            id: gate.id.clone(),
+                            label: gate.label.clone(),
+                            task: gate.task.clone(),
+                            status: GateStatus::Pending,
+                        })
+                        .collect(),
+                })
+                .collect(),
+            active_sessions: Vec::new(),
+        })
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PullRequestRef {
     pub number: u64,
@@ -58,6 +100,21 @@ pub enum WorkflowState {
     Blocked,
 }
 
+impl WorkflowState {
+    fn from_template_state_name(name: &str) -> Result<Self, GateInitializationError> {
+        match name {
+            "new" => Ok(Self::New),
+            "implementation" => Ok(Self::Implementation),
+            "waiting-for-human" => Ok(Self::WaitingForHuman),
+            "ready-for-review" => Ok(Self::ReadyForReview),
+            "blocked" => Ok(Self::Blocked),
+            _ => Err(GateInitializationError::UnknownWorkflowState(
+                name.to_string(),
+            )),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GateGroup {
     pub id: String,
@@ -69,6 +126,7 @@ pub struct GateGroup {
 pub struct Gate {
     pub id: String,
     pub label: String,
+    pub task: String,
     pub status: GateStatus,
 }
 
@@ -112,3 +170,23 @@ impl fmt::Display for StateError {
 }
 
 impl std::error::Error for StateError {}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum GateInitializationError {
+    UnknownWorkflowState(String),
+}
+
+impl fmt::Display for GateInitializationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            GateInitializationError::UnknownWorkflowState(state) => {
+                write!(
+                    f,
+                    "unknown workflow state '{state}' in methodology template"
+                )
+            }
+        }
+    }
+}
+
+impl std::error::Error for GateInitializationError {}
