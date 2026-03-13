@@ -2,8 +2,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 use calypso_cli::doctor::{
-    DoctorCheckId, DoctorCheckScope, DoctorEnvironment, DoctorStatus, collect_doctor_report,
-    git_remote_output_has_github_remote,
+    collect_doctor_report, git_remote_output_has_github_remote, DoctorCheckId, DoctorCheckScope,
+    DoctorEnvironment, DoctorStatus,
 };
 
 #[derive(Default)]
@@ -93,10 +93,10 @@ fn status_map(report: &calypso_cli::doctor::DoctorReport) -> BTreeMap<DoctorChec
         .collect()
 }
 
-fn check_for<'a>(
-    report: &'a calypso_cli::doctor::DoctorReport,
+fn check_for(
+    report: &calypso_cli::doctor::DoctorReport,
     id: DoctorCheckId,
-) -> &'a calypso_cli::doctor::DoctorCheck {
+) -> &calypso_cli::doctor::DoctorCheck {
     report
         .checks
         .iter()
@@ -316,11 +316,8 @@ fn doctor_report_render_includes_actionable_fix_for_missing_feature_binding() {
     let rendered = calypso_cli::doctor::render_doctor_report(&report);
 
     assert!(rendered.contains("feature-binding-resolved"));
-    assert!(
-        rendered.contains(
-            "Ensure this worktree is on a feature branch with an open GitHub pull request."
-        )
-    );
+    assert!(rendered
+        .contains("Ensure this worktree is on a feature branch with an open GitHub pull request."));
     assert!(rendered.contains("current branch is not mapped to an open pull request"));
 }
 
