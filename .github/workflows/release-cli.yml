@@ -55,7 +55,7 @@ jobs:
 
       - name: Build release binary
         working-directory: cli
-        run: cargo build --release --target ${{ matrix.target }}
+        run: cargo build --release --target ${{ matrix.target }} --no-default-features
 
       - name: Package release artifact
         shell: bash

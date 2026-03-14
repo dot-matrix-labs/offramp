@@ -22,3 +22,7 @@ path = "src/main.rs"
 [[bin]]
 name = "coverage-driver"
 path = "src/bin/coverage_driver.rs"
+required-features = ["coverage-driver"]
+
+[features]
+coverage-driver = []
