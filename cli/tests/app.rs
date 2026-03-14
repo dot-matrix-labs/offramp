@@ -501,3 +501,36 @@ fn resolve_current_pull_request_returns_error_when_gh_succeeds_with_malformed_js
 
     std::fs::remove_dir_all(temp_dir).expect("temp dir should be removed");
 }
+
+#[test]
+fn resolve_current_pull_request_returns_none_when_gh_reports_no_pull_requests_found() {
+    let _lock = EXEC_LOCK.write().unwrap_or_else(|e| e.into_inner());
+    let temp_dir = make_temp_dir("calypso-cli-pr-no-pr");
+    let gh_path = temp_dir.join("fake-gh.sh");
+    {
+        use std::io::Write as _;
+        let mut f = std::fs::File::create(&gh_path).expect("fake gh should be created");
+        f.write_all(b"#!/bin/sh\necho 'no pull requests found for branch' >&2\nexit 1\n")
+            .expect("fake gh should be written");
+        f.sync_all().expect("fake gh should be synced");
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut permissions = std::fs::metadata(&gh_path)
+            .expect("fake gh metadata should exist")
+            .permissions();
+        permissions.set_mode(0o755);
+        std::fs::set_permissions(&gh_path, permissions).expect("fake gh should be executable");
+    }
+
+    let result = resolve_current_pull_request_with_program(
+        &temp_dir,
+        gh_path.to_str().expect("path should be valid utf-8"),
+    )
+    .expect("no pull requests found should return Ok(None)");
+
+    assert!(result.is_none());
+
+    std::fs::remove_dir_all(temp_dir).expect("temp dir should be removed");
+}
