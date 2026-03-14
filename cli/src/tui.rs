@@ -1137,7 +1137,7 @@ impl DoctorSurface {
             } else {
                 "✗"
             };
-            let fix_tag = if check.has_auto_fix {
+            let fix_tag = if check.has_auto_fix() {
                 "  [auto-fix]"
             } else {
                 ""
@@ -1290,7 +1290,13 @@ pub struct DoctorCheckView {
     pub status: DoctorStatus,
     pub detail: Option<String>,
     pub remediation: Option<String>,
-    pub has_auto_fix: bool,
+    pub fix: Option<DoctorFix>,
+}
+
+impl DoctorCheckView {
+    pub fn has_auto_fix(&self) -> bool {
+        self.fix.as_ref().is_some_and(DoctorFix::is_automatic)
+    }
 }
 
 /// A self-contained TUI surface for running and displaying doctor checks.
@@ -1300,24 +1306,27 @@ pub struct DoctorSurface {
     selected: usize,
     last_refresh: std::time::Instant,
     fix_output: Option<String>,
+    cwd: std::path::PathBuf,
 }
 
 impl DoctorSurface {
-    /// Create a new `DoctorSurface` from a slice of check views.
-    pub fn new(checks: Vec<DoctorCheckView>) -> Self {
+    /// Create a new `DoctorSurface` from a slice of check views and the working directory.
+    pub fn new(checks: Vec<DoctorCheckView>, cwd: std::path::PathBuf) -> Self {
         Self {
             checks,
             selected: 0,
             last_refresh: std::time::Instant::now(),
             fix_output: None,
+            cwd,
         }
     }
 
-    /// Reload checks from the given `cwd`.
+    /// Reload checks from the surface's working directory.
     pub fn refresh(&mut self, cwd: &std::path::Path) {
         let repo_root = resolve_repo_root(cwd).unwrap_or_else(|| cwd.to_path_buf());
         let report = collect_doctor_report(&HostDoctorEnvironment, &repo_root);
         self.checks = doctor_check_views_from_report(&report);
+        self.cwd = cwd.to_path_buf();
         self.last_refresh = std::time::Instant::now();
         self.fix_output = None;
         if self.selected >= self.checks.len() {
@@ -1353,7 +1362,7 @@ impl DoctorSurface {
             } else {
                 "✗"
             };
-            let fix_tag = if check.has_auto_fix {
+            let fix_tag = if check.has_auto_fix() {
                 "  [auto-fix]"
             } else {
                 ""
@@ -1439,40 +1448,22 @@ impl DoctorSurface {
     }
 
     fn apply_selected_fix(&mut self) {
-        // We need to read the fix from the raw report — store it in the view model via a flag.
-        // For now, apply_fix is called via DoctorFix values we reconstruct from the view model.
-        // Since DoctorCheckView only stores has_auto_fix, we re-collect to get the actual fix.
-        // This is intentionally simple: for RunCommand fixes, we run them; for Manual, show text.
-        if let Some(check) = self.checks.get(self.selected) {
-            if !check.has_auto_fix {
-                self.fix_output = check
-                    .remediation
-                    .clone()
-                    .or_else(|| Some("No fix available.".to_string()));
-                return;
+        if let Some(check) = self.checks.get(self.selected).cloned() {
+            match &check.fix {
+                None | Some(DoctorFix::Manual { .. }) => {
+                    self.fix_output = check
+                        .remediation
+                        .clone()
+                        .or_else(|| Some("No automated fix available.".to_string()));
+                }
+                Some(fix) => {
+                    let cwd = self.cwd.clone();
+                    self.fix_output = Some(match apply_fix(fix, &cwd) {
+                        Ok(output) => output,
+                        Err(error) => format!("Error: {error}"),
+                    });
+                }
             }
-            // The only RunCommand fix is GhAuthenticated → `gh auth login`.
-            // Reconstruct it by id label to avoid storing the full DoctorFix in the view.
-            let fix = if check.id == "gh-authenticated" {
-                DoctorFix::RunCommand {
-                    command: "gh".to_string(),
-                    args: vec!["auth".to_string(), "login".to_string()],
-                }
-            } else {
-                // Fall back to showing the remediation text.
-                match &check.remediation {
-                    Some(text) => DoctorFix::Manual {
-                        instructions: text.clone(),
-                    },
-                    None => DoctorFix::Manual {
-                        instructions: "No fix available.".to_string(),
-                    },
-                }
-            };
-            self.fix_output = Some(match apply_fix(&fix) {
-                Ok(output) => output,
-                Err(error) => format!("Error: {error}"),
-            });
         }
     }
 
@@ -1502,7 +1493,7 @@ fn doctor_check_views_from_report(report: &crate::doctor::DoctorReport) -> Vec<D
             status: check.status,
             detail: check.detail.clone(),
             remediation: check.remediation.clone(),
-            has_auto_fix: matches!(&check.fix, Some(DoctorFix::RunCommand { .. })),
+            fix: check.fix.clone(),
         })
         .collect()
 }
@@ -1521,7 +1512,8 @@ pub fn run_doctor_surface(cwd: &std::path::Path) -> io::Result<()> {
 
     let repo_root = resolve_repo_root(cwd).unwrap_or_else(|| cwd.to_path_buf());
     let report = collect_doctor_report(&HostDoctorEnvironment, &repo_root);
-    let mut surface = DoctorSurface::new(doctor_check_views_from_report(&report));
+    let mut surface =
+        DoctorSurface::new(doctor_check_views_from_report(&report), cwd.to_path_buf());
 
     let mut stdout = io::stdout();
     enable_raw_mode()?;
@@ -1573,7 +1565,8 @@ pub fn run_doctor_surface(cwd: &std::path::Path) -> io::Result<()> {
 
     let repo_root = resolve_repo_root(cwd).unwrap_or_else(|| cwd.to_path_buf());
     let report = collect_doctor_report(&HostDoctorEnvironment, &repo_root);
-    let mut surface = DoctorSurface::new(doctor_check_views_from_report(&report));
+    let mut surface =
+        DoctorSurface::new(doctor_check_views_from_report(&report), cwd.to_path_buf());
 
     let mut stdout = io::sink();
     let mut layout: Option<PanedLayout> = None;
