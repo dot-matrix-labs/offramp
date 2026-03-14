@@ -375,38 +375,3 @@ fn validate_policy_gate(policy_gate: &PolicyGateTemplate) -> Result<(), Template
 
     Ok(())
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn minimal_template_set(gate_task: &str, agent_task_name: &str) -> TemplateSet {
-        TemplateSet {
-            state_machine: StateMachineTemplate {
-                initial_state: "new".to_string(),
-                states: vec!["new".to_string()],
-                gate_groups: vec![GateGroupTemplate {
-                    id: "policy".to_string(),
-                    label: "Policy".to_string(),
-                    gates: vec![GateTemplate {
-                        id: "my-gate".to_string(),
-                        label: "My gate".to_string(),
-                        task: gate_task.to_string(),
-                    }],
-                }],
-                policy_gates: vec![],
-            },
-            agents: AgentCatalog {
-                tasks: vec![AgentTask {
-                    name: agent_task_name.to_string(),
-                    kind: AgentTaskKind::Builtin,
-                    role: None,
-                    builtin: Some("builtin.policy.implementation_plan_present".to_string()),
-                }],
-            },
-            prompts: PromptCatalog {
-                prompts: BTreeMap::new(),
-            },
-        }
-    }
-}
