@@ -125,6 +125,25 @@ impl FeatureState {
             .map(|gate| gate.id.clone())
             .collect()
     }
+
+    pub fn gate_group_rollups(&self) -> Vec<GateGroupRollup> {
+        self.gate_groups.iter().map(GateGroup::rollup).collect()
+    }
+
+    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<WorkflowState> {
+        self.workflow_state.available_transitions(facts)
+    }
+
+    pub fn transition_to(
+        &mut self,
+        target: WorkflowState,
+        facts: &TransitionFacts,
+    ) -> Result<(), TransitionError> {
+        self.workflow_state
+            .validate_transition(target.clone(), facts)?;
+        self.workflow_state = target;
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -156,13 +175,198 @@ impl WorkflowState {
             )),
         }
     }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::New => "new",
+            Self::Implementation => "implementation",
+            Self::WaitingForHuman => "waiting-for-human",
+            Self::ReadyForReview => "ready-for-review",
+            Self::Blocked => "blocked",
+        }
+    }
+
+    pub fn available_transitions(&self, facts: &TransitionFacts) -> Vec<Self> {
+        let mut transitions = Vec::new();
+
+        match self {
+            Self::New => {
+                if facts.feature_binding_complete {
+                    transitions.push(Self::Implementation);
+                }
+            }
+            Self::Implementation => {
+                if facts.blocking_issue_present {
+                    transitions.push(Self::Blocked);
+                }
+                if facts.waiting_for_human_input {
+                    transitions.push(Self::WaitingForHuman);
+                }
+                if facts.ready_for_review {
+                    transitions.push(Self::ReadyForReview);
+                }
+            }
+            Self::WaitingForHuman => {
+                if facts.blocking_issue_present {
+                    transitions.push(Self::Blocked);
+                }
+                if facts.human_response_ready {
+                    transitions.push(Self::Implementation);
+                }
+            }
+            Self::ReadyForReview => {
+                if facts.blocking_issue_present {
+                    transitions.push(Self::Blocked);
+                }
+                if facts.review_rework_required {
+                    transitions.push(Self::Implementation);
+                }
+            }
+            Self::Blocked => {
+                if facts.blocker_resolved {
+                    transitions.push(Self::Implementation);
+                }
+            }
+        }
+
+        transitions
+    }
+
+    pub fn validate_transition(
+        &self,
+        target: Self,
+        facts: &TransitionFacts,
+    ) -> Result<(), TransitionError> {
+        if self.available_transitions(facts).contains(&target) {
+            return Ok(());
+        }
+
+        Err(TransitionError::Rejected {
+            from: self.clone(),
+            to: target.clone(),
+            reason: self.missing_transition_reason(&target).to_string(),
+        })
+    }
+
+    fn missing_transition_reason(&self, target: &Self) -> &'static str {
+        match (self, target) {
+            (Self::New, Self::Implementation) => "feature binding is incomplete",
+            (Self::Implementation, Self::WaitingForHuman) => {
+                "no agent session is waiting for human input"
+            }
+            (Self::Implementation, Self::ReadyForReview) => "feature is not ready for review",
+            (Self::Implementation, Self::Blocked) => "no blocking issue is present",
+            (Self::WaitingForHuman, Self::Implementation) => "no human response is available",
+            (Self::WaitingForHuman, Self::Blocked) => "no blocking issue is present",
+            (Self::ReadyForReview, Self::Implementation) => {
+                "no follow-up implementation request is present"
+            }
+            (Self::ReadyForReview, Self::Blocked) => "no blocking issue is present",
+            (Self::Blocked, Self::Implementation) => "blocking issue is still present",
+            _ => "transition is not supported by the prototype workflow",
+        }
+    }
 }
+
+impl fmt::Display for WorkflowState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct TransitionFacts {
+    pub feature_binding_complete: bool,
+    pub blocking_issue_present: bool,
+    pub waiting_for_human_input: bool,
+    pub human_response_ready: bool,
+    pub ready_for_review: bool,
+    pub review_rework_required: bool,
+    pub blocker_resolved: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TransitionError {
+    Rejected {
+        from: WorkflowState,
+        to: WorkflowState,
+        reason: String,
+    },
+}
+
+impl fmt::Display for TransitionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Rejected { from, to, reason } => {
+                write!(f, "cannot transition from '{from}' to '{to}': {reason}")
+            }
+        }
+    }
+}
+
+impl std::error::Error for TransitionError {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GateGroup {
     pub id: String,
     pub label: String,
     pub gates: Vec<Gate>,
+}
+
+impl GateGroup {
+    pub fn rollup(&self) -> GateGroupRollup {
+        GateGroupRollup {
+            id: self.id.clone(),
+            label: self.label.clone(),
+            status: self.rollup_status(),
+            blocking_gate_ids: self
+                .gates
+                .iter()
+                .filter(|gate| gate.status != GateStatus::Passing)
+                .map(|gate| gate.id.clone())
+                .collect(),
+        }
+    }
+
+    pub fn rollup_status(&self) -> GateGroupStatus {
+        if self
+            .gates
+            .iter()
+            .any(|gate| gate.status == GateStatus::Failing)
+        {
+            GateGroupStatus::Blocked
+        } else if self
+            .gates
+            .iter()
+            .any(|gate| gate.status == GateStatus::Pending)
+        {
+            GateGroupStatus::Pending
+        } else if self
+            .gates
+            .iter()
+            .any(|gate| gate.status == GateStatus::Manual)
+        {
+            GateGroupStatus::Manual
+        } else {
+            GateGroupStatus::Passing
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GateGroupRollup {
+    pub id: String,
+    pub label: String,
+    pub status: GateGroupStatus,
+    pub blocking_gate_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum GateGroupStatus {
+    Passing,
+    Pending,
+    Manual,
+    Blocked,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
