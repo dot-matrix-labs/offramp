@@ -1,5 +1,5 @@
-/// Embedded content for the six required GitHub Actions workflow files.
-/// These are the canonical Calypso CI workflow templates.
+//! Embedded content for the six required GitHub Actions workflow files.
+//! These are the canonical Calypso CI workflow templates.
 
 pub const RUST_QUALITY: &str = r#"name: Rust quality — cli
 
