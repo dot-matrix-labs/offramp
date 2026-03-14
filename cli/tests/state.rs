@@ -600,10 +600,7 @@ tasks:
     .expect("feature should initialize from template");
 
     feature
-        .evaluate_gates(
-            &template,
-            &BuiltinEvidence::new(),
-        )
+        .evaluate_gates(&template, &BuiltinEvidence::new())
         .expect("gate evaluation should succeed");
 
     let gate = feature
