@@ -538,4 +538,3 @@ impl EventStream {
             .unwrap_or_default()
     }
 }
-
