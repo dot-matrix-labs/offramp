@@ -19,10 +19,5 @@ path = "src/lib.rs"
 name = "calypso-cli"
 path = "src/main.rs"
 
-[[bin]]
-name = "coverage-driver"
-path = "src/bin/coverage_driver.rs"
-required-features = ["coverage-driver"]
-
-[features]
-coverage-driver = []
+# coverage-driver is for testing only, excluded from release builds
+# See: https://github.com/dot-matrix-labs/calypso/issues/XX (release e2e testing)

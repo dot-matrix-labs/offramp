@@ -55,7 +55,15 @@ jobs:
 
       - name: Build release binary
         working-directory: cli
-        run: cargo build --release --target ${{ matrix.target }} --no-default-features
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Verify binary
+        working-directory: cli
+        run: |
+          binary_path="target/${{ matrix.target }}/release/${{ matrix.binary_name }}"
+          echo "Verifying binary: $binary_path"
+          "$binary_path" --version
+          echo "✓ Binary verified and executable"
 
       - name: Package release artifact
         shell: bash
