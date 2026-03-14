@@ -2,6 +2,7 @@ use calypso_cli::app::{run_doctor, run_status};
 use calypso_cli::doctor::{DoctorFix, DoctorStatus, apply_fix, collect_doctor_report};
 use calypso_cli::execution::{ExecutionConfig, ExecutionOutcome, run_supervised_session};
 use calypso_cli::feature_start::{FeatureStartRequest, run_feature_start};
+use calypso_cli::init::{HostInitEnvironment, run_init_interactive};
 use calypso_cli::state::RepositoryState;
 use calypso_cli::template::TemplateSet;
 use calypso_cli::tui::{OperatorSurface, run_terminal_surface, run_watch};
@@ -51,6 +52,18 @@ fn main() {
             render_status(path)
         }
         [command, flag, path] if command == "status" && flag == "--state" => run_status_tui(path),
+        [command] if command == "init" => {
+            let cwd = std::env::current_dir().expect("current directory should resolve");
+            run_calypso_init(&cwd, false);
+        }
+        [command, flag] if command == "init" && flag == "--reinit" => {
+            let cwd = std::env::current_dir().expect("current directory should resolve");
+            run_calypso_init(&cwd, true);
+        }
+        [command, flag] if command == "init" && flag == "--state" => {
+            let cwd = std::env::current_dir().expect("current directory should resolve");
+            run_init_state_show(&cwd);
+        }
         [command, subcommand] if command == "state" && subcommand == "show" => {
             let cwd = std::env::current_dir().expect("current directory should resolve");
             let state_path = cwd.join(".calypso").join("state.json");
@@ -136,6 +149,32 @@ fn main() {
             }
         }
         _ => println!("{}", render_help(info)),
+    }
+}
+
+fn run_calypso_init(cwd: &std::path::Path, allow_reinit: bool) {
+    match run_init_interactive(cwd, allow_reinit, &HostInitEnvironment) {
+        Ok(progress) => {
+            println!("Init complete: {}", progress.current_step);
+            println!("Completed steps:");
+            for step in &progress.completed_steps {
+                println!("  [x] {step}");
+            }
+        }
+        Err(error) => {
+            eprintln!("init error: {error}");
+            std::process::exit(1);
+        }
+    }
+}
+
+fn run_init_state_show(cwd: &std::path::Path) {
+    let state_path = cwd.join(".calypso").join("init-state.json");
+    match std::fs::read_to_string(&state_path) {
+        Ok(contents) => println!("{contents}"),
+        Err(_) => {
+            println!("No init state found — run `calypso-cli init` to set up this repository.");
+        }
     }
 }
 

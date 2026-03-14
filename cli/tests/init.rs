@@ -5,7 +5,11 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use calypso_cli::init::{InitEnvironment, InitError, InitRequest, init_repository};
+use calypso_cli::init::{
+    InitEnvironment, InitError, InitProgress, InitRequest, InitStep, WORKFLOW_CI,
+    WORKFLOW_PR_CHECKLIST, WORKFLOW_PR_DEPENDS_ON, init_repository, run_init_interactive,
+    scaffold_github_actions,
+};
 use calypso_cli::state::RepositoryState;
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -57,6 +61,10 @@ struct FakeEnv {
     executable_paths: RefCell<Vec<PathBuf>>,
     removed_dirs: RefCell<Vec<PathBuf>>,
     write_failure_path: Option<PathBuf>,
+    git_inits: RefCell<Vec<PathBuf>>,
+    remotes_set: RefCell<Vec<(PathBuf, String)>>,
+    workflows_written: RefCell<Vec<(String, String)>>,
+    git_init_fails: bool,
 }
 
 impl FakeEnv {
@@ -65,6 +73,17 @@ impl FakeEnv {
         self.remote_url = Some("https://github.com/org/repo.git".to_string());
         self.default_branch = "main".to_string();
         self
+    }
+}
+
+fn default_init_request(repo_path: PathBuf) -> InitRequest {
+    InitRequest {
+        repo_path,
+        provider: None,
+        allow_reinit: false,
+        create_git_repo: false,
+        github_org: None,
+        github_repo_name: None,
     }
 }
 
@@ -133,6 +152,40 @@ impl InitEnvironment for FakeEnv {
         self.removed_dirs.borrow_mut().push(path.to_path_buf());
         Ok(())
     }
+
+    fn git_init(&self, path: &Path) -> Result<(), InitError> {
+        if self.git_init_fails {
+            return Err(InitError::GitCommandFailed {
+                action: "git init".to_string(),
+                details: "simulated git init failure".to_string(),
+            });
+        }
+        self.git_inits.borrow_mut().push(path.to_path_buf());
+        Ok(())
+    }
+
+    fn create_github_repo(&self, org: &str, repo: &str) -> Result<String, InitError> {
+        Ok(format!("https://github.com/{org}/{repo}.git"))
+    }
+
+    fn set_remote(&self, path: &Path, url: &str) -> Result<(), InitError> {
+        self.remotes_set
+            .borrow_mut()
+            .push((path.to_path_buf(), url.to_string()));
+        Ok(())
+    }
+
+    fn write_workflow_file(
+        &self,
+        _path: &Path,
+        name: &str,
+        content: &str,
+    ) -> Result<(), InitError> {
+        self.workflows_written
+            .borrow_mut()
+            .push((name.to_string(), content.to_string()));
+        Ok(())
+    }
 }
 
 // ── tests ─────────────────────────────────────────────────────────────────────
@@ -141,11 +194,7 @@ impl InitEnvironment for FakeEnv {
 fn init_creates_calypso_layout_and_state_file() {
     let env = FakeEnv::default().with_github_remote();
     let repo_path = PathBuf::from("/fake/repo");
-    let request = InitRequest {
-        repo_path: repo_path.clone(),
-        provider: None,
-        allow_reinit: false,
-    };
+    let request = default_init_request(repo_path.clone());
 
     let result = init_repository(&request, &env).expect("init should succeed");
 
@@ -188,11 +237,7 @@ fn init_on_non_git_directory_returns_error() {
         is_git: false,
         ..Default::default()
     };
-    let request = InitRequest {
-        repo_path: PathBuf::from("/not/a/repo"),
-        provider: None,
-        allow_reinit: false,
-    };
+    let request = default_init_request(PathBuf::from("/not/a/repo"));
 
     let err = init_repository(&request, &env).expect_err("should fail on non-git dir");
     assert!(
@@ -210,11 +255,7 @@ fn init_on_non_github_remote_returns_error_with_remediation() {
         default_branch: "main".to_string(),
         ..Default::default()
     };
-    let request = InitRequest {
-        repo_path: PathBuf::from("/fake/repo"),
-        provider: None,
-        allow_reinit: false,
-    };
+    let request = default_init_request(PathBuf::from("/fake/repo"));
 
     let err = init_repository(&request, &env).expect_err("should fail for non-github remote");
     assert!(
@@ -235,11 +276,7 @@ fn reinit_without_flag_returns_error() {
     let repo_path = PathBuf::from("/fake/repo");
     env.existing_paths.insert(repo_path.join(".calypso"));
 
-    let request = InitRequest {
-        repo_path: repo_path.clone(),
-        provider: None,
-        allow_reinit: false,
-    };
+    let request = default_init_request(repo_path.clone());
 
     let err = init_repository(&request, &env).expect_err("should fail on existing .calypso");
     assert!(
@@ -259,6 +296,9 @@ fn reinit_with_flag_succeeds() {
         repo_path,
         provider: None,
         allow_reinit: true,
+        create_git_repo: false,
+        github_org: None,
+        github_repo_name: None,
     };
 
     let result = init_repository(&request, &env).expect("reinit with flag should succeed");
@@ -273,6 +313,9 @@ fn provider_flag_sets_provider_in_written_state() {
         repo_path: repo_path.clone(),
         provider: Some("claude".to_string()),
         allow_reinit: false,
+        create_git_repo: false,
+        github_org: None,
+        github_repo_name: None,
     };
 
     init_repository(&request, &env).expect("init should succeed");
@@ -290,11 +333,7 @@ fn provider_flag_sets_provider_in_written_state() {
 fn pre_push_hook_file_is_created_and_marked_executable() {
     let env = FakeEnv::default().with_github_remote();
     let repo_path = PathBuf::from("/fake/repo");
-    let request = InitRequest {
-        repo_path: repo_path.clone(),
-        provider: None,
-        allow_reinit: false,
-    };
+    let request = default_init_request(repo_path.clone());
 
     init_repository(&request, &env).expect("init should succeed");
 
@@ -326,11 +365,7 @@ fn rollback_removes_calypso_dir_on_failure() {
         ..Default::default()
     };
 
-    let request = InitRequest {
-        repo_path: repo_path.clone(),
-        provider: None,
-        allow_reinit: false,
-    };
+    let request = default_init_request(repo_path.clone());
 
     let err = init_repository(&request, &env);
     assert!(err.is_err(), "should fail when state write fails");
@@ -349,14 +384,14 @@ fn real_init_creates_files_and_executable_hook() {
     let dir = unique_tmpdir("real-init");
     make_git_repo_with_github_remote(&dir);
 
-    // Create a fake .git/hooks dir (git init does this, but let's be safe)
-    // git init already creates it.
-
     use calypso_cli::init::{HostInitEnvironment, init_repository};
     let request = InitRequest {
         repo_path: dir.clone(),
         provider: Some("claude".to_string()),
         allow_reinit: false,
+        create_git_repo: false,
+        github_org: None,
+        github_repo_name: None,
     };
     let result = init_repository(&request, &HostInitEnvironment).expect("real init should succeed");
 
@@ -396,6 +431,9 @@ fn real_init_non_git_dir_returns_error() {
         repo_path: dir.clone(),
         provider: None,
         allow_reinit: false,
+        create_git_repo: false,
+        github_org: None,
+        github_repo_name: None,
     };
     let err =
         init_repository(&request, &HostInitEnvironment).expect_err("should fail on non-git dir");
@@ -412,6 +450,9 @@ fn real_init_non_github_remote_returns_error() {
         repo_path: dir.clone(),
         provider: None,
         allow_reinit: false,
+        create_git_repo: false,
+        github_org: None,
+        github_repo_name: None,
     };
     let err = init_repository(&request, &HostInitEnvironment)
         .expect_err("should fail for non-github remote");
@@ -429,6 +470,9 @@ fn real_reinit_without_flag_fails_with_allow_reinit_succeeds() {
         repo_path: dir.clone(),
         provider: None,
         allow_reinit: false,
+        create_git_repo: false,
+        github_org: None,
+        github_repo_name: None,
     };
     init_repository(&request, &HostInitEnvironment).expect("first init");
 
@@ -442,8 +486,306 @@ fn real_reinit_without_flag_fails_with_allow_reinit_succeeds() {
         repo_path: dir.clone(),
         provider: None,
         allow_reinit: true,
+        create_git_repo: false,
+        github_org: None,
+        github_repo_name: None,
     };
     init_repository(&request2, &HostInitEnvironment).expect("reinit with flag should succeed");
 
     std::fs::remove_dir_all(&dir).ok();
+}
+
+// ── InitStep state machine tests ──────────────────────────────────────────────
+
+#[test]
+fn init_step_as_str_values_are_kebab_case() {
+    assert_eq!(InitStep::PromptDirectory.as_str(), "prompt-directory");
+    assert_eq!(InitStep::CreateGitRepo.as_str(), "create-git-repo");
+    assert_eq!(InitStep::CreateUpstream.as_str(), "create-upstream");
+    assert_eq!(
+        InitStep::ScaffoldGithubActions.as_str(),
+        "scaffold-github-actions"
+    );
+    assert_eq!(InitStep::ConfigureLocal.as_str(), "configure-local");
+    assert_eq!(InitStep::VerifySetup.as_str(), "verify-setup");
+    assert_eq!(InitStep::Complete.as_str(), "complete");
+}
+
+#[test]
+fn init_step_next_follows_linear_sequence() {
+    assert_eq!(
+        InitStep::PromptDirectory.next(),
+        Some(InitStep::CreateGitRepo)
+    );
+    assert_eq!(
+        InitStep::CreateGitRepo.next(),
+        Some(InitStep::CreateUpstream)
+    );
+    assert_eq!(
+        InitStep::CreateUpstream.next(),
+        Some(InitStep::ScaffoldGithubActions)
+    );
+    assert_eq!(
+        InitStep::ScaffoldGithubActions.next(),
+        Some(InitStep::ConfigureLocal)
+    );
+    assert_eq!(InitStep::ConfigureLocal.next(), Some(InitStep::VerifySetup));
+    assert_eq!(InitStep::VerifySetup.next(), Some(InitStep::Complete));
+    assert_eq!(InitStep::Complete.next(), None);
+}
+
+#[test]
+fn init_step_complete_is_terminal() {
+    assert!(InitStep::Complete.is_complete());
+    assert!(!InitStep::PromptDirectory.is_complete());
+    assert!(!InitStep::VerifySetup.is_complete());
+}
+
+#[test]
+fn init_step_display_matches_as_str() {
+    use std::fmt::Write as _;
+    let steps = [
+        InitStep::PromptDirectory,
+        InitStep::CreateGitRepo,
+        InitStep::CreateUpstream,
+        InitStep::ScaffoldGithubActions,
+        InitStep::ConfigureLocal,
+        InitStep::VerifySetup,
+        InitStep::Complete,
+    ];
+    for step in &steps {
+        let mut s = String::new();
+        write!(s, "{step}").unwrap();
+        assert_eq!(s, step.as_str());
+    }
+}
+
+#[test]
+fn init_step_serializes_to_kebab_case() {
+    let json = serde_json::to_string(&InitStep::ScaffoldGithubActions).unwrap();
+    assert_eq!(json, "\"scaffold-github-actions\"");
+}
+
+#[test]
+fn init_step_deserializes_from_kebab_case() {
+    let step: InitStep = serde_json::from_str("\"create-git-repo\"").unwrap();
+    assert_eq!(step, InitStep::CreateGitRepo);
+}
+
+#[test]
+fn init_step_round_trips_through_json_for_all_variants() {
+    let steps = [
+        InitStep::PromptDirectory,
+        InitStep::CreateGitRepo,
+        InitStep::CreateUpstream,
+        InitStep::ScaffoldGithubActions,
+        InitStep::ConfigureLocal,
+        InitStep::VerifySetup,
+        InitStep::Complete,
+    ];
+    for step in &steps {
+        let json = serde_json::to_string(step).unwrap();
+        let decoded: InitStep = serde_json::from_str(&json).unwrap();
+        assert_eq!(&decoded, step, "round-trip failed for {step}");
+    }
+}
+
+// ── InitProgress tests ────────────────────────────────────────────────────────
+
+#[test]
+fn init_progress_new_starts_at_prompt_directory() {
+    let progress = InitProgress::new(PathBuf::from("/fake/repo"));
+    assert_eq!(progress.current_step, InitStep::PromptDirectory);
+    assert!(progress.completed_steps.is_empty());
+}
+
+#[test]
+fn init_progress_advance_moves_through_sequence() {
+    let mut progress = InitProgress::new(PathBuf::from("/fake/repo"));
+    assert_eq!(progress.current_step, InitStep::PromptDirectory);
+
+    progress.advance();
+    assert_eq!(progress.current_step, InitStep::CreateGitRepo);
+    assert!(progress.is_step_done(&InitStep::PromptDirectory));
+
+    progress.advance();
+    assert_eq!(progress.current_step, InitStep::CreateUpstream);
+    assert!(progress.is_step_done(&InitStep::CreateGitRepo));
+}
+
+#[test]
+fn init_progress_advance_at_complete_is_a_no_op() {
+    let mut progress = InitProgress::new(PathBuf::from("/fake/repo"));
+    for _ in 0..6 {
+        progress.advance();
+    }
+    assert_eq!(progress.current_step, InitStep::Complete);
+    progress.advance();
+    assert_eq!(progress.current_step, InitStep::Complete);
+}
+
+#[test]
+fn init_progress_is_step_done_returns_false_for_future_steps() {
+    let progress = InitProgress::new(PathBuf::from("/fake/repo"));
+    assert!(!progress.is_step_done(&InitStep::CreateGitRepo));
+    assert!(!progress.is_step_done(&InitStep::Complete));
+}
+
+#[test]
+fn init_progress_serializes_and_deserializes() {
+    let mut progress = InitProgress::new(PathBuf::from("/fake/repo"));
+    progress.advance();
+    progress.github_org = Some("my-org".to_string());
+    progress.github_repo = Some("my-repo".to_string());
+
+    let json = serde_json::to_string(&progress).unwrap();
+    let decoded: InitProgress = serde_json::from_str(&json).unwrap();
+    assert_eq!(decoded.current_step, InitStep::CreateGitRepo);
+    assert_eq!(decoded.github_org.as_deref(), Some("my-org"));
+    assert_eq!(decoded.github_repo.as_deref(), Some("my-repo"));
+    assert!(decoded.is_step_done(&InitStep::PromptDirectory));
+}
+
+// ── scaffold_github_actions tests ─────────────────────────────────────────────
+
+#[test]
+fn scaffold_github_actions_writes_three_workflow_files() {
+    let env = FakeEnv::default().with_github_remote();
+    let repo_path = PathBuf::from("/fake/repo");
+
+    let scaffolded = scaffold_github_actions(&repo_path, &env).expect("scaffold should succeed");
+
+    let workflows = env.workflows_written.borrow();
+    assert_eq!(workflows.len(), 3, "should scaffold 3 workflow files");
+
+    let names: Vec<&str> = workflows.iter().map(|(n, _)| n.as_str()).collect();
+    assert!(
+        names.contains(&"pr-checklist.yml"),
+        "missing pr-checklist.yml"
+    );
+    assert!(
+        names.contains(&"pr-depends-on.yml"),
+        "missing pr-depends-on.yml"
+    );
+    assert!(names.contains(&"ci.yml"), "missing ci.yml");
+    assert_eq!(scaffolded.len(), 3);
+}
+
+#[test]
+fn scaffold_github_actions_skips_existing_workflow_files() {
+    let repo_path = PathBuf::from("/fake/repo");
+    let mut env = FakeEnv::default().with_github_remote();
+    env.existing_paths.insert(
+        repo_path
+            .join(".github")
+            .join("workflows")
+            .join("pr-checklist.yml"),
+    );
+
+    let scaffolded = scaffold_github_actions(&repo_path, &env).expect("scaffold should succeed");
+
+    let workflows = env.workflows_written.borrow();
+    assert_eq!(
+        workflows.len(),
+        2,
+        "should skip existing workflow file; got: {workflows:?}"
+    );
+    assert_eq!(scaffolded.len(), 2);
+
+    let names: Vec<&str> = workflows.iter().map(|(n, _)| n.as_str()).collect();
+    assert!(
+        !names.contains(&"pr-checklist.yml"),
+        "should skip existing file"
+    );
+    assert!(names.contains(&"pr-depends-on.yml"));
+    assert!(names.contains(&"ci.yml"));
+}
+
+#[test]
+fn workflow_pr_checklist_content_is_valid_yaml() {
+    let val: serde_yaml::Value =
+        serde_yaml::from_str(WORKFLOW_PR_CHECKLIST).expect("pr-checklist.yml should be valid YAML");
+    let map = val.as_mapping().expect("top-level should be a mapping");
+    assert!(map.contains_key(serde_yaml::Value::String("name".into())));
+    assert!(map.contains_key(serde_yaml::Value::String("on".into())));
+    assert!(map.contains_key(serde_yaml::Value::String("jobs".into())));
+}
+
+#[test]
+fn workflow_pr_depends_on_content_is_valid_yaml() {
+    let val: serde_yaml::Value = serde_yaml::from_str(WORKFLOW_PR_DEPENDS_ON)
+        .expect("pr-depends-on.yml should be valid YAML");
+    let map = val.as_mapping().expect("top-level should be a mapping");
+    assert!(map.contains_key(serde_yaml::Value::String("name".into())));
+    assert!(map.contains_key(serde_yaml::Value::String("jobs".into())));
+}
+
+#[test]
+fn workflow_ci_content_is_valid_yaml() {
+    let val: serde_yaml::Value =
+        serde_yaml::from_str(WORKFLOW_CI).expect("ci.yml should be valid YAML");
+    let map = val.as_mapping().expect("top-level should be a mapping");
+    assert!(map.contains_key(serde_yaml::Value::String("jobs".into())));
+}
+
+// ── run_init_interactive tests ─────────────────────────────────────────────────
+
+#[test]
+fn run_init_interactive_with_existing_git_and_github_remote_succeeds() {
+    let env = FakeEnv::default().with_github_remote();
+    let repo_path = PathBuf::from("/fake/repo");
+
+    let progress =
+        run_init_interactive(&repo_path, false, &env).expect("interactive init should succeed");
+
+    assert!(progress.current_step.is_complete(), "should reach Complete");
+    assert!(progress.is_step_done(&InitStep::PromptDirectory));
+    assert!(progress.is_step_done(&InitStep::CreateGitRepo));
+    assert!(progress.is_step_done(&InitStep::ScaffoldGithubActions));
+}
+
+#[test]
+fn run_init_interactive_calls_git_init_when_not_a_git_repo() {
+    let env = FakeEnv {
+        is_git: false,
+        remote_url: None,
+        remote_error: Some("no remote".to_string()),
+        default_branch: "main".to_string(),
+        ..Default::default()
+    };
+    let repo_path = PathBuf::from("/fake/fresh");
+
+    // Will fail at configure-local (no GitHub remote), but git_init is called
+    let _result = run_init_interactive(&repo_path, false, &env);
+
+    let git_inits = env.git_inits.borrow();
+    assert!(
+        git_inits.contains(&repo_path),
+        "git_init should be called for non-git directory"
+    );
+}
+
+#[test]
+fn run_init_interactive_does_not_call_git_init_when_already_a_git_repo() {
+    let env = FakeEnv::default().with_github_remote();
+    let repo_path = PathBuf::from("/fake/existing-git");
+
+    run_init_interactive(&repo_path, false, &env).expect("interactive init should succeed");
+
+    let git_inits = env.git_inits.borrow();
+    assert!(
+        git_inits.is_empty(),
+        "git_init should not be called when already a git repo"
+    );
+}
+
+#[test]
+fn run_init_interactive_scaffolds_workflow_files() {
+    let env = FakeEnv::default().with_github_remote();
+    let repo_path = PathBuf::from("/fake/scaffold-test");
+
+    run_init_interactive(&repo_path, false, &env).expect("interactive init should succeed");
+
+    let workflows = env.workflows_written.borrow();
+    assert!(!workflows.is_empty(), "workflow files should be scaffolded");
 }
