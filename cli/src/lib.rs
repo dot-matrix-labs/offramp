@@ -1,4 +1,5 @@
 pub mod app;
+pub mod claude;
 pub mod codex;
 pub mod doctor;
 pub mod feature_start;

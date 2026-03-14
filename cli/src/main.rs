@@ -1,4 +1,5 @@
 use calypso_cli::app::{run_doctor, run_status};
+use calypso_cli::claude::{ClaudeConfig, ClaudeOutcome, ClaudeSession, SessionContext};
 use calypso_cli::feature_start::{FeatureStartRequest, run_feature_start};
 use calypso_cli::state::RepositoryState;
 use calypso_cli::tui::{OperatorSurface, run_terminal_surface};
@@ -89,6 +90,12 @@ fn main() {
                 }
             }
         }
+        // calypso run <feature-id> --role <role>
+        [command, _feature_id, role_flag, role] if command == "run" && role_flag == "--role" => {
+            let cwd = std::env::current_dir().expect("current directory should resolve");
+            let state_path = cwd.join(".calypso/repository-state.json");
+            run_claude_session(&state_path.to_string_lossy(), role);
+        }
         _ => println!("{}", render_help(info)),
     }
 }
@@ -114,4 +121,59 @@ where
     state
         .save_to_path(std::path::Path::new(path))
         .map_err(|error| error.to_string())
+}
+
+fn run_claude_session(state_path: &str, role: &str) {
+    let state = RepositoryState::load_from_path(std::path::Path::new(state_path))
+        .expect("state file should load");
+
+    let prompt = format!(
+        "You are acting as the `{role}` agent for feature `{}`.\n\
+         Current workflow state: {:?}\n\
+         Complete your role tasks and emit a [CALYPSO:OK], [CALYPSO:NOK], or [CALYPSO:ABORTED] outcome marker.",
+        state.current_feature.feature_id, state.current_feature.workflow_state,
+    );
+
+    let config = ClaudeConfig::default();
+    let session = ClaudeSession::new(config);
+    let context = SessionContext {
+        working_directory: Some(state.current_feature.worktree_path.clone()),
+    };
+
+    let transcript_path = std::path::Path::new(state_path)
+        .parent()
+        .map(|p| p.join(format!("claude-transcript-{}.jsonl", session.session_id)));
+
+    let outcome = session
+        .invoke(&prompt, &context, transcript_path.as_deref())
+        .unwrap_or_else(|error| {
+            eprintln!("claude invocation error: {error}");
+            std::process::exit(1);
+        });
+
+    match &outcome {
+        ClaudeOutcome::Ok {
+            summary,
+            artifact_refs,
+            suggested_next_state,
+        } => {
+            println!("Outcome: OK");
+            println!("Summary: {summary}");
+            if !artifact_refs.is_empty() {
+                println!("Artifacts: {}", artifact_refs.join(", "));
+            }
+            if let Some(next) = suggested_next_state {
+                println!("Suggested next state: {next}");
+            }
+        }
+        ClaudeOutcome::Nok { summary, reason } => {
+            println!("Outcome: NOK");
+            println!("Summary: {summary}");
+            println!("Reason: {reason}");
+        }
+        ClaudeOutcome::Aborted { reason } => {
+            println!("Outcome: ABORTED");
+            println!("Reason: {reason}");
+        }
+    }
 }

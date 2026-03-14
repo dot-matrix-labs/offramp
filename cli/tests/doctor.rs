@@ -9,6 +9,7 @@ use calypso_cli::doctor::{
 #[derive(Default)]
 struct FakeEnvironment {
     commands: BTreeSet<String>,
+    claude_reachable: bool,
     gh_authenticated: bool,
     github_remote_roots: BTreeSet<PathBuf>,
     feature_binding_roots: BTreeSet<PathBuf>,
@@ -55,6 +56,10 @@ impl FakeEnvironment {
 impl DoctorEnvironment for FakeEnvironment {
     fn command_exists(&self, command: &str) -> bool {
         self.commands.contains(command)
+    }
+
+    fn claude_reachable(&self) -> bool {
+        self.claude_reachable
     }
 
     fn gh_authenticated(&self) -> bool {

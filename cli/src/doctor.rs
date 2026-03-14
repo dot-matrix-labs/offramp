@@ -1,6 +1,7 @@
 use std::path::Path;
 use std::process::Command;
 
+use crate::claude::{ClaudeConfig, ClaudeSession};
 use crate::runtime::discover_current_repository_context;
 use crate::state::BuiltinEvidence;
 
@@ -17,6 +18,7 @@ const REQUIRED_WORKFLOW_FILES: [&str; 6] = [
 pub enum DoctorCheckId {
     GhInstalled,
     CodexInstalled,
+    ClaudeInstalled,
     GhAuthenticated,
     GithubRemoteConfigured,
     FeatureBindingResolved,
@@ -28,6 +30,7 @@ impl DoctorCheckId {
         match self {
             DoctorCheckId::GhInstalled => "builtin.doctor.gh_installed",
             DoctorCheckId::CodexInstalled => "builtin.doctor.codex_installed",
+            DoctorCheckId::ClaudeInstalled => "builtin.doctor.claude_installed",
             DoctorCheckId::GhAuthenticated => "builtin.doctor.gh_authenticated",
             DoctorCheckId::GithubRemoteConfigured => "builtin.doctor.github_remote_configured",
             DoctorCheckId::FeatureBindingResolved => "builtin.doctor.feature_binding_resolved",
@@ -41,6 +44,7 @@ impl DoctorCheckId {
         match self {
             DoctorCheckId::GhInstalled => "gh-installed",
             DoctorCheckId::CodexInstalled => "codex-installed",
+            DoctorCheckId::ClaudeInstalled => "claude-installed",
             DoctorCheckId::GhAuthenticated => "gh-authenticated",
             DoctorCheckId::GithubRemoteConfigured => "github-remote-configured",
             DoctorCheckId::FeatureBindingResolved => "feature-binding-resolved",
@@ -90,6 +94,7 @@ impl DoctorReport {
 
 pub trait DoctorEnvironment {
     fn command_exists(&self, command: &str) -> bool;
+    fn claude_reachable(&self) -> bool;
     fn gh_authenticated(&self) -> bool;
     fn has_github_remote(&self, repo_root: &Path) -> bool;
     fn feature_binding_status(&self, repo_root: &Path) -> Result<(), String>;
@@ -105,6 +110,10 @@ impl DoctorEnvironment for HostDoctorEnvironment {
             .arg(command)
             .output()
             .is_ok_and(|output| output.status.success())
+    }
+
+    fn claude_reachable(&self) -> bool {
+        ClaudeSession::check_auth(&ClaudeConfig::default())
     }
 
     fn gh_authenticated(&self) -> bool {
@@ -164,6 +173,12 @@ pub fn collect_doctor_report(
                 DoctorCheckId::CodexInstalled,
                 DoctorCheckScope::LocalConfiguration,
                 environment.command_exists("codex"),
+                None,
+            ),
+            make_check(
+                DoctorCheckId::ClaudeInstalled,
+                DoctorCheckScope::LocalConfiguration,
+                environment.claude_reachable(),
                 None,
             ),
             make_check(
@@ -260,6 +275,9 @@ fn failing_fix(id: DoctorCheckId, detail: Option<&str>) -> Option<String> {
         }
         DoctorCheckId::CodexInstalled => {
             Some("Install Codex CLI and ensure `codex` is available on PATH.".to_string())
+        }
+        DoctorCheckId::ClaudeInstalled => {
+            Some("Install Claude CLI and ensure `claude` is available on PATH. Set ANTHROPIC_API_KEY to authenticate.".to_string())
         }
         DoctorCheckId::GhAuthenticated => {
             Some("Run `gh auth login` and confirm the active account can access this repository.".to_string())
