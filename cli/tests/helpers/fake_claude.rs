@@ -15,12 +15,21 @@ use std::time::{SystemTime, UNIX_EPOCH};
 /// The outcome the fake `claude` binary should emit on stdout.
 #[derive(Debug, Clone)]
 pub enum FakeOutcome {
-    Ok { summary: String },
-    Nok { summary: String, reason: String },
-    Aborted { reason: String },
+    Ok {
+        summary: String,
+    },
+    Nok {
+        summary: String,
+        reason: String,
+    },
+    Aborted {
+        reason: String,
+    },
     /// Emits only a `[CALYPSO:CLARIFICATION]` line — no terminal outcome marker.
     /// Calypso should detect this and surface it as an operator input request.
-    Clarification { question: String },
+    Clarification {
+        question: String,
+    },
 }
 
 impl FakeOutcome {

@@ -223,8 +223,9 @@ fn run_claude_session(state_path: &str, role: &str) {
                 .find(|s| !matches!(s, WorkflowState::Blocked | WorkflowState::Aborted))
                 .cloned()
             {
-                if let Err(err) =
-                    state.current_feature.transition_to(next_state.clone(), &facts)
+                if let Err(err) = state
+                    .current_feature
+                    .transition_to(next_state.clone(), &facts)
                 {
                     eprintln!("state transition error: {err}");
                     // Non-fatal: outcome was OK, just couldn't advance state
