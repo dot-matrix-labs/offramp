@@ -303,14 +303,14 @@ fn load_or_initialize_runtime_resumes_existing_repository_state() {
 
     let mut runtime =
         load_or_initialize_runtime(&repo_root, &resolver).expect("runtime should initialize");
-    runtime.state.current_feature.workflow_state = WorkflowState::ReadyForReview;
+    runtime.state.current_feature.workflow_state = WorkflowState::ReleaseReady;
     runtime.save().expect("runtime state should save");
 
     let resumed = load_or_initialize_runtime(&repo_root, &resolver).expect("runtime should resume");
 
     assert_eq!(
         resumed.state.current_feature.workflow_state,
-        WorkflowState::ReadyForReview
+        WorkflowState::ReleaseReady
     );
     assert_eq!(resumed.state_path, runtime.state_path);
 

@@ -385,13 +385,7 @@ struct SessionView {
 }
 
 fn workflow_label(state: WorkflowState) -> String {
-    match state {
-        WorkflowState::New => "new".to_string(),
-        WorkflowState::Implementation => "implementation".to_string(),
-        WorkflowState::WaitingForHuman => "waiting-for-human".to_string(),
-        WorkflowState::ReadyForReview => "ready-for-review".to_string(),
-        WorkflowState::Blocked => "blocked".to_string(),
-    }
+    state.as_str().to_string()
 }
 
 fn gate_status_label(status: GateStatus) -> &'static str {

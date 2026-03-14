@@ -18,7 +18,7 @@ fn sample_feature() -> FeatureState {
         },
         github_snapshot: None,
         github_error: None,
-        workflow_state: WorkflowState::WaitingForHuman,
+        workflow_state: WorkflowState::Implementation,
         gate_groups: vec![
             GateGroup {
                 id: "specification".to_string(),
@@ -78,7 +78,7 @@ fn operator_surface_render_includes_feature_context_gates_and_sessions() {
     assert!(rendered.contains("Calypso Operator Surface"));
     assert!(rendered.contains("Feature: feat-tui-surface"));
     assert!(rendered.contains("Branch: feat/cli-tui-operator-surface"));
-    assert!(rendered.contains("Workflow: waiting-for-human"));
+    assert!(rendered.contains("Workflow: implementation"));
     assert!(rendered.contains("Blocking: rust-quality-green"));
     assert!(rendered.contains("Specification"));
     assert!(rendered.contains("[passing] PR canonicalized"));
@@ -265,10 +265,10 @@ fn operator_surface_renders_empty_and_alternate_status_states() {
     assert!(rendered.contains("engineer (session_01) [completed]"));
     assert!(rendered.contains("No streamed output yet."));
 
-    feature.workflow_state = WorkflowState::ReadyForReview;
+    feature.workflow_state = WorkflowState::ReleaseReady;
     feature.active_sessions.clear();
     let rendered = OperatorSurface::from_feature_state(&feature).render();
-    assert!(rendered.contains("Workflow: ready-for-review"));
+    assert!(rendered.contains("Workflow: release-ready"));
     assert!(rendered.contains("No active sessions"));
 
     feature.workflow_state = WorkflowState::Blocked;

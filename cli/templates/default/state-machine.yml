@@ -1,10 +1,16 @@
 initial_state: new
 states:
   - new
+  - prd-review
+  - architecture-plan
+  - scaffold-tdd
+  - architecture-review
   - implementation
-  - waiting-for-human
-  - ready-for-review
+  - qa-validation
+  - release-ready
+  - done
   - blocked
+  - aborted
 gate_groups:
   - id: specification
     label: Specification
@@ -18,8 +24,35 @@ gate_groups:
       - id: feature-pr-ready-for-review
         label: Feature PR ready for review
         task: feature-pr-ready-for-review
-  - id: policy
-    label: Policy
+  - id: prd-review
+    label: PRD Review
+    gates:
+      - id: prd-present
+        label: PRD present
+        task: prd-present
+      - id: prd-reviewed
+        label: PRD reviewed
+        task: prd-reviewed
+  - id: architecture-plan
+    label: Architecture Plan
+    gates:
+      - id: architecture-doc-present
+        label: Architecture doc present
+        task: architecture-doc-present
+      - id: architecture-reviewed
+        label: Architecture reviewed
+        task: architecture-reviewed
+  - id: scaffold-tdd
+    label: Scaffold TDD
+    gates:
+      - id: test-scaffold-present
+        label: Test scaffold present
+        task: test-scaffold-present
+      - id: tests-red
+        label: Tests red
+        task: tests-red
+  - id: architecture-review
+    label: Architecture Review
     gates:
       - id: implementation-plan-present
         label: Implementation plan present
@@ -27,6 +60,9 @@ gate_groups:
       - id: implementation-plan-fresh
         label: Implementation plan fresh
         task: implementation-plan-fresh
+  - id: policy
+    label: Policy
+    gates:
       - id: next-prompt-present
         label: Next prompt present
         task: next-prompt-present
@@ -39,6 +75,15 @@ gate_groups:
       - id: blueprint-policy-clean
         label: Blueprint policy clean
         task: blueprint-review
+  - id: qa-validation
+    label: QA Validation
+    gates:
+      - id: tests-green
+        label: Tests green
+        task: tests-green
+      - id: coverage-threshold-met
+        label: Coverage threshold met
+        task: coverage-threshold-met
   - id: validation
     label: Validation
     gates:
@@ -60,15 +105,18 @@ gate_groups:
       - id: rust-quality-green
         label: Rust quality green
         task: rust-quality
-  - id: merge-readiness
-    label: Merge Readiness
+  - id: release-ready
+    label: Release Ready
     gates:
+      - id: pr-mergeable
+        label: PR mergeable
+        task: feature-pr-mergeable
       - id: feature-pr-reviewed
         label: Feature PR reviewed
         task: feature-pr-reviewed
-      - id: feature-pr-mergeable
-        label: Feature PR mergeable
-        task: feature-pr-mergeable
+  - id: merge-readiness
+    label: Merge Readiness
+    gates:
       - id: merge-drift-reviewed
         label: Merge drift reviewed
         task: main-compatibility

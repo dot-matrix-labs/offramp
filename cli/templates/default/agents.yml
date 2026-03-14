@@ -50,3 +50,23 @@ tasks:
   - name: main-compatibility
     kind: builtin
     builtin: builtin.git.is_main_compatible
+  - name: prd-present
+    kind: human
+  - name: prd-reviewed
+    kind: human
+  - name: architecture-doc-present
+    kind: human
+  - name: architecture-reviewed
+    kind: human
+  - name: test-scaffold-present
+    kind: builtin
+    builtin: builtin.ci.test_scaffold_present
+  - name: tests-red
+    kind: builtin
+    builtin: builtin.ci.tests_red
+  - name: tests-green
+    kind: builtin
+    builtin: builtin.ci.tests_green
+  - name: coverage-threshold-met
+    kind: builtin
+    builtin: builtin.ci.coverage_threshold_met
