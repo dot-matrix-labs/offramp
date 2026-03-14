@@ -1165,3 +1165,60 @@ impl fmt::Display for DeploymentTransitionError {
 }
 
 impl std::error::Error for DeploymentTransitionError {}
+
+// ---------------------------------------------------------------------------
+// Development state machine
+// ---------------------------------------------------------------------------
+
+/// The top-level phase of a project in the Calypso development lifecycle.
+///
+/// The `Init` phase delegates to the init state machine (`InitStep`). Once
+/// init completes, the project automatically transitions to `Development`.
+/// This is the outer state machine that wraps the init sub-state-machine and
+/// subsequent active work phases.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum DevelopmentPhase {
+    /// Repository setup — delegates to the init state machine.
+    #[default]
+    Init,
+    /// Active feature development.
+    Development,
+    /// Testing and QA.
+    Testing,
+}
+
+impl DevelopmentPhase {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Init => "init",
+            Self::Development => "development",
+            Self::Testing => "testing",
+        }
+    }
+
+    /// Returns the valid next phases from the current phase.
+    pub fn valid_next_phases(&self) -> Vec<Self> {
+        match self {
+            Self::Init => vec![Self::Development],
+            Self::Development => vec![Self::Testing, Self::Init],
+            Self::Testing => vec![Self::Development, Self::Init],
+        }
+    }
+
+    /// Returns `true` if transitioning to `target` is permitted.
+    pub fn can_transition_to(&self, target: &Self) -> bool {
+        self.valid_next_phases().contains(target)
+    }
+
+    /// Returns `true` if this is the initial setup phase.
+    pub fn is_init(&self) -> bool {
+        matches!(self, Self::Init)
+    }
+}
+
+impl fmt::Display for DevelopmentPhase {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
