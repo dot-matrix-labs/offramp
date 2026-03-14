@@ -1,4 +1,8 @@
+use std::io::Write as _;
 use std::path::Path;
+use std::sync::{LazyLock, Mutex};
+
+static EXEC_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
 use calypso_cli::app::{
     gate_status_label, missing_pull_request_evidence, missing_pull_request_ref,
@@ -171,13 +175,15 @@ fn resolve_current_pull_request_returns_none_when_gh_cannot_spawn() {
 
 #[test]
 fn resolve_current_pull_request_parses_successful_output() {
+    let _lock = EXEC_LOCK.lock().unwrap();
     let temp_dir = make_temp_dir("calypso-cli-resolve-pr");
     let gh_path = temp_dir.join("fake-gh.sh");
-    std::fs::write(
-        &gh_path,
-        "#!/bin/sh\nprintf '{\"number\":7,\"url\":\"https://github.com/dot-matrix-labs/calypso/pull/7\"}'\n",
-    )
-    .expect("fake gh should be written");
+    {
+        let mut f = std::fs::File::create(&gh_path).expect("fake gh should be created");
+        f.write_all(b"#!/bin/sh\nprintf '{\"number\":7,\"url\":\"https://github.com/dot-matrix-labs/calypso/pull/7\"}'\n")
+            .expect("fake gh should be written");
+        f.sync_all().expect("fake gh should be synced");
+    }
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
