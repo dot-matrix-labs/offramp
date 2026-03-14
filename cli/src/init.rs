@@ -186,7 +186,10 @@ fn is_github_url(url: &str) -> bool {
     //   git@github.com:...       — SCP-style SSH remote
     // Rejects subdomains-of-evil (evil-github.com), path components that happen
     // to contain "github.com", and bare "github.com" strings with no scheme.
-    if let Some(rest) = url.strip_prefix("https://").or_else(|| url.strip_prefix("http://")) {
+    if let Some(rest) = url
+        .strip_prefix("https://")
+        .or_else(|| url.strip_prefix("http://"))
+    {
         // rest starts with the host; verify it is exactly "github.com" (optionally
         // followed by '/' or end-of-string, not more hostname characters).
         rest.starts_with("github.com/") || rest == "github.com"
