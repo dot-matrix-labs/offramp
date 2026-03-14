@@ -110,13 +110,13 @@ impl InitEnvironment for FakeEnv {
     }
 
     fn write_file(&self, path: &Path, contents: &str) -> Result<(), InitError> {
-        if let Some(ref fail_path) = self.write_failure_path {
-            if path == fail_path.as_path() {
-                return Err(InitError::GitCommandFailed {
-                    action: "write".to_string(),
-                    details: "simulated write failure".to_string(),
-                });
-            }
+        if let Some(ref fail_path) = self.write_failure_path
+            && path == fail_path.as_path()
+        {
+            return Err(InitError::GitCommandFailed {
+                action: "write".to_string(),
+                details: "simulated write failure".to_string(),
+            });
         }
         self.written_files
             .borrow_mut()
