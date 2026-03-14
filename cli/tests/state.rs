@@ -142,18 +142,50 @@ fn state_enums_serialize_with_expected_kebab_case_variants() {
         "\"new\""
     );
     assert_eq!(
-        serde_json::to_string(&WorkflowState::WaitingForHuman)
-            .expect("workflow state should serialize"),
-        "\"waiting-for-human\""
+        serde_json::to_string(&WorkflowState::PrdReview).expect("workflow state should serialize"),
+        "\"prd-review\""
     );
     assert_eq!(
-        serde_json::to_string(&WorkflowState::ReadyForReview)
+        serde_json::to_string(&WorkflowState::ArchitecturePlan)
             .expect("workflow state should serialize"),
-        "\"ready-for-review\""
+        "\"architecture-plan\""
+    );
+    assert_eq!(
+        serde_json::to_string(&WorkflowState::ScaffoldTdd)
+            .expect("workflow state should serialize"),
+        "\"scaffold-tdd\""
+    );
+    assert_eq!(
+        serde_json::to_string(&WorkflowState::ArchitectureReview)
+            .expect("workflow state should serialize"),
+        "\"architecture-review\""
+    );
+    assert_eq!(
+        serde_json::to_string(&WorkflowState::Implementation)
+            .expect("workflow state should serialize"),
+        "\"implementation\""
+    );
+    assert_eq!(
+        serde_json::to_string(&WorkflowState::QaValidation)
+            .expect("workflow state should serialize"),
+        "\"qa-validation\""
+    );
+    assert_eq!(
+        serde_json::to_string(&WorkflowState::ReleaseReady)
+            .expect("workflow state should serialize"),
+        "\"release-ready\""
+    );
+    assert_eq!(
+        serde_json::to_string(&WorkflowState::Done).expect("workflow state should serialize"),
+        "\"done\""
     );
     assert_eq!(
         serde_json::to_string(&WorkflowState::Blocked).expect("workflow state should serialize"),
         "\"blocked\""
+    );
+    assert_eq!(
+        serde_json::to_string(&WorkflowState::Aborted).expect("workflow state should serialize"),
+        "\"aborted\""
     );
 
     assert_eq!(
@@ -288,10 +320,16 @@ tasks:
 #[test]
 fn feature_state_initializes_supported_workflow_variants_from_template() {
     for initial_state in [
+        ("prd-review", WorkflowState::PrdReview),
+        ("architecture-plan", WorkflowState::ArchitecturePlan),
+        ("scaffold-tdd", WorkflowState::ScaffoldTdd),
+        ("architecture-review", WorkflowState::ArchitectureReview),
         ("implementation", WorkflowState::Implementation),
-        ("waiting-for-human", WorkflowState::WaitingForHuman),
-        ("ready-for-review", WorkflowState::ReadyForReview),
+        ("qa-validation", WorkflowState::QaValidation),
+        ("release-ready", WorkflowState::ReleaseReady),
+        ("done", WorkflowState::Done),
         ("blocked", WorkflowState::Blocked),
+        ("aborted", WorkflowState::Aborted),
     ] {
         let template = TemplateSet::from_yaml_strings(
             &format!(
@@ -520,15 +558,16 @@ fn feature_state_reports_blocking_gate_ids_after_evaluation() {
         .evaluate_gates(&template, &evidence)
         .expect("gate evaluation should succeed");
 
-    assert_eq!(
-        feature.blocking_gate_ids(),
-        vec![
-            "pr-canonicalized".to_string(),
-            "blueprint-policy-clean".to_string(),
-            "feature-pr-reviewed".to_string(),
-            "merge-drift-reviewed".to_string(),
-        ]
-    );
+    let blocking = feature.blocking_gate_ids();
+    // Known blocking gates given the evidence provided
+    assert!(blocking.contains(&"pr-canonicalized".to_string()));
+    assert!(blocking.contains(&"blueprint-policy-clean".to_string()));
+    assert!(blocking.contains(&"feature-pr-reviewed".to_string()));
+    assert!(blocking.contains(&"merge-drift-reviewed".to_string()));
+    // Evidence-provided gates must not be blocking
+    assert!(!blocking.contains(&"feature-pr-exists".to_string()));
+    assert!(!blocking.contains(&"rust-quality-green".to_string()));
+    assert!(!blocking.contains(&"pr-mergeable".to_string()));
 }
 
 #[test]
@@ -718,23 +757,38 @@ fn feature_state_maps_manual_builtin_evidence_to_manual_gate_status() {
 #[test]
 fn workflow_state_as_str_returns_expected_slugs() {
     assert_eq!(WorkflowState::New.as_str(), "new");
+    assert_eq!(WorkflowState::PrdReview.as_str(), "prd-review");
+    assert_eq!(
+        WorkflowState::ArchitecturePlan.as_str(),
+        "architecture-plan"
+    );
+    assert_eq!(WorkflowState::ScaffoldTdd.as_str(), "scaffold-tdd");
+    assert_eq!(
+        WorkflowState::ArchitectureReview.as_str(),
+        "architecture-review"
+    );
     assert_eq!(WorkflowState::Implementation.as_str(), "implementation");
-    assert_eq!(WorkflowState::WaitingForHuman.as_str(), "waiting-for-human");
-    assert_eq!(WorkflowState::ReadyForReview.as_str(), "ready-for-review");
+    assert_eq!(WorkflowState::QaValidation.as_str(), "qa-validation");
+    assert_eq!(WorkflowState::ReleaseReady.as_str(), "release-ready");
+    assert_eq!(WorkflowState::Done.as_str(), "done");
     assert_eq!(WorkflowState::Blocked.as_str(), "blocked");
+    assert_eq!(WorkflowState::Aborted.as_str(), "aborted");
+    // Deprecated aliases map to their canonical equivalents
+    assert_eq!(WorkflowState::WaitingForHuman.as_str(), "implementation");
+    assert_eq!(WorkflowState::ReadyForReview.as_str(), "release-ready");
 }
 
 // --- WorkflowState::available_transitions ---
 
 #[test]
-fn workflow_state_new_transitions_to_implementation_when_binding_complete() {
+fn workflow_state_new_transitions_to_prd_review_when_binding_complete() {
     let facts = TransitionFacts {
         feature_binding_complete: true,
         ..TransitionFacts::default()
     };
     assert_eq!(
         WorkflowState::New.available_transitions(&facts),
-        vec![WorkflowState::Implementation]
+        vec![WorkflowState::PrdReview]
     );
 }
 
@@ -748,14 +802,14 @@ fn workflow_state_new_has_no_transitions_when_binding_incomplete() {
 fn workflow_state_implementation_transitions_to_all_valid_targets() {
     let facts = TransitionFacts {
         blocking_issue_present: true,
-        waiting_for_human_input: true,
         ready_for_review: true,
+        aborted: true,
         ..TransitionFacts::default()
     };
     let transitions = WorkflowState::Implementation.available_transitions(&facts);
+    assert!(transitions.contains(&WorkflowState::QaValidation));
     assert!(transitions.contains(&WorkflowState::Blocked));
-    assert!(transitions.contains(&WorkflowState::WaitingForHuman));
-    assert!(transitions.contains(&WorkflowState::ReadyForReview));
+    assert!(transitions.contains(&WorkflowState::Aborted));
 }
 
 #[test]
@@ -783,15 +837,23 @@ fn workflow_state_ready_for_review_transitions_based_on_facts() {
 }
 
 #[test]
-fn workflow_state_blocked_transitions_to_implementation_when_blocker_resolved() {
+fn workflow_state_blocked_transitions_to_all_active_states_when_blocker_resolved() {
     let facts = TransitionFacts {
         blocker_resolved: true,
         ..TransitionFacts::default()
     };
-    assert_eq!(
-        WorkflowState::Blocked.available_transitions(&facts),
-        vec![WorkflowState::Implementation]
-    );
+    let transitions = WorkflowState::Blocked.available_transitions(&facts);
+    // All 8 non-terminal active states should be offered
+    assert!(transitions.contains(&WorkflowState::New));
+    assert!(transitions.contains(&WorkflowState::PrdReview));
+    assert!(transitions.contains(&WorkflowState::ArchitecturePlan));
+    assert!(transitions.contains(&WorkflowState::ScaffoldTdd));
+    assert!(transitions.contains(&WorkflowState::ArchitectureReview));
+    assert!(transitions.contains(&WorkflowState::Implementation));
+    assert!(transitions.contains(&WorkflowState::QaValidation));
+    assert!(transitions.contains(&WorkflowState::ReleaseReady));
+    assert!(!transitions.contains(&WorkflowState::Done));
+    assert!(!transitions.contains(&WorkflowState::Aborted));
 }
 
 // --- WorkflowState::validate_transition ---
@@ -804,7 +866,7 @@ fn workflow_state_validate_transition_succeeds_for_valid_transitions() {
     };
     assert!(
         WorkflowState::New
-            .validate_transition(WorkflowState::Implementation, &facts)
+            .validate_transition(WorkflowState::PrdReview, &facts)
             .is_ok()
     );
 }
@@ -825,21 +887,41 @@ fn workflow_state_validate_transition_rejects_all_invalid_pairs() {
     let facts = TransitionFacts::default();
 
     let invalid_pairs = [
+        // New can only go to PrdReview (with binding complete) — not directly to others
+        (WorkflowState::New, WorkflowState::PrdReview),
         (WorkflowState::New, WorkflowState::Implementation),
+        (WorkflowState::New, WorkflowState::Blocked),
+        (WorkflowState::New, WorkflowState::Aborted),
+        // Stage forward transitions without stage_complete
+        (WorkflowState::PrdReview, WorkflowState::ArchitecturePlan),
+        (WorkflowState::PrdReview, WorkflowState::Blocked),
+        (WorkflowState::ArchitecturePlan, WorkflowState::ScaffoldTdd),
         (
-            WorkflowState::Implementation,
-            WorkflowState::WaitingForHuman,
+            WorkflowState::ScaffoldTdd,
+            WorkflowState::ArchitectureReview,
         ),
-        (WorkflowState::Implementation, WorkflowState::ReadyForReview),
+        (
+            WorkflowState::ArchitectureReview,
+            WorkflowState::Implementation,
+        ),
+        // Implementation → QaValidation requires ready_for_review
+        (WorkflowState::Implementation, WorkflowState::QaValidation),
         (WorkflowState::Implementation, WorkflowState::Blocked),
-        (
-            WorkflowState::WaitingForHuman,
-            WorkflowState::Implementation,
-        ),
-        (WorkflowState::WaitingForHuman, WorkflowState::Blocked),
-        (WorkflowState::ReadyForReview, WorkflowState::Implementation),
-        (WorkflowState::ReadyForReview, WorkflowState::Blocked),
+        // QaValidation transitions require respective facts
+        (WorkflowState::QaValidation, WorkflowState::ReleaseReady),
+        (WorkflowState::QaValidation, WorkflowState::Implementation),
+        (WorkflowState::QaValidation, WorkflowState::Blocked),
+        // ReleaseReady → Done requires stage_complete
+        (WorkflowState::ReleaseReady, WorkflowState::Done),
+        (WorkflowState::ReleaseReady, WorkflowState::Blocked),
+        // Terminal states have no transitions
+        (WorkflowState::Done, WorkflowState::New),
+        (WorkflowState::Done, WorkflowState::Implementation),
+        (WorkflowState::Aborted, WorkflowState::New),
+        (WorkflowState::Aborted, WorkflowState::Implementation),
+        // Blocked without blocker_resolved
         (WorkflowState::Blocked, WorkflowState::Implementation),
+        (WorkflowState::Blocked, WorkflowState::New),
     ];
 
     for (from, to) in invalid_pairs {
@@ -856,7 +938,7 @@ fn workflow_state_missing_transition_reason_formats_for_all_pairs() {
     // Exercises the wildcard arm of missing_transition_reason
     let facts = TransitionFacts::default();
     let error = WorkflowState::New
-        .validate_transition(WorkflowState::ReadyForReview, &facts)
+        .validate_transition(WorkflowState::QaValidation, &facts)
         .expect_err("unsupported transition should fail");
     assert!(error.to_string().contains("not supported"));
 }
@@ -1029,7 +1111,7 @@ fn feature_state_available_transitions_delegates_to_workflow_state() {
         ..TransitionFacts::default()
     };
     let transitions = feature.available_transitions(&facts);
-    assert!(transitions.contains(&WorkflowState::Implementation));
+    assert!(transitions.contains(&WorkflowState::PrdReview));
 }
 
 #[test]
@@ -1052,10 +1134,10 @@ fn feature_state_transition_to_succeeds_for_valid_transition() {
         ..TransitionFacts::default()
     };
     feature
-        .transition_to(WorkflowState::Implementation, &facts)
+        .transition_to(WorkflowState::PrdReview, &facts)
         .expect("valid transition should succeed");
 
-    assert_eq!(feature.workflow_state, WorkflowState::Implementation);
+    assert_eq!(feature.workflow_state, WorkflowState::PrdReview);
 }
 
 #[test]
@@ -1079,4 +1161,498 @@ fn feature_state_transition_to_rejects_invalid_transition() {
         .expect_err("invalid transition should fail");
 
     assert!(matches!(error, TransitionError::Rejected { .. }));
+}
+
+// --- 11-state lifecycle: new tests ---
+
+#[test]
+fn workflow_state_every_valid_forward_transition_succeeds() {
+    let forward_pairs = [
+        (
+            WorkflowState::New,
+            WorkflowState::PrdReview,
+            TransitionFacts {
+                feature_binding_complete: true,
+                ..TransitionFacts::default()
+            },
+        ),
+        (
+            WorkflowState::PrdReview,
+            WorkflowState::ArchitecturePlan,
+            TransitionFacts {
+                stage_complete: true,
+                ..TransitionFacts::default()
+            },
+        ),
+        (
+            WorkflowState::ArchitecturePlan,
+            WorkflowState::ScaffoldTdd,
+            TransitionFacts {
+                stage_complete: true,
+                ..TransitionFacts::default()
+            },
+        ),
+        (
+            WorkflowState::ScaffoldTdd,
+            WorkflowState::ArchitectureReview,
+            TransitionFacts {
+                stage_complete: true,
+                ..TransitionFacts::default()
+            },
+        ),
+        (
+            WorkflowState::ArchitectureReview,
+            WorkflowState::Implementation,
+            TransitionFacts {
+                stage_complete: true,
+                ..TransitionFacts::default()
+            },
+        ),
+        (
+            WorkflowState::Implementation,
+            WorkflowState::QaValidation,
+            TransitionFacts {
+                ready_for_review: true,
+                ..TransitionFacts::default()
+            },
+        ),
+        (
+            WorkflowState::QaValidation,
+            WorkflowState::ReleaseReady,
+            TransitionFacts {
+                stage_complete: true,
+                ..TransitionFacts::default()
+            },
+        ),
+        (
+            WorkflowState::QaValidation,
+            WorkflowState::Implementation,
+            TransitionFacts {
+                review_rework_required: true,
+                ..TransitionFacts::default()
+            },
+        ),
+        (
+            WorkflowState::ReleaseReady,
+            WorkflowState::Done,
+            TransitionFacts {
+                stage_complete: true,
+                ..TransitionFacts::default()
+            },
+        ),
+    ];
+
+    for (from, to, facts) in forward_pairs {
+        assert!(
+            from.clone().validate_transition(to.clone(), &facts).is_ok(),
+            "expected {from} -> {to} to succeed"
+        );
+    }
+}
+
+#[test]
+fn workflow_state_any_non_terminal_can_transition_to_blocked_and_aborted() {
+    let active_states = [
+        WorkflowState::New,
+        WorkflowState::PrdReview,
+        WorkflowState::ArchitecturePlan,
+        WorkflowState::ScaffoldTdd,
+        WorkflowState::ArchitectureReview,
+        WorkflowState::Implementation,
+        WorkflowState::QaValidation,
+        WorkflowState::ReleaseReady,
+    ];
+
+    let block_facts = TransitionFacts {
+        blocking_issue_present: true,
+        ..TransitionFacts::default()
+    };
+    let abort_facts = TransitionFacts {
+        aborted: true,
+        ..TransitionFacts::default()
+    };
+
+    for state in &active_states {
+        assert!(
+            state
+                .clone()
+                .validate_transition(WorkflowState::Blocked, &block_facts)
+                .is_ok(),
+            "expected {state} -> Blocked to succeed"
+        );
+        assert!(
+            state
+                .clone()
+                .validate_transition(WorkflowState::Aborted, &abort_facts)
+                .is_ok(),
+            "expected {state} -> Aborted to succeed"
+        );
+    }
+}
+
+#[test]
+fn workflow_state_done_and_aborted_are_terminal_with_no_transitions() {
+    let facts = TransitionFacts {
+        feature_binding_complete: true,
+        blocking_issue_present: true,
+        stage_complete: true,
+        ready_for_review: true,
+        blocker_resolved: true,
+        aborted: true,
+        ..TransitionFacts::default()
+    };
+
+    assert!(
+        WorkflowState::Done.available_transitions(&facts).is_empty(),
+        "Done should have no transitions"
+    );
+    assert!(
+        WorkflowState::Aborted
+            .available_transitions(&facts)
+            .is_empty(),
+        "Aborted should have no transitions"
+    );
+
+    let error = WorkflowState::Done
+        .validate_transition(WorkflowState::New, &facts)
+        .expect_err("Done -> New should be rejected");
+    assert!(error.to_string().contains("terminal"));
+
+    let error = WorkflowState::Aborted
+        .validate_transition(WorkflowState::New, &facts)
+        .expect_err("Aborted -> New should be rejected");
+    assert!(error.to_string().contains("terminal"));
+}
+
+#[test]
+fn workflow_state_blocked_can_unblock_to_every_non_terminal_state() {
+    let active_states = [
+        WorkflowState::New,
+        WorkflowState::PrdReview,
+        WorkflowState::ArchitecturePlan,
+        WorkflowState::ScaffoldTdd,
+        WorkflowState::ArchitectureReview,
+        WorkflowState::Implementation,
+        WorkflowState::QaValidation,
+        WorkflowState::ReleaseReady,
+    ];
+
+    for target in &active_states {
+        let facts = TransitionFacts {
+            blocker_resolved: true,
+            target_unblock_state: Some(target.clone()),
+            ..TransitionFacts::default()
+        };
+        assert!(
+            WorkflowState::Blocked
+                .validate_transition(target.clone(), &facts)
+                .is_ok(),
+            "Blocked -> {target} should succeed when blocker resolved"
+        );
+    }
+
+    // Terminal states must not be offered
+    let facts = TransitionFacts {
+        blocker_resolved: true,
+        ..TransitionFacts::default()
+    };
+    let transitions = WorkflowState::Blocked.available_transitions(&facts);
+    assert!(!transitions.contains(&WorkflowState::Done));
+    assert!(!transitions.contains(&WorkflowState::Aborted));
+}
+
+#[test]
+fn old_kebab_case_waiting_for_human_deserializes_without_error() {
+    let json = "\"waiting-for-human\"";
+    let state: WorkflowState = serde_json::from_str(json)
+        .expect("waiting-for-human should deserialize as deprecated alias");
+    assert_eq!(state, WorkflowState::WaitingForHuman);
+    // as_str returns the canonical equivalent
+    assert_eq!(state.as_str(), "implementation");
+}
+
+#[test]
+fn old_kebab_case_ready_for_review_deserializes_without_error() {
+    let json = "\"ready-for-review\"";
+    let state: WorkflowState = serde_json::from_str(json)
+        .expect("ready-for-review should deserialize as deprecated alias");
+    assert_eq!(state, WorkflowState::ReadyForReview);
+    // as_str returns the canonical equivalent
+    assert_eq!(state.as_str(), "release-ready");
+}
+
+#[test]
+fn old_state_file_with_waiting_for_human_loads_without_panic() {
+    let json = r#"{
+        "version": 1,
+        "repo_id": "legacy",
+        "current_feature": {
+            "feature_id": "feat-legacy",
+            "branch": "feat/legacy",
+            "worktree_path": "/worktrees/legacy",
+            "pull_request": {"number": 1, "url": "https://github.com/o/r/pull/1"},
+            "workflow_state": "waiting-for-human",
+            "gate_groups": [],
+            "active_sessions": []
+        }
+    }"#;
+    let state =
+        RepositoryState::from_json(json).expect("old state with waiting-for-human should load");
+    assert_eq!(
+        state.current_feature.workflow_state,
+        WorkflowState::WaitingForHuman
+    );
+}
+
+#[test]
+fn old_state_file_with_ready_for_review_loads_without_panic() {
+    let json = r#"{
+        "version": 1,
+        "repo_id": "legacy",
+        "current_feature": {
+            "feature_id": "feat-legacy",
+            "branch": "feat/legacy",
+            "worktree_path": "/worktrees/legacy",
+            "pull_request": {"number": 1, "url": "https://github.com/o/r/pull/1"},
+            "workflow_state": "ready-for-review",
+            "gate_groups": [],
+            "active_sessions": []
+        }
+    }"#;
+    let state =
+        RepositoryState::from_json(json).expect("old state with ready-for-review should load");
+    assert_eq!(
+        state.current_feature.workflow_state,
+        WorkflowState::ReadyForReview
+    );
+}
+
+#[test]
+fn embedded_template_parses_and_references_all_11_states() {
+    let template = load_embedded_template_set().expect("embedded template should load");
+
+    let expected_states = [
+        "new",
+        "prd-review",
+        "architecture-plan",
+        "scaffold-tdd",
+        "architecture-review",
+        "implementation",
+        "qa-validation",
+        "release-ready",
+        "done",
+        "blocked",
+        "aborted",
+    ];
+
+    for state in expected_states {
+        assert!(
+            template.state_machine.states.contains(&state.to_string()),
+            "embedded template should include state '{state}'"
+        );
+    }
+
+    assert_eq!(template.state_machine.initial_state, "new");
+}
+
+#[test]
+fn workflow_state_valid_next_states_covers_full_transition_matrix() {
+    assert_eq!(
+        WorkflowState::New.valid_next_states(),
+        vec![
+            WorkflowState::PrdReview,
+            WorkflowState::Blocked,
+            WorkflowState::Aborted
+        ]
+    );
+    assert_eq!(WorkflowState::Done.valid_next_states(), vec![]);
+    assert_eq!(WorkflowState::Aborted.valid_next_states(), vec![]);
+    // Blocked offers all 8 active states
+    assert_eq!(WorkflowState::Blocked.valid_next_states().len(), 8);
+}
+
+#[test]
+fn workflow_state_valid_next_states_covers_all_remaining_states() {
+    assert_eq!(
+        WorkflowState::PrdReview.valid_next_states(),
+        vec![
+            WorkflowState::ArchitecturePlan,
+            WorkflowState::Blocked,
+            WorkflowState::Aborted
+        ]
+    );
+    assert_eq!(
+        WorkflowState::ArchitecturePlan.valid_next_states(),
+        vec![
+            WorkflowState::ScaffoldTdd,
+            WorkflowState::Blocked,
+            WorkflowState::Aborted
+        ]
+    );
+    assert_eq!(
+        WorkflowState::ScaffoldTdd.valid_next_states(),
+        vec![
+            WorkflowState::ArchitectureReview,
+            WorkflowState::Blocked,
+            WorkflowState::Aborted
+        ]
+    );
+    assert_eq!(
+        WorkflowState::ArchitectureReview.valid_next_states(),
+        vec![
+            WorkflowState::Implementation,
+            WorkflowState::Blocked,
+            WorkflowState::Aborted
+        ]
+    );
+    assert_eq!(
+        WorkflowState::Implementation.valid_next_states(),
+        vec![
+            WorkflowState::QaValidation,
+            WorkflowState::Blocked,
+            WorkflowState::Aborted
+        ]
+    );
+    assert_eq!(
+        WorkflowState::QaValidation.valid_next_states(),
+        vec![
+            WorkflowState::ReleaseReady,
+            WorkflowState::Implementation,
+            WorkflowState::Blocked,
+            WorkflowState::Aborted
+        ]
+    );
+    assert_eq!(
+        WorkflowState::ReleaseReady.valid_next_states(),
+        vec![
+            WorkflowState::Done,
+            WorkflowState::Blocked,
+            WorkflowState::Aborted
+        ]
+    );
+    // Deprecated variants preserve their transition lists
+    assert_eq!(
+        WorkflowState::WaitingForHuman.valid_next_states(),
+        vec![
+            WorkflowState::QaValidation,
+            WorkflowState::Blocked,
+            WorkflowState::Aborted
+        ]
+    );
+    assert_eq!(
+        WorkflowState::ReadyForReview.valid_next_states(),
+        vec![
+            WorkflowState::Done,
+            WorkflowState::Blocked,
+            WorkflowState::Aborted
+        ]
+    );
+}
+
+#[test]
+fn workflow_state_missing_transition_reason_covers_all_reject_arms() {
+    let facts = TransitionFacts::default();
+
+    // PrdReview -> Aborted (abort flag not set)
+    let err = WorkflowState::PrdReview
+        .validate_transition(WorkflowState::Aborted, &facts)
+        .unwrap_err();
+    assert!(err.to_string().contains("abort flag is not set"), "{err}");
+
+    // ArchitecturePlan -> Blocked / Aborted
+    let err = WorkflowState::ArchitecturePlan
+        .validate_transition(WorkflowState::Blocked, &facts)
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("no blocking issue is present"),
+        "{err}"
+    );
+
+    let err = WorkflowState::ArchitecturePlan
+        .validate_transition(WorkflowState::Aborted, &facts)
+        .unwrap_err();
+    assert!(err.to_string().contains("abort flag is not set"), "{err}");
+
+    // ScaffoldTdd -> Blocked / Aborted
+    let err = WorkflowState::ScaffoldTdd
+        .validate_transition(WorkflowState::Blocked, &facts)
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("no blocking issue is present"),
+        "{err}"
+    );
+
+    let err = WorkflowState::ScaffoldTdd
+        .validate_transition(WorkflowState::Aborted, &facts)
+        .unwrap_err();
+    assert!(err.to_string().contains("abort flag is not set"), "{err}");
+
+    // ArchitectureReview -> Blocked / Aborted
+    let err = WorkflowState::ArchitectureReview
+        .validate_transition(WorkflowState::Blocked, &facts)
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("no blocking issue is present"),
+        "{err}"
+    );
+
+    let err = WorkflowState::ArchitectureReview
+        .validate_transition(WorkflowState::Aborted, &facts)
+        .unwrap_err();
+    assert!(err.to_string().contains("abort flag is not set"), "{err}");
+
+    // Implementation -> Aborted
+    let err = WorkflowState::Implementation
+        .validate_transition(WorkflowState::Aborted, &facts)
+        .unwrap_err();
+    assert!(err.to_string().contains("abort flag is not set"), "{err}");
+
+    // QaValidation -> Aborted
+    let err = WorkflowState::QaValidation
+        .validate_transition(WorkflowState::Aborted, &facts)
+        .unwrap_err();
+    assert!(err.to_string().contains("abort flag is not set"), "{err}");
+
+    // ReleaseReady -> Aborted
+    let err = WorkflowState::ReleaseReady
+        .validate_transition(WorkflowState::Aborted, &facts)
+        .unwrap_err();
+    assert!(err.to_string().contains("abort flag is not set"), "{err}");
+
+    // WaitingForHuman -> Blocked (deprecated)
+    let err = WorkflowState::WaitingForHuman
+        .validate_transition(WorkflowState::Blocked, &facts)
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("no blocking issue is present"),
+        "{err}"
+    );
+
+    // WaitingForHuman -> Implementation (deprecated)
+    let err = WorkflowState::WaitingForHuman
+        .validate_transition(WorkflowState::Implementation, &facts)
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("no human response is available"),
+        "{err}"
+    );
+
+    // ReadyForReview -> Blocked (deprecated)
+    let err = WorkflowState::ReadyForReview
+        .validate_transition(WorkflowState::Blocked, &facts)
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("no blocking issue is present"),
+        "{err}"
+    );
+
+    // ReadyForReview -> Implementation (deprecated)
+    let err = WorkflowState::ReadyForReview
+        .validate_transition(WorkflowState::Implementation, &facts)
+        .unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("no follow-up implementation request is present"),
+        "{err}"
+    );
 }

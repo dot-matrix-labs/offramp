@@ -181,7 +181,7 @@ pub fn load_or_initialize_runtime(
 
         let state = RepositoryState {
             version: STATE_VERSION,
-            schema_version: 1,
+            schema_version: 2,
             repo_id: context.repo_id.clone(),
             current_feature: feature,
             identity: Default::default(),
