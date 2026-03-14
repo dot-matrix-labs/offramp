@@ -277,6 +277,23 @@ tasks:
     }
 
     #[test]
+    fn evaluate_policy_gate_returns_false_for_unknown_evaluator() {
+        use crate::template::{PolicyGateKind, PolicyGateTemplate};
+
+        let gate = PolicyGateTemplate {
+            gate_id: "unknown-gate".to_string(),
+            evaluator: "builtin.unknown.evaluator".to_string(),
+            kind: PolicyGateKind::Hook,
+            paths: vec![],
+            watched_paths: vec![],
+            skip_on_tag_push: false,
+        };
+        let environment = FakePolicyEnvironment::default();
+        let result = evaluate_policy_gate(&environment, Path::new("/tmp"), &gate);
+        assert!(!result);
+    }
+
+    #[test]
     fn policy_evidence_fails_when_plan_or_workflows_are_missing_or_stale() {
         let repo_root = Path::new("/tmp/calypso-policy");
         let environment = FakePolicyEnvironment::default()
