@@ -7,11 +7,11 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use calypso_cli::feature_start::run_feature_start;
 use calypso_cli::feature_start::{
     FeatureStartEnvironment, FeatureStartError, FeatureStartRequest, HostFeatureStartEnvironment,
     derive_feature_branch_name, start_feature,
 };
-use calypso_cli::feature_start::run_feature_start;
 use calypso_cli::state::{PullRequestRef, RepositoryState};
 
 static TEMP_DIR_COUNTER: AtomicU64 = AtomicU64::new(0);
@@ -549,10 +549,7 @@ fn start_feature_rejects_existing_worktree_path() {
     let error = start_feature(Path::new("."), &sample_request(), &environment)
         .expect_err("existing worktree path should fail");
 
-    assert!(matches!(
-        error,
-        FeatureStartError::WorktreePathExists(_)
-    ));
+    assert!(matches!(error, FeatureStartError::WorktreePathExists(_)));
     assert!(environment.actions.borrow().is_empty());
 }
 
@@ -755,7 +752,12 @@ fn host_environment_rolls_back_branch_and_worktree_when_gh_pr_create_fails() {
             );
 
             let branch_check = Command::new("git")
-                .args(["show-ref", "--verify", "--quiet", "refs/heads/feat/gh-fail-test"])
+                .args([
+                    "show-ref",
+                    "--verify",
+                    "--quiet",
+                    "refs/heads/feat/gh-fail-test",
+                ])
                 .current_dir(&repo_root)
                 .output()
                 .expect("git show-ref should run");
