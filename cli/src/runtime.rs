@@ -186,10 +186,6 @@ pub fn load_or_initialize_runtime(
             current_feature: feature,
             identity: Default::default(),
             providers: Vec::new(),
-            github_auth_ref: None,
-            secure_key_refs: Vec::new(),
-            active_features: Vec::new(),
-            known_worktrees: Vec::new(),
             releases: Vec::new(),
             deployments: Vec::new(),
         };

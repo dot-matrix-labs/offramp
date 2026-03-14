@@ -3,9 +3,9 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use calypso_cli::state::{
-    ArtifactRef, ClarificationEntry, FeatureState, FeatureSummary, FeatureType, Gate, GateGroup,
-    GateStatus, PullRequestRef, RepositoryIdentity, RepositoryState, RoleSession, SchedulingMeta,
-    SecureKeyRef, WorkflowState, WorktreeSummary,
+    ArtifactRef, ClarificationEntry, FeatureState, FeatureType, Gate, GateGroup, GateStatus,
+    PullRequestRef, RepositoryIdentity, RepositoryState, RoleSession, SchedulingMeta,
+    WorkflowState,
 };
 
 fn temp_path(suffix: &str) -> PathBuf {
@@ -59,24 +59,6 @@ fn full_repository_state() -> RepositoryState {
             default_branch: "main".to_string(),
         },
         providers: vec!["openai".to_string(), "anthropic".to_string()],
-        github_auth_ref: Some("GITHUB_TOKEN_REF".to_string()),
-        secure_key_refs: vec![SecureKeyRef {
-            id: "key-001".to_string(),
-            name: "OpenAI API Key".to_string(),
-            purpose: "llm-provider".to_string(),
-        }],
-        active_features: vec![FeatureSummary {
-            feature_id: "feat-auth".to_string(),
-            branch: "feat/auth".to_string(),
-            worktree_path: "/worktrees/feat-auth".to_string(),
-            pr_number: Some(42),
-            state: WorkflowState::Implementation,
-        }],
-        known_worktrees: vec![WorktreeSummary {
-            path: "/worktrees/feat-auth".to_string(),
-            branch: "feat/auth".to_string(),
-            feature_id: Some("feat-auth".to_string()),
-        }],
         releases: Vec::new(),
         deployments: Vec::new(),
         current_feature: minimal_feature_state("feat-auth"),

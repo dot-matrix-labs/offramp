@@ -18,10 +18,6 @@ fn sample_state() -> RepositoryState {
         repo_id: "acme-api".to_string(),
         identity: RepositoryIdentity::default(),
         providers: Vec::new(),
-        github_auth_ref: None,
-        secure_key_refs: Vec::new(),
-        active_features: Vec::new(),
-        known_worktrees: Vec::new(),
         releases: Vec::new(),
         deployments: Vec::new(),
         current_feature: FeatureState {
