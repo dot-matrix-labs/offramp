@@ -111,7 +111,61 @@ fn main() {
             let cwd = std::env::current_dir().expect("current directory should resolve");
             run_template_validate(&cwd);
         }
+        // calypso <path> — launch TUI for a specific project directory
+        [path] if looks_like_path(path) => {
+            let project_dir = std::path::Path::new(path);
+            let state_path = project_dir.join(".calypso").join("state.json");
+            run_watch(&state_path.to_string_lossy());
+        }
+        // calypso — no args, launch TUI from current working directory
+        [] => {
+            let cwd = std::env::current_dir().expect("current directory should resolve");
+            let state_path = cwd.join(".calypso").join("state.json");
+            run_watch(&state_path.to_string_lossy());
+        }
         _ => println!("{}", render_help(info)),
+    }
+}
+
+fn looks_like_path(arg: &str) -> bool {
+    arg.starts_with('.') || arg.starts_with('/') || arg.starts_with('~') || std::path::Path::new(arg).is_dir()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::looks_like_path;
+
+    #[test]
+    fn looks_like_path_recognises_dot_relative() {
+        assert!(looks_like_path("./my-project"));
+        assert!(looks_like_path("../sibling"));
+        assert!(looks_like_path("."));
+    }
+
+    #[test]
+    fn looks_like_path_recognises_absolute() {
+        assert!(looks_like_path("/home/user/project"));
+        assert!(looks_like_path("/tmp"));
+    }
+
+    #[test]
+    fn looks_like_path_recognises_tilde() {
+        assert!(looks_like_path("~/projects/calypso"));
+    }
+
+    #[test]
+    fn looks_like_path_rejects_subcommands() {
+        assert!(!looks_like_path("doctor"));
+        assert!(!looks_like_path("status"));
+        assert!(!looks_like_path("watch"));
+        assert!(!looks_like_path("--version"));
+        assert!(!looks_like_path("-v"));
+    }
+
+    #[test]
+    fn looks_like_path_accepts_existing_directory() {
+        let tmp = std::env::temp_dir();
+        assert!(looks_like_path(tmp.to_str().expect("temp dir should be valid utf-8")));
     }
 }
 
