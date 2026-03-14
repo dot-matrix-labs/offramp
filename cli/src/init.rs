@@ -279,6 +279,8 @@ fn do_init_steps(
         active_features: vec![],
         known_worktrees: vec![],
         current_feature: default_feature_state(),
+        releases: vec![],
+        deployments: vec![],
     };
 
     let json = serde_json::to_string_pretty(&state).map_err(InitError::StateSerialize)?;
