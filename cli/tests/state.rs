@@ -770,7 +770,11 @@ fn feature_state_rejects_all_missing_fact_transitions() {
     let error = sample_feature(WorkflowState::Blocked)
         .transition_to(WorkflowState::Implementation, &TransitionFacts::default())
         .expect_err("unresolved blocker should reject");
-    assert!(error.to_string().contains("blocking issue is still present"));
+    assert!(
+        error
+            .to_string()
+            .contains("blocking issue is still present")
+    );
 
     // Unsupported transition (New -> Blocked)
     let error = sample_feature(WorkflowState::New)
