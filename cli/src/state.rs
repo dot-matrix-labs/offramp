@@ -15,14 +15,13 @@ pub struct RepositoryIdentity {
     pub default_branch: String,
 }
 
-/// A reference to a secure credential. Contains only the reference identifier,
-/// never the raw secret value.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SecureKeyRef {
-    pub id: String,
-    pub name: String,
-    pub purpose: String,
-}
+// FUTURE: #42 — vault-backed credential references
+// #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+// pub struct SecureKeyRef {
+//     pub id: String,
+//     pub name: String,
+//     pub purpose: String,
+// }
 
 /// A summary entry for an active feature, used in the repository-level index.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -58,18 +57,18 @@ pub struct RepositoryState {
     /// Names of configured providers (no secrets).
     #[serde(default)]
     pub providers: Vec<String>,
-    /// Token name or keychain reference for GitHub auth. Never the raw token.
-    #[serde(default)]
-    pub github_auth_ref: Option<String>,
-    /// References to secure keys. Contains only identifiers, never raw secrets.
-    #[serde(default)]
-    pub secure_key_refs: Vec<SecureKeyRef>,
-    /// Index of all active features.
-    #[serde(default)]
-    pub active_features: Vec<FeatureSummary>,
-    /// All known worktrees for this repository.
-    #[serde(default)]
-    pub known_worktrees: Vec<WorktreeSummary>,
+    // FUTURE: #42 — token name or keychain reference for GitHub auth; never the raw token
+    // #[serde(default)]
+    // pub github_auth_ref: Option<String>,
+    // FUTURE: #42 — vault-backed credential references; contains only identifiers, never raw secrets
+    // #[serde(default)]
+    // pub secure_key_refs: Vec<SecureKeyRef>,
+    // FUTURE: #40 — repository-level index of all active features
+    // #[serde(default)]
+    // pub active_features: Vec<FeatureSummary>,
+    // FUTURE: #40 — registry of all known git worktrees for this repository
+    // #[serde(default)]
+    // pub known_worktrees: Vec<WorktreeSummary>,
     /// Release records for this repository.
     #[serde(default)]
     pub releases: Vec<ReleaseRecord>,

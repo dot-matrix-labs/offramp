@@ -430,8 +430,9 @@ pub struct GateTemplate {
     pub id: String,
     pub label: String,
     pub task: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub recheck_trigger: Option<String>,
+    // FUTURE: #72 — parsed but not yet enforced by the workflow engine
+    // #[serde(skip_serializing_if = "Option::is_none")]
+    // pub recheck_trigger: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timeout_policy: Option<TimeoutPolicy>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -446,8 +447,9 @@ pub struct GateTemplate {
     pub blocking_scope: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub applies_to: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub status_source: Option<String>,
+    // FUTURE: #72 — parsed but not yet enforced by the workflow engine
+    // #[serde(skip_serializing_if = "Option::is_none")]
+    // pub status_source: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

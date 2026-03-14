@@ -786,7 +786,6 @@ fn validate_coherence_returns_error_for_gate_referencing_nonexistent_task() {
                     id: "some-gate".to_string(),
                     label: "Some gate".to_string(),
                     task: "nonexistent-task".to_string(),
-                    recheck_trigger: None,
                     timeout_policy: None,
                     waiver_policy: None,
                     auto_open_task_on_fail: None,
@@ -794,7 +793,6 @@ fn validate_coherence_returns_error_for_gate_referencing_nonexistent_task() {
                     allow_parallel_with: None,
                     blocking_scope: None,
                     applies_to: None,
-                    status_source: None,
                 }],
             }],
             policy_gates: vec![],
@@ -1082,7 +1080,6 @@ fn make_coherence_template() -> TemplateSet {
                     id: "some-gate".to_string(),
                     label: "Some gate".to_string(),
                     task: "human-approval".to_string(),
-                    recheck_trigger: None,
                     timeout_policy: None,
                     waiver_policy: None,
                     auto_open_task_on_fail: None,
@@ -1090,7 +1087,6 @@ fn make_coherence_template() -> TemplateSet {
                     allow_parallel_with: None,
                     blocking_scope: None,
                     applies_to: None,
-                    status_source: None,
                 }],
             }],
             policy_gates: vec![],
@@ -1158,7 +1154,6 @@ fn validate_coherence_reports_unrecognized_builtin_keyword() {
             id: "mystery-gate".to_string(),
             label: "Mystery gate".to_string(),
             task: "mystery-check".to_string(),
-            recheck_trigger: None,
             timeout_policy: None,
             waiver_policy: None,
             auto_open_task_on_fail: None,
@@ -1166,7 +1161,6 @@ fn validate_coherence_reports_unrecognized_builtin_keyword() {
             allow_parallel_with: None,
             blocking_scope: None,
             applies_to: None,
-            status_source: None,
         });
 
     let errors = template.validate_coherence();

@@ -625,10 +625,6 @@ mod tests {
             current_feature: minimal_feature(workflow_state),
             identity: Default::default(),
             providers: vec![],
-            github_auth_ref: None,
-            secure_key_refs: vec![],
-            active_features: vec![],
-            known_worktrees: vec![],
             releases: vec![],
             deployments: vec![],
         }
