@@ -18,6 +18,9 @@ pub enum FakeOutcome {
     Ok { summary: String },
     Nok { summary: String, reason: String },
     Aborted { reason: String },
+    /// Emits only a `[CALYPSO:CLARIFICATION]` line — no terminal outcome marker.
+    /// Calypso should detect this and surface it as an operator input request.
+    Clarification { question: String },
 }
 
 impl FakeOutcome {
@@ -31,6 +34,9 @@ impl FakeOutcome {
             }
             FakeOutcome::Aborted { reason } => {
                 format!(r#"[CALYPSO:ABORTED]{{"reason":"{reason}"}}"#)
+            }
+            FakeOutcome::Clarification { question } => {
+                format!(r#"[CALYPSO:CLARIFICATION]{question}"#)
             }
         }
     }

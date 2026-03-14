@@ -205,3 +205,262 @@ fn spawned_calypso_run_with_fake_claude_ok() {
         output.stdout
     );
 }
+
+// ── Orchestrator-level scenarios ───────────────────────────────────────────────
+//
+// Each test below spawns `calypso` as a real child process and asserts on BOTH
+// the process exit code AND the resulting state file on disk.  The fake `claude`
+// binary is installed on PATH so that the full decision loop is exercised
+// without a live Anthropic API key.
+
+/// Scenario 1 — OK: calypso receives `[CALYPSO:OK]` → state file advances to
+/// the next workflow state.
+///
+/// Starting from `implementation`, the forward state is `qa-validation`.
+#[test]
+fn orchestrator_ok_advances_workflow_state() {
+    let _guard = path_mutex()
+        .lock()
+        .expect("PATH mutex should not be poisoned");
+
+    let fake = FakeClaude::builder()
+        .outcome(FakeOutcome::Ok {
+            summary: "implementation complete".to_string(),
+        })
+        .install();
+
+    // Start in `implementation` state.
+    let state_json = r#"{
+  "version": 1,
+  "repo_id": "test-repo",
+  "schema_version": 1,
+  "current_feature": {
+    "feature_id": "feat-orch-ok-001",
+    "branch": "feat/orch-ok-001",
+    "worktree_path": "/tmp",
+    "pull_request": {
+      "number": 10,
+      "url": "https://github.com/example/repo/pull/10"
+    },
+    "workflow_state": "implementation",
+    "gate_groups": [],
+    "active_sessions": []
+  }
+}"#;
+
+    let output = spawned_calypso()
+        .prepend_path(fake.dir.clone())
+        .args(["run", "feat-orch-ok-001", "--role", "implementer"])
+        .state_file_json(state_json)
+        .run();
+
+    assert_eq!(
+        output.exit_code, 0,
+        "calypso run OK should exit 0\nstdout: {}\nstderr: {}",
+        output.stdout, output.stderr
+    );
+
+    let state_on_disk = output
+        .read_state_json()
+        .expect("state file should exist after OK run");
+
+    assert!(
+        state_on_disk.contains("qa-validation"),
+        "state file should advance to qa-validation after OK, got: {state_on_disk}"
+    );
+    assert!(
+        !state_on_disk.contains(r#""workflow_state": "implementation""#),
+        "state file should no longer be in implementation state, got: {state_on_disk}"
+    );
+}
+
+/// Scenario 2 — NOK: calypso receives `[CALYPSO:NOK]` → state file stays in
+/// current state and the process exits non-zero.
+#[test]
+fn orchestrator_nok_preserves_workflow_state() {
+    let _guard = path_mutex()
+        .lock()
+        .expect("PATH mutex should not be poisoned");
+
+    let fake = FakeClaude::builder()
+        .outcome(FakeOutcome::Nok {
+            summary: "tests still red".to_string(),
+            reason: "unit tests are failing".to_string(),
+        })
+        .install();
+
+    let state_json = r#"{
+  "version": 1,
+  "repo_id": "test-repo",
+  "schema_version": 1,
+  "current_feature": {
+    "feature_id": "feat-orch-nok-001",
+    "branch": "feat/orch-nok-001",
+    "worktree_path": "/tmp",
+    "pull_request": {
+      "number": 11,
+      "url": "https://github.com/example/repo/pull/11"
+    },
+    "workflow_state": "implementation",
+    "gate_groups": [],
+    "active_sessions": []
+  }
+}"#;
+
+    let output = spawned_calypso()
+        .prepend_path(fake.dir.clone())
+        .args(["run", "feat-orch-nok-001", "--role", "implementer"])
+        .state_file_json(state_json)
+        .run();
+
+    assert_ne!(
+        output.exit_code, 0,
+        "calypso run NOK should exit non-zero\nstdout: {}\nstderr: {}",
+        output.stdout, output.stderr
+    );
+
+    assert!(
+        output.stdout.contains("Outcome: NOK") || output.stderr.contains("NOK"),
+        "NOK error should be surfaced in stdout or stderr, got stdout: {:?} stderr: {:?}",
+        output.stdout,
+        output.stderr
+    );
+
+    let state_on_disk = output
+        .read_state_json()
+        .expect("state file should still exist after NOK run");
+
+    assert!(
+        state_on_disk.contains("implementation"),
+        "state file should remain in implementation after NOK, got: {state_on_disk}"
+    );
+    assert!(
+        !state_on_disk.contains("qa-validation"),
+        "state file must not advance on NOK, got: {state_on_disk}"
+    );
+}
+
+/// Scenario 3 — CLARIFICATION: calypso receives `[CALYPSO:CLARIFICATION]` →
+/// calypso surfaces the question (non-interactive mode exits with code 2).
+#[test]
+fn orchestrator_clarification_surfaces_operator_question() {
+    let _guard = path_mutex()
+        .lock()
+        .expect("PATH mutex should not be poisoned");
+
+    let fake = FakeClaude::builder()
+        .outcome(FakeOutcome::Clarification {
+            question: "Which ticket number should I use?".to_string(),
+        })
+        .install();
+
+    let state_json = r#"{
+  "version": 1,
+  "repo_id": "test-repo",
+  "schema_version": 1,
+  "current_feature": {
+    "feature_id": "feat-orch-clarify-001",
+    "branch": "feat/orch-clarify-001",
+    "worktree_path": "/tmp",
+    "pull_request": {
+      "number": 12,
+      "url": "https://github.com/example/repo/pull/12"
+    },
+    "workflow_state": "implementation",
+    "gate_groups": [],
+    "active_sessions": []
+  }
+}"#;
+
+    let output = spawned_calypso()
+        .prepend_path(fake.dir.clone())
+        .args(["run", "feat-orch-clarify-001", "--role", "implementer"])
+        .state_file_json(state_json)
+        .run();
+
+    // In non-interactive mode calypso exits 2 when a clarification is needed.
+    assert_eq!(
+        output.exit_code, 2,
+        "calypso run CLARIFICATION should exit 2\nstdout: {}\nstderr: {}",
+        output.stdout, output.stderr
+    );
+
+    // The question must appear somewhere in the process output.
+    let combined = format!("{}{}", output.stdout, output.stderr);
+    assert!(
+        combined.contains("Which ticket number"),
+        "clarification question should be surfaced in output, got stdout: {:?} stderr: {:?}",
+        output.stdout,
+        output.stderr
+    );
+
+    // State file must not be modified — workflow stays in implementation.
+    let state_on_disk = output
+        .read_state_json()
+        .expect("state file should still exist after CLARIFICATION");
+
+    assert!(
+        state_on_disk.contains("implementation"),
+        "state file should remain in implementation after CLARIFICATION, got: {state_on_disk}"
+    );
+}
+
+/// Scenario 4 — ABORTED: calypso receives `[CALYPSO:ABORTED]` → state file
+/// transitions to `aborted` and the process exits non-zero.
+#[test]
+fn orchestrator_aborted_transitions_to_aborted_state() {
+    let _guard = path_mutex()
+        .lock()
+        .expect("PATH mutex should not be poisoned");
+
+    let fake = FakeClaude::builder()
+        .outcome(FakeOutcome::Aborted {
+            reason: "operator cancelled the session".to_string(),
+        })
+        .install();
+
+    let state_json = r#"{
+  "version": 1,
+  "repo_id": "test-repo",
+  "schema_version": 1,
+  "current_feature": {
+    "feature_id": "feat-orch-abort-001",
+    "branch": "feat/orch-abort-001",
+    "worktree_path": "/tmp",
+    "pull_request": {
+      "number": 13,
+      "url": "https://github.com/example/repo/pull/13"
+    },
+    "workflow_state": "implementation",
+    "gate_groups": [],
+    "active_sessions": []
+  }
+}"#;
+
+    let output = spawned_calypso()
+        .prepend_path(fake.dir.clone())
+        .args(["run", "feat-orch-abort-001", "--role", "implementer"])
+        .state_file_json(state_json)
+        .run();
+
+    assert_ne!(
+        output.exit_code, 0,
+        "calypso run ABORTED should exit non-zero\nstdout: {}\nstderr: {}",
+        output.stdout, output.stderr
+    );
+
+    assert!(
+        output.stdout.contains("Outcome: ABORTED"),
+        "ABORTED outcome should appear in stdout, got: {:?}",
+        output.stdout
+    );
+
+    let state_on_disk = output
+        .read_state_json()
+        .expect("state file should exist after ABORTED run");
+
+    assert!(
+        state_on_disk.contains("aborted"),
+        "state file should transition to aborted state, got: {state_on_disk}"
+    );
+}
