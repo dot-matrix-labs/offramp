@@ -110,7 +110,11 @@ cargo check
 
 ## Cross-Platform Compilation
 
-The release process builds for multiple platforms. To test cross-platform builds locally:
+The release process currently builds for 3 platforms (Linux x86_64, macOS x86_64, macOS aarch64).
+
+**Known Limitation**: aarch64 Linux cross-compilation requires toolchain fixes (object file format mismatch). Tracked in a separate issue for future resolution.
+
+To test cross-platform builds locally:
 
 ### Linux x86_64
 ```bash

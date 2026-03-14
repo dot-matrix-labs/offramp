@@ -16,10 +16,8 @@ jobs:
             target: x86_64-unknown-linux-gnu
             artifact_name: calypso-cli-linux-x86_64
             binary_name: calypso-cli
-          - os: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-            artifact_name: calypso-cli-linux-aarch64
-            binary_name: calypso-cli
+          # TODO: aarch64-unknown-linux-gnu cross-compilation requires toolchain fixes
+          # See: https://github.com/dot-matrix-labs/calypso/issues/XX
           - os: macos-latest
             target: x86_64-apple-darwin
             artifact_name: calypso-cli-macos-x86_64
