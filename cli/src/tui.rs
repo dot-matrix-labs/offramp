@@ -456,8 +456,20 @@ pub fn run_terminal_surface(feature: &mut FeatureState) -> io::Result<()> {
     run_terminal_iteration(&mut stdout, feature, &mut surface, type_c, &mut layout)?;
     // Exercise Tab (sidebar focus) + session navigation (Down/Up selects sessions)
     run_terminal_iteration(&mut stdout, feature, &mut surface, tab.clone(), &mut layout)?;
-    run_terminal_iteration(&mut stdout, feature, &mut surface, scroll_down.clone(), &mut layout)?;
-    run_terminal_iteration(&mut stdout, feature, &mut surface, scroll_up.clone(), &mut layout)?;
+    run_terminal_iteration(
+        &mut stdout,
+        feature,
+        &mut surface,
+        scroll_down.clone(),
+        &mut layout,
+    )?;
+    run_terminal_iteration(
+        &mut stdout,
+        feature,
+        &mut surface,
+        scroll_up.clone(),
+        &mut layout,
+    )?;
     // Tab back to main focus and exercise scroll
     run_terminal_iteration(&mut stdout, feature, &mut surface, tab, &mut layout)?;
     run_terminal_iteration(&mut stdout, feature, &mut surface, scroll_down, &mut layout)?;
@@ -1063,7 +1075,11 @@ impl OperatorSurface {
                 if row >= content_rows.saturating_sub(1) {
                     break;
                 }
-                let cursor = if self.selected_session == Some(i) { "●" } else { " " };
+                let cursor = if self.selected_session == Some(i) {
+                    "●"
+                } else {
+                    " "
+                };
                 let status_icon = match session.status.as_str() {
                     "running" => "▶",
                     "completed" => "✓",
@@ -2090,7 +2106,10 @@ pub enum AppEvent {
     /// A follow-up message was submitted from the Agents tab.
     FollowUpSubmitted(String),
     /// A clarification question was answered from the Agents tab.
-    ClarificationAnswered { session_id: String, answer: String },
+    ClarificationAnswered {
+        session_id: String,
+        answer: String,
+    },
     /// The operator requested interruption of all active sessions.
     Interrupted,
 }

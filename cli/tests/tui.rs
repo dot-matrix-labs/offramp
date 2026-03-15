@@ -1195,10 +1195,6 @@ fn app_shell_sm_jump_to_agents_focuses_session() {
 
     assert_eq!(shell.tab, calypso_cli::tui::AppTab::Agents);
     // Operator should have session_01 focused (index 0)
-    let selected = shell
-        .operator
-        .as_ref()
-        .unwrap()
-        .selected_session();
+    let selected = shell.operator.as_ref().unwrap().selected_session();
     assert_eq!(selected, Some(0));
 }
