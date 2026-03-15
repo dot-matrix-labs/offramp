@@ -1807,7 +1807,11 @@ impl StateMachineSurface {
                 break;
             }
 
-            let cursor = if list_idx == self.selected { "▶" } else { " " };
+            let cursor = if list_idx == self.selected {
+                "▶"
+            } else {
+                " "
+            };
             let expand_icon = if sm_row.is_expandable {
                 if sm_row.is_expanded { "▾" } else { "▸" }
             } else {
@@ -1873,7 +1877,8 @@ impl StateMachineSurface {
             KeyCode::Enter => {
                 // Expand the selected row if it has children and is not yet open.
                 if let Some(row) = rows.get(self.selected).cloned()
-                    && row.is_expandable && !row.is_expanded
+                    && row.is_expandable
+                    && !row.is_expanded
                 {
                     self.expand_node(row.node_id);
                 }
